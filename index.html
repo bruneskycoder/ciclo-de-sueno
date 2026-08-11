@@ -2,14 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <!-- CRÍTICO PARA iOS: Evita el zoom automático y fuerza el ancho real -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- Etiquetas PWA para iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Ciclos de Sueño</title>
     
     <style>
-        /* Arquitectura Responsive: Variables fluidas y Flexbox */
         :root {
             --bg-main: #0f172a;
             --bg-card: #1e293b;
@@ -17,15 +16,18 @@
             --text-muted: #94a3b8;
             --accent: #3b82f6;
             --success: #10b981;
+            --warning: #fbbf24;
+            --danger: #ef4444;
             --border: #334155;
+            --nav-height: 70px;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-main);
             color: var(--text-main);
             margin: 0;
-            /* Padding adaptable: menor en móviles pequeños, mayor en pantallas anchas */
-            padding: 5vw 4vw; 
+            padding: 0;
+            padding-bottom: var(--nav-height); /* Espacio para la barra de navegación */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -33,129 +35,160 @@
         }
         .app-container {
             width: 100%;
-            max-width: 500px; /* Limita el ancho en tablets/PCs, pero ocupa el 100% en celulares */
-        }
-        
-        /* Tarjeta del Contador Semanal */
-        .stats-card {
-            background: linear-gradient(145deg, #1e293b, #0f172a);
-            border: 1px solid var(--border);
-            border-radius: 16px;
+            max-width: 500px;
             padding: 20px;
-            text-align: center;
-            margin-bottom: 24px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-        }
-        .stats-card h2 { margin: 0; font-size: 16px; color: var(--text-muted); }
-        .stats-card .hours { font-size: 36px; font-weight: bold; color: var(--accent); margin: 8px 0; }
-        .stats-card button {
-            background: transparent;
-            border: 1px solid var(--text-muted);
-            color: var(--text-muted);
-            border-radius: 8px;
-            padding: 6px 12px;
-            font-size: 12px;
-            cursor: pointer;
-        }
-
-        h1 { font-size: 28px; margin-bottom: 8px; text-align: center; }
-        p.subtitle { color: var(--text-muted); margin-top: 0; margin-bottom: 24px; text-align: center; }
-        
-        .tabs { display: flex; gap: 8px; margin-bottom: 24px; }
-        .tab-btn {
-            flex: 1;
-            padding: 14px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text-muted);
-            font-weight: 600;
-            font-size: 15px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .tab-btn.active {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
-        
-        .input-group { margin-bottom: 16px; }
-        label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; }
-        input[type="time"], input[type="number"] {
-            width: 100%;
-            padding: 16px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: white;
-            font-size: 16px;
             box-sizing: border-box;
         }
+        h1, h2, h3 { margin-top: 0; }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: var(--nav-height);
+            background-color: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 100;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            width: 33%;
+            height: 100%;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .nav-item.active { color: var(--accent); }
+        .nav-icon { font-size: 24px; margin-bottom: 4px; }
+        .nav-text { font-size: 11px; font-weight: 600; }
+        
+        .view { display: none; animation: fadeIn 0.3s ease; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .tabs-top { display: flex; gap: 8px; margin-bottom: 24px; }
+        .tab-btn {
+            flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--border);
+            background: var(--bg-card); color: var(--text-muted); font-weight: 600; font-size: 15px; cursor: pointer;
+        }
+        .tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        
+        .input-group { margin-bottom: 16px; width: 100%; }
+        label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; color: var(--text-muted);}
+        
+        /* CORRECCIÓN iOS: font-size 16px evita zoom. -webkit-appearance limpia estilos */
+        input[type="time"], input[type="number"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: white;
+            font-size: 16px; 
+            box-sizing: border-box;
+            outline: none;
+        }
         input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+        input:focus { border-color: var(--accent); }
         
         .calc-btn {
-            width: 100%;
-            padding: 18px;
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            margin-top: 8px;
-            cursor: pointer;
+            width: 100%; padding: 18px; background-color: var(--accent); color: white;
+            border: none; border-radius: 12px; font-size: 16px; font-weight: bold; margin-top: 8px; cursor: pointer;
         }
-        
-        .results-box {
-            margin-top: 24px;
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 16px;
-            border: 1px solid var(--border);
-            overflow-x: auto; /* Permite scroll horizontal en pantallas minúsculas si es necesario */
-        }
+
+        .results-box { margin-top: 24px; background: var(--bg-card); border-radius: 16px; padding: 16px; border: 1px solid var(--border); }
         table { width: 100%; border-collapse: collapse; text-align: center; }
-        th, td { padding: 12px 4px; border-bottom: 1px solid var(--border); }
+        th, td { padding: 12px 4px; border-bottom: 1px solid var(--border); font-size: 14px; }
         th { color: var(--text-muted); font-size: 13px; font-weight: 500; }
         tr:last-child td { border-bottom: none; }
-        
-        .optimal { background-color: rgba(16, 185, 129, 0.1); font-weight: bold; }
-        
-        .save-btn {
-            background-color: var(--success);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
+        .optimal { background-color: rgba(16, 185, 129, 0.1); }
+        .save-btn { background-color: var(--success); color: white; border: none; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: bold; cursor: pointer; }
+
+        .history-card {
+            background: var(--bg-card); border-radius: 12px; padding: 16px;
+            margin-bottom: 12px; border: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .hidden { display: none; }
+        .history-date { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+        .history-bedtime { font-size: 13px; color: var(--text-muted); }
+        .history-duration { font-size: 20px; font-weight: bold; color: var(--accent); }
+        .delete-btn { background: transparent; color: var(--danger); border: none; font-size: 18px; padding: 8px; margin-left: 10px; }
+
+        .chart-wrapper { background: var(--bg-card); border-radius: 16px; padding: 20px 10px; border: 1px solid var(--border); margin-top: 20px;}
+        .chart-container {
+            display: flex; align-items: flex-end; height: 200px; gap: 8px;
+            overflow-x: auto; padding-bottom: 10px;
+        }
+        .chart-container::-webkit-scrollbar { height: 6px; }
+        .chart-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        
+        .bar-group { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 32px; flex-shrink: 0; }
+        .bar { width: 24px; border-radius: 6px 6px 0 0; transition: height 0.5s ease; position: relative; }
+        .bar.good { background-color: var(--success); } /* > 7.5 horas */
+        .bar.ok { background-color: var(--warning); }   /* 6 - 7.5 horas */
+        .bar.bad { background-color: var(--danger); }   /* < 6 horas */
+        
+        .bar-tooltip {
+            position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
+            font-size: 10px; background: rgba(0,0,0,0.8); padding: 2px 6px; border-radius: 4px; opacity: 0; transition: opacity 0.2s; white-space: nowrap; pointer-events: none;
+        }
+        .bar:hover .bar-tooltip, .bar:active .bar-tooltip { opacity: 1; }
+        .bar-label { font-size: 10px; color: var(--text-muted); margin-top: 8px; }
+        
+        .legend { display: flex; justify-content: center; gap: 16px; margin-top: 20px; font-size: 12px; color: var(--text-muted); }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        .toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px);
+            background: var(--success); color: white; padding: 12px 24px; border-radius: 30px;
+            font-size: 14px; font-weight: bold; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            opacity: 0; pointer-events: none; transition: all 0.3s ease;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .empty-state { text-align: center; color: var(--text-muted); padding: 40px 20px; }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        
-        <!-- MÓDULO NUEVO: Panel de Estadísticas Semanales -->
-        <div class="stats-card">
-            <h2>Horas dormidas (Últimos 7 días)</h2>
-            <div class="hours" id="weekly-hours">0h 0m</div>
-            <button onclick="limpiarHistorial()">Reiniciar Contador</button>
+    <!-- Notificación Toast -->
+    <div id="toast" class="toast">Guardado correctamente</div>
+
+    <!-- Navegación Inferior (Bottom Nav) -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchView('calc')" id="nav-calc">
+            <span class="nav-icon">⏱️</span>
+            <span class="nav-text">Ciclos</span>
         </div>
+        <div class="nav-item" onclick="switchView('history')" id="nav-history">
+            <span class="nav-icon">📅</span>
+            <span class="nav-text">Diario</span>
+        </div>
+        <div class="nav-item" onclick="switchView('stats')" id="nav-stats">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text">Mensual</span>
+        </div>
+    </div>
 
-        <h1>Ciclos de Sueño</h1>
-        <p class="subtitle">Optimiza tu descanso (Ciclos de 90 min)</p>
-
-        <!-- Selector de Modo -->
-        <div class="tabs">
+    <!-- VISTA 1: CALCULADORA -->
+    <div id="view-calc" class="app-container view active">
+        <h1 style="text-align: center;">Calculadora</h1>
+        
+        <div class="tabs-top">
             <button id="wake-tab" class="tab-btn active" onclick="setMode('wake')">Despertar</button>
             <button id="sleep-tab" class="tab-btn" onclick="setMode('sleep')">Dormir</button>
         </div>
 
-        <!-- Controles -->
         <div class="input-group">
             <label id="time-label">Me quiero despertar a las:</label>
             <input type="time" id="time-input" required>
@@ -168,72 +201,75 @@
 
         <button class="calc-btn" onclick="calcularCiclos()">Calcular Horarios</button>
 
-        <!-- Resultados -->
-        <div id="results-table" class="results-box hidden">
+        <div id="results-table" class="results-box" style="display: none;">
             <table>
                 <thead>
                     <tr>
                         <th>Ciclos</th>
-                        <th>Horas</th>
-                        <th>Hora Sugerida</th>
-                        <th>Acción</th>
+                        <th>Cama</th>
+                        <th>Horario</th>
+                        <th></th>
                     </tr>
                 </thead>
-                <tbody id="results-body">
-                    <!-- Javascript inyecta las filas aquí -->
-                </tbody>
+                <tbody id="results-body"></tbody>
             </table>
         </div>
     </div>
 
-    <script>
-        // --- MÓDULO DE ALMACENAMIENTO (LocalStorage) ---
-        // Por qué: Usamos localStorage para guardar datos en el celular del usuario sin usar internet.
+    <!-- VISTA 2: HISTORIAL (DIARIO) -->
+    <div id="view-history" class="app-container view">
+        <h1>Mi Diario de Sueño</h1>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Tus registros de los últimos 7 días.</p>
         
-        function cargarHistorial() {
-            // Obtenemos los datos guardados o creamos un array vacío si es la primera vez
-            const historial = JSON.parse(localStorage.getItem('historialSueno')) || [];
-            
-            // Filtramos solo los registros de los últimos 7 días (magia de milisegundos)
-            const hace7Dias = new Date().getTime() - (7 * 24 * 60 * 60 * 1000);
-            const historialReciente = historial.filter(registro => registro.fecha >= hace7Dias);
-            
-            // Sumamos los minutos
-            let totalMinutos = 0;
-            historialReciente.forEach(registro => {
-                totalMinutos += registro.minutos;
-            });
+        <div id="history-container">
+            <!-- Las tarjetas se inyectan por JS -->
+        </div>
+    </div>
 
-            // Convertimos a horas y minutos para mostrar en pantalla
-            const horas = Math.floor(totalMinutos / 60);
-            const minutos = totalMinutos % 60;
-            document.getElementById('weekly-hours').innerText = `${horas}h ${minutos}m`;
+    <!-- VISTA 3: ESTADÍSTICAS (MENSUAL) -->
+    <div id="view-stats" class="app-container view">
+        <h1>Análisis Mensual</h1>
+        <p style="color: var(--text-muted); font-size: 14px;">Evaluación de tu descanso en los últimos 30 días.</p>
+        
+        <div class="chart-wrapper">
+            <div class="chart-container" id="chart-container">
+                <!-- Barras del gráfico generadas por JS -->
+            </div>
             
-            // Guardamos el array limpio (sin datos viejos)
-            localStorage.setItem('historialSueno', JSON.stringify(historialReciente));
+            <div class="legend">
+                <div class="legend-item"><div class="dot" style="background: var(--success);"></div> +7.5h</div>
+                <div class="legend-item"><div class="dot" style="background: var(--warning);"></div> 6h a 7.5h</div>
+                <div class="legend-item"><div class="dot" style="background: var(--danger);"></div> -6h</div>
+            </div>
+        </div>
+        
+        <button onclick="limpiarBaseDeDatos()" style="margin-top: 40px; width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--danger); background: transparent; color: var(--danger); cursor: pointer;">
+            Borrar todos mis datos
+        </button>
+    </div>
+
+    <script>
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 2500);
         }
 
-        function registrarSueno(minutosDormidos) {
-            const historial = JSON.parse(localStorage.getItem('historialSueno')) || [];
-            // Guardamos la fecha actual (timestamp) y los minutos que durmió
-            historial.push({
-                fecha: new Date().getTime(),
-                minutos: minutosDormidos
-            });
-            localStorage.setItem('historialSueno', JSON.stringify(historial));
+        function switchView(viewId) {
+            // Ocultar todas las vistas y limpiar estado activo de nav
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             
-            cargarHistorial(); // Actualizamos la pantalla
-            alert("¡Descanso registrado con éxito en tu semana!");
+            // Mostrar vista seleccionada
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            document.getElementById(`nav-${viewId}`).classList.add('active');
+            
+            // Refrescar datos al cambiar de pestaña
+            if (viewId === 'history') renderHistory();
+            if (viewId === 'stats') renderChart();
         }
 
-        function limpiarHistorial() {
-            if(confirm("¿Seguro que quieres borrar tu registro semanal?")) {
-                localStorage.removeItem('historialSueno');
-                cargarHistorial();
-            }
-        }
-
-        // --- MÓDULO DE CÁLCULOS UI ---
         function setMode(mode) {
             const wakeTab = document.getElementById('wake-tab');
             const sleepTab = document.getElementById('sleep-tab');
@@ -248,63 +284,194 @@
                 wakeTab.classList.remove('active');
                 timeLabel.textContent = 'Me acuesto a las:';
             }
-            document.getElementById('results-table').classList.add('hidden');
+            document.getElementById('results-table').style.display = 'none';
+        }
+
+        function formatTime(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
         }
 
         function calcularCiclos() {
             const isWakeUp = document.getElementById('wake-tab').classList.contains('active');
             const timeInput = document.getElementById('time-input').value;
-            const latencyInput = parseInt(document.getElementById('latency-input').value) || 20;
-            const tbody = document.getElementById('results-body');
-            const resultsTable = document.getElementById('results-table');
-
-            if (!timeInput) return alert('Por favor, ingresa una hora válida.');
+            const latencyInput = parseInt(document.getElementById('latency-input').value) || 0;
+            
+            if (!timeInput) return showToast('Falta ingresar la hora');
 
             const [hours, minutes] = timeInput.split(':').map(Number);
             const baseDate = new Date();
             baseDate.setHours(hours, minutes, 0, 0);
 
+            const tbody = document.getElementById('results-body');
             tbody.innerHTML = '';
-            resultsTable.classList.remove('hidden');
+            document.getElementById('results-table').style.display = 'block';
 
             for (let i = 1; i <= 6; i++) {
                 const sleepDurationMins = i * 90;
                 const targetDate = new Date(baseDate);
+                let bedtimeStr = ""; // Calculamos a qué hora se acuesta realmente
 
                 if (isWakeUp) {
                     targetDate.setMinutes(targetDate.getMinutes() - sleepDurationMins - latencyInput);
+                    bedtimeStr = formatTime(targetDate);
                 } else {
+                    bedtimeStr = formatTime(baseDate);
                     targetDate.setMinutes(targetDate.getMinutes() + sleepDurationMins + latencyInput);
                 }
 
-                const formatTime = (date) => {
-                    return date.getHours().toString().padStart(2, '0') + ':' +
-                           date.getMinutes().toString().padStart(2, '0');
-                };
-
-                const totalMinsInBed = sleepDurationMins + latencyInput;
-                const inBedHours = Math.floor(totalMinsInBed / 60);
-                const inBedMins = totalMinsInBed % 60;
-                const inBedText = `${inBedHours}h ${inBedMins}m`;
-
+                const totalMins = sleepDurationMins + latencyInput;
+                const hrs = Math.floor(totalMins / 60);
+                const mins = totalMins % 60;
                 const row = document.createElement('tr');
                 if (i >= 4 && i <= 6) row.classList.add('optimal');
 
-                // Agregamos un botón a cada fila que llama a registrarSueno() con los minutos correspondientes
                 row.innerHTML = `
-                    <td>${i}</td>
-                    <td>${inBedText}</td>
-                    <td style="font-size: 16px; font-weight: bold;">${formatTime(targetDate)}</td>
+                    <td style="font-weight:bold;">${i}</td>
+                    <td>${hrs}h ${mins}m</td>
+                    <td style="font-size: 16px; font-weight: bold; color: ${i>=4?'var(--accent)':'inherit'}">${formatTime(targetDate)}</td>
                     <td>
-                        <button class="save-btn" onclick="registrarSueno(${totalMinsInBed})">+ Sumar</button>
+                        <button class="save-btn" onclick="saveRecord(${totalMins}, '${bedtimeStr}')">Guardar</button>
                     </td>
                 `;
                 tbody.appendChild(row);
             }
         }
 
-        // Ejecutar al cargar la página para mostrar el historial guardado
-        window.onload = cargarHistorial;
+        function getDB() {
+            const data = localStorage.getItem('sleepDB_v2');
+            return data ? JSON.parse(data) : [];
+        }
+        function saveDB(data) {
+            localStorage.setItem('sleepDB_v2', JSON.stringify(data));
+        }
+
+        function saveRecord(minutes, bedtime) {
+            const db = getDB();
+            const now = new Date();
+            
+            const newRecord = {
+                id: Date.now().toString(),
+                timestamp: now.getTime(),
+                dateStr: now.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }),
+                bedtime: bedtime,
+                minutes: minutes
+            };
+            
+            db.push(newRecord);
+            saveDB(db);
+            showToast("¡Registro guardado en tu diario!");
+        }
+
+        function deleteRecord(id) {
+            let db = getDB();
+            db = db.filter(record => record.id !== id);
+            saveDB(db);
+            renderHistory();
+            renderChart();
+            showToast("Registro eliminado");
+        }
+
+        function limpiarBaseDeDatos() {
+            if(confirm("Esta acción borrará todo tu historial. ¿Estás seguro?")) {
+                localStorage.removeItem('sleepDB_v2');
+                renderHistory();
+                renderChart();
+                showToast("Datos eliminados");
+            }
+        }
+
+        function renderHistory() {
+            const db = getDB();
+            const container = document.getElementById('history-container');
+            container.innerHTML = '';
+
+            // Filtrar últimos 7 días
+            const hace7Dias = new Date().getTime() - (7 * 24 * 60 * 60 * 1000);
+            const recientes = db.filter(r => r.timestamp >= hace7Dias).sort((a,b) => b.timestamp - a.timestamp);
+
+            if (recientes.length === 0) {
+                container.innerHTML = '<div class="empty-state">No hay registros esta semana. ¡Guarda tus ciclos desde la calculadora!</div>';
+                return;
+            }
+
+            recientes.forEach(record => {
+                const hrs = Math.floor(record.minutes / 60);
+                const mins = record.minutes % 60;
+                
+                container.innerHTML += `
+                    <div class="history-card">
+                        <div>
+                            <div class="history-date">${record.dateStr}</div>
+                            <div class="history-bedtime">Acostado: ${record.bedtime}</div>
+                        </div>
+                        <div style="display:flex; align-items:center;">
+                            <div class="history-duration">${hrs}h ${mins}m</div>
+                            <button class="delete-btn" onclick="deleteRecord('${record.id}')">×</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderChart() {
+            const db = getDB();
+            const container = document.getElementById('chart-container');
+            container.innerHTML = '';
+            
+            // Filtrar últimos 30 días y agrupar por fecha string
+            const hace30Dias = new Date().getTime() - (30 * 24 * 60 * 60 * 1000);
+            const recientes = db.filter(r => r.timestamp >= hace30Dias);
+            
+            if (recientes.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="width:100%;">No hay datos suficientes para el gráfico.</div>';
+                return;
+            }
+
+            // Agrupación (por si se guardan 2 registros el mismo día, los suma)
+            const grouped = {};
+            recientes.forEach(r => {
+                if(!grouped[r.dateStr]) grouped[r.dateStr] = 0;
+                grouped[r.dateStr] += r.minutes;
+            });
+
+            // Motor de renderizado SVG/DOM
+            // Altura máxima del gráfico = 12 horas (720 minutos)
+            const MAX_MINUTES_CHART = 720; 
+
+            Object.keys(grouped).forEach(date => {
+                const mins = grouped[date];
+                const hrs = Math.floor(mins / 60);
+                const m = mins % 60;
+                
+                // Calcular porcentaje de altura (máximo 100%)
+                let heightPercent = (mins / MAX_MINUTES_CHART) * 100;
+                if (heightPercent > 100) heightPercent = 100;
+
+                // Clasificador de calidad
+                let colorClass = 'bad'; // < 6h (360 mins)
+                if (mins >= 360 && mins < 450) colorClass = 'ok'; // 6h a 7.5h
+                if (mins >= 450) colorClass = 'good'; // > 7.5h
+
+                container.innerHTML += `
+                    <div class="bar-group">
+                        <div class="bar ${colorClass}" style="height: ${heightPercent}%;">
+                            <div class="bar-tooltip">${hrs}h ${m}m</div>
+                        </div>
+                        <div class="bar-label">${date.split(',')[0]}</div> <!-- Muestra ej: 'lun' -->
+                    </div>
+                `;
+            });
+            
+            // Auto-scroll a la derecha (datos más recientes)
+            setTimeout(() => { container.scrollLeft = container.scrollWidth; }, 100);
+        }
+
+        // Inicialización
+        window.onload = () => {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+            document.getElementById('time-input').value = timeString;
+        };
     </script>
 </body>
 </html>
