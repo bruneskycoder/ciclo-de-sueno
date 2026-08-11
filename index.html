@@ -2,212 +2,309 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- CRÍTICO PARA iOS: Evita el zoom automático y fuerza el ancho real -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Etiquetas PWA para iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Ciclos de Sueño</title>
+    <title>Reposo del Guerrero</title>
+    
+    <!-- Tipografía Pixel Art de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --bg-main: #0f172a;
-            --bg-card: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #3b82f6;
-            --success: #10b981;
-            --warning: #fbbf24;
-            --danger: #ef4444;
-            --border: #334155;
+            --bg-night: #0b0c10;
+            --wood-dark: #2c1e16;
+            --wood-light: #4a3320;
+            --fire-core: #fceabb;
+            --fire-mid: #f8b500;
+            --fire-edge: #fb8500;
+            --parchment: #e2d1a7;
+            --text-main: #fceabb;
+            --text-muted: #a39171;
+            --danger: #9d0208;
+            --success: #386641;
             --nav-height: 70px;
         }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-main);
+            font-family: 'VT323', monospace;
+            background-color: var(--bg-night);
             color: var(--text-main);
             margin: 0;
             padding: 0;
-            padding-bottom: var(--nav-height); /* Espacio para la barra de navegación */
+            padding-bottom: var(--nav-height);
             display: flex;
             flex-direction: column;
             align-items: center;
-            -webkit-font-smoothing: antialiased;
+            -webkit-font-smoothing: none; /* Mejor renderizado para pixel art */
+            background-image: 
+                radial-gradient(circle at 50% 10%, rgba(251, 133, 0, 0.15) 0%, transparent 50%),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);
         }
+
         .app-container {
             width: 100%;
             max-width: 500px;
             padding: 20px;
             box-sizing: border-box;
         }
-        h1, h2, h3 { margin-top: 0; }
-        
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: var(--nav-height);
-            background-color: rgba(30, 41, 59, 0.95);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid var(--border);
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 100;
-        }
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-muted);
-            width: 33%;
-            height: 100%;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        .nav-item.active { color: var(--accent); }
-        .nav-icon { font-size: 24px; margin-bottom: 4px; }
-        .nav-text { font-size: 11px; font-weight: 600; }
-        
-        .view { display: none; animation: fadeIn 0.3s ease; }
-        .view.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .tabs-top { display: flex; gap: 8px; margin-bottom: 24px; }
-        .tab-btn {
-            flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--border);
-            background: var(--bg-card); color: var(--text-muted); font-weight: 600; font-size: 15px; cursor: pointer;
+        /* --- ARTE DEL FUEGO Y CABALLERO (CSS Puro) --- */
+        .tavern-scene {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 120px;
+            margin-bottom: 10px;
+            position: relative;
         }
-        .tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        .fire-container {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            animation: flickerLight 2s infinite alternate;
+        }
+
+        .log {
+            position: absolute;
+            bottom: 5px;
+            width: 40px;
+            height: 12px;
+            background-color: var(--wood-dark);
+            border: 2px solid #1a110c;
+            border-radius: 4px;
+        }
+        .log.left { left: 0; transform: rotate(15deg); }
+        .log.right { right: 0; transform: rotate(-15deg); }
+
+        .flame {
+            position: absolute;
+            bottom: 15px;
+            width: 30px;
+            height: 30px;
+            background-color: var(--fire-edge);
+            border-radius: 50% 0 50% 50%;
+            transform: rotate(-45deg);
+            animation: burn 0.5s infinite alternate;
+        }
+        .flame.inner {
+            bottom: 15px;
+            left: 10px;
+            width: 20px;
+            height: 20px;
+            background-color: var(--fire-mid);
+            animation-delay: 0.2s;
+        }
+        .flame.core {
+            bottom: 15px;
+            left: 15px;
+            width: 10px;
+            height: 10px;
+            background-color: var(--fire-core);
+            animation-delay: 0.4s;
+        }
+
+        .knight {
+            width: 40px;
+            height: 50px;
+            background-color: #4a4e69;
+            margin-left: 20px;
+            border-radius: 20px 20px 0 0;
+            position: relative;
+            box-shadow: -5px 0 15px rgba(251, 133, 0, 0.3); /* Luz del fuego refleja en armadura */
+        }
+        .knight::before { /* Casco */
+            content: ''; position: absolute; top: 10px; left: 5px; right: 5px; height: 15px;
+            background-color: #22223b; border-radius: 5px;
+        }
+        .knight::after { /* Ranura del ojo */
+            content: ''; position: absolute; top: 15px; left: 10px; width: 10px; height: 3px;
+            background-color: #0b0c10;
+        }
+        .z-sleep {
+            position: absolute; top: -20px; right: -10px; font-size: 20px; color: var(--text-muted);
+            animation: floatZ 2s infinite linear;
+        }
+
+        @keyframes burn {
+            0% { transform: rotate(-45deg) scale(0.9); }
+            100% { transform: rotate(-45deg) scale(1.1) translateY(-2px); }
+        }
+        @keyframes flickerLight {
+            0% { filter: drop-shadow(0 0 15px var(--fire-edge)); }
+            100% { filter: drop-shadow(0 0 25px var(--fire-mid)); }
+        }
+        @keyframes floatZ {
+            0% { opacity: 0; transform: translateY(0) scale(0.8); }
+            50% { opacity: 1; transform: translateY(-10px) scale(1); }
+            100% { opacity: 0; transform: translateY(-20px) scale(1.2); }
+        }
+
+        /* --- TIPOGRAFÍA Y UI --- */
+        h1 { font-size: 36px; margin: 0; text-align: center; text-transform: uppercase; letter-spacing: 2px; text-shadow: 2px 2px 0px #000; }
+        p.subtitle { color: var(--text-muted); font-size: 20px; margin-top: 0; margin-bottom: 24px; text-align: center; }
+
+        .stats-card {
+            background-color: var(--wood-dark);
+            border: 4px solid var(--wood-light);
+            border-radius: 4px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 24px;
+            box-shadow: inset 0 0 10px #000, 0 4px 6px rgba(0,0,0,0.5);
+        }
+        .stats-card h2 { margin: 0; font-size: 20px; color: var(--text-muted); text-transform: uppercase;}
+        .stats-card .hours { font-size: 42px; color: var(--fire-mid); margin: 8px 0; text-shadow: 2px 2px #000; }
+        .stats-card button {
+            background: transparent; border: 2px solid var(--text-muted); color: var(--text-muted);
+            font-family: 'VT323', monospace; font-size: 16px; cursor: pointer; text-transform: uppercase;
+        }
+
+        .tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+        .tab-btn {
+            flex: 1; padding: 12px;
+            background: var(--wood-dark); border: 4px outset var(--wood-light); color: var(--text-muted);
+            font-family: 'VT323', monospace; font-size: 22px; cursor: pointer; text-transform: uppercase;
+        }
+        .tab-btn.active { background: var(--wood-light); border: 4px inset var(--wood-dark); color: var(--text-main); }
+
+        .input-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 4px; font-size: 22px; color: var(--parchment); text-shadow: 1px 1px #000;}
         
-        .input-group { margin-bottom: 16px; width: 100%; }
-        label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; color: var(--text-muted);}
-        
-        /* CORRECCIÓN iOS: font-size 16px evita zoom. -webkit-appearance limpia estilos */
+        /* CORRECCIÓN iOS: font-size 18px (mayor a 16px) evita zoom. */
         input[type="time"], input[type="number"] {
             -webkit-appearance: none;
-            appearance: none;
-            width: 100%;
-            padding: 16px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: white;
-            font-size: 16px; 
-            box-sizing: border-box;
-            outline: none;
+            width: 100%; padding: 12px;
+            background: #000; border: 2px solid var(--wood-light); color: var(--fire-mid);
+            font-family: 'VT323', monospace; font-size: 24px; box-sizing: border-box; text-align: center;
         }
-        input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); }
-        input:focus { border-color: var(--accent); }
-        
+        input[type="time"]::-webkit-calendar-picker-indicator { filter: sepia(1) saturate(5) hue-rotate(330deg); }
+
         .calc-btn {
-            width: 100%; padding: 18px; background-color: var(--accent); color: white;
-            border: none; border-radius: 12px; font-size: 16px; font-weight: bold; margin-top: 8px; cursor: pointer;
+            width: 100%; padding: 16px; margin-top: 8px;
+            background: var(--fire-edge); border: 4px outset var(--fire-mid); color: #000;
+            font-family: 'VT323', monospace; font-size: 26px; font-weight: bold; cursor: pointer;
+            text-transform: uppercase; transition: transform 0.1s;
         }
+        .calc-btn:active { transform: scale(0.98); border-style: inset; }
 
-        .results-box { margin-top: 24px; background: var(--bg-card); border-radius: 16px; padding: 16px; border: 1px solid var(--border); }
+        .results-box {
+            margin-top: 24px; padding: 16px;
+            background: var(--parchment); border: 4px solid #8b7355; border-radius: 2px;
+            color: #3e2723; box-shadow: 4px 4px 0px rgba(0,0,0,0.5);
+        }
         table { width: 100%; border-collapse: collapse; text-align: center; }
-        th, td { padding: 12px 4px; border-bottom: 1px solid var(--border); font-size: 14px; }
-        th { color: var(--text-muted); font-size: 13px; font-weight: 500; }
+        th { color: #5d4037; font-size: 18px; border-bottom: 2px dashed #8b7355; padding-bottom: 8px; text-transform: uppercase; }
+        td { padding: 10px 2px; font-size: 20px; border-bottom: 1px dotted #a1887f; }
         tr:last-child td { border-bottom: none; }
-        .optimal { background-color: rgba(16, 185, 129, 0.1); }
-        .save-btn { background-color: var(--success); color: white; border: none; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: bold; cursor: pointer; }
-
-        .history-card {
-            background: var(--bg-card); border-radius: 12px; padding: 16px;
-            margin-bottom: 12px; border: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .history-date { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
-        .history-bedtime { font-size: 13px; color: var(--text-muted); }
-        .history-duration { font-size: 20px; font-weight: bold; color: var(--accent); }
-        .delete-btn { background: transparent; color: var(--danger); border: none; font-size: 18px; padding: 8px; margin-left: 10px; }
-
-        .chart-wrapper { background: var(--bg-card); border-radius: 16px; padding: 20px 10px; border: 1px solid var(--border); margin-top: 20px;}
-        .chart-container {
-            display: flex; align-items: flex-end; height: 200px; gap: 8px;
-            overflow-x: auto; padding-bottom: 10px;
-        }
-        .chart-container::-webkit-scrollbar { height: 6px; }
-        .chart-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
         
-        .bar-group { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 32px; flex-shrink: 0; }
-        .bar { width: 24px; border-radius: 6px 6px 0 0; transition: height 0.5s ease; position: relative; }
-        .bar.good { background-color: var(--success); } /* > 7.5 horas */
-        .bar.ok { background-color: var(--warning); }   /* 6 - 7.5 horas */
-        .bar.bad { background-color: var(--danger); }   /* < 6 horas */
+        .optimal { background-color: rgba(56, 102, 65, 0.2); font-weight: bold; font-size: 24px;}
         
-        .bar-tooltip {
-            position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
-            font-size: 10px; background: rgba(0,0,0,0.8); padding: 2px 6px; border-radius: 4px; opacity: 0; transition: opacity 0.2s; white-space: nowrap; pointer-events: none;
+        .save-btn {
+            background: var(--success); border: 2px outset #52b788; color: white;
+            font-family: 'VT323', monospace; font-size: 16px; cursor: pointer; text-transform: uppercase;
         }
-        .bar:hover .bar-tooltip, .bar:active .bar-tooltip { opacity: 1; }
-        .bar-label { font-size: 10px; color: var(--text-muted); margin-top: 8px; }
-        
-        .legend { display: flex; justify-content: center; gap: 16px; margin-top: 20px; font-size: 12px; color: var(--text-muted); }
-        .legend-item { display: flex; align-items: center; gap: 4px; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; }
 
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height);
+            background: var(--wood-dark); border-top: 4px solid var(--wood-light);
+            display: flex; justify-content: space-around; align-items: center; z-index: 100;
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); cursor: pointer; width: 33%; font-size: 18px; }
+        .nav-item.active { color: var(--fire-mid); text-shadow: 0 0 5px var(--fire-edge); }
+
+        .view { display: none; animation: fadeIn 0.3s; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Toast medieval */
         .toast {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px);
-            background: var(--success); color: white; padding: 12px 24px; border-radius: 30px;
-            font-size: 14px; font-weight: bold; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            opacity: 0; pointer-events: none; transition: all 0.3s ease;
+            background: var(--wood-dark); border: 2px solid var(--fire-mid); color: var(--fire-mid);
+            padding: 12px 24px; font-size: 20px; z-index: 1000; box-shadow: 0 4px 12px #000;
+            opacity: 0; pointer-events: none; transition: all 0.3s ease; text-transform: uppercase;
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        .empty-state { text-align: center; color: var(--text-muted); padding: 40px 20px; }
+        .empty-state { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 22px; }
+
+        /* Gráfico de barras estilo RPG */
+        .chart-wrapper { background: var(--wood-dark); padding: 20px; border: 4px solid var(--wood-light); margin-top: 20px;}
+        .chart-container { display: flex; align-items: flex-end; height: 200px; gap: 8px; overflow-x: auto; padding-bottom: 10px; }
+        .bar-group { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 32px; }
+        .bar { width: 24px; transition: height 0.5s ease; border: 2px solid #000; }
+        .bar.good { background-color: var(--success); }
+        .bar.ok { background-color: var(--fire-mid); }
+        .bar.bad { background-color: var(--danger); }
+        .bar-label { font-size: 16px; color: var(--text-muted); margin-top: 8px; }
+        
+        .history-card {
+            background: var(--parchment); border: 2px solid #8b7355; padding: 12px; margin-bottom: 12px;
+            display: flex; justify-content: space-between; align-items: center; color: #3e2723;
+        }
+        .delete-btn { background: var(--danger); color: white; border: 2px outset #ff0000; font-family: 'VT323'; cursor: pointer;}
     </style>
 </head>
 <body>
 
-    <!-- Notificación Toast -->
-    <div id="toast" class="toast">Guardado correctamente</div>
+    <div id="toast" class="toast">Mensaje</div>
 
-    <!-- Navegación Inferior (Bottom Nav) -->
     <div class="bottom-nav">
         <div class="nav-item active" onclick="switchView('calc')" id="nav-calc">
-            <span class="nav-icon">⏱️</span>
-            <span class="nav-text">Ciclos</span>
+            <span>🔥</span><span>Posada</span>
         </div>
         <div class="nav-item" onclick="switchView('history')" id="nav-history">
-            <span class="nav-icon">📅</span>
-            <span class="nav-text">Diario</span>
+            <span>📜</span><span>Bitácora</span>
         </div>
         <div class="nav-item" onclick="switchView('stats')" id="nav-stats">
-            <span class="nav-icon">📊</span>
-            <span class="nav-text">Mensual</span>
+            <span>⚔️</span><span>Crónicas</span>
         </div>
     </div>
 
-    <!-- VISTA 1: CALCULADORA -->
+    <!-- VISTA 1: CALCULADORA (LA POSADA) -->
     <div id="view-calc" class="app-container view active">
-        <h1 style="text-align: center;">Calculadora</h1>
         
-        <div class="tabs-top">
-            <button id="wake-tab" class="tab-btn active" onclick="setMode('wake')">Despertar</button>
-            <button id="sleep-tab" class="tab-btn" onclick="setMode('sleep')">Dormir</button>
+        <div class="tavern-scene">
+            <div class="fire-container">
+                <div class="log left"></div>
+                <div class="log right"></div>
+                <div class="flame"></div>
+                <div class="flame inner"></div>
+                <div class="flame core"></div>
+            </div>
+            <div class="knight">
+                <div class="z-sleep">Zz</div>
+            </div>
+        </div>
+
+        <h1>Reposo del Guerrero</h1>
+        <p class="subtitle">Recupera salud (Ciclos de 90m)</p>
+
+        <div class="tabs">
+            <button id="wake-tab" class="tab-btn active" onclick="setMode('wake')">Gallo canta</button>
+            <button id="sleep-tab" class="tab-btn" onclick="setMode('sleep')">Pernoctar</button>
         </div>
 
         <div class="input-group">
-            <label id="time-label">Me quiero despertar a las:</label>
+            <label id="time-label">Deseo despertar a las:</label>
             <input type="time" id="time-input" required>
         </div>
 
         <div class="input-group">
-            <label>Minutos que tardo en dormirme:</label>
+            <label>Minutos para apagar la vela (latencia):</label>
             <input type="number" id="latency-input" value="20" min="0" max="120">
         </div>
 
-        <button class="calc-btn" onclick="calcularCiclos()">Calcular Horarios</button>
+        <button class="calc-btn" onclick="calcularCiclos()">Consultar Oráculos</button>
 
         <div id="results-table" class="results-box" style="display: none;">
             <table>
                 <thead>
                     <tr>
                         <th>Ciclos</th>
-                        <th>Cama</th>
-                        <th>Horario</th>
+                        <th>Reposo</th>
+                        <th>Reloj de Arena</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -216,36 +313,27 @@
         </div>
     </div>
 
-    <!-- VISTA 2: HISTORIAL (DIARIO) -->
+    <!-- VISTA 2: HISTORIAL (BITÁCORA DIARIA) -->
     <div id="view-history" class="app-container view">
-        <h1>Mi Diario de Sueño</h1>
-        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Tus registros de los últimos 7 días.</p>
-        
-        <div id="history-container">
-            <!-- Las tarjetas se inyectan por JS -->
-        </div>
+        <h1>Bitácora de Reposo</h1>
+        <p class="subtitle">Tus noches de los últimos 7 soles.</p>
+        <div id="history-container"></div>
     </div>
 
-    <!-- VISTA 3: ESTADÍSTICAS (MENSUAL) -->
+    <!-- VISTA 3: ESTADÍSTICAS (CRÓNICAS) -->
     <div id="view-stats" class="app-container view">
-        <h1>Análisis Mensual</h1>
-        <p style="color: var(--text-muted); font-size: 14px;">Evaluación de tu descanso en los últimos 30 días.</p>
+        <h1>Crónicas Mensuales</h1>
+        <p class="subtitle">Salud recuperada en 30 lunas.</p>
         
-        <div class="chart-wrapper">
-            <div class="chart-container" id="chart-container">
-                <!-- Barras del gráfico generadas por JS -->
-            </div>
-            
-            <div class="legend">
-                <div class="legend-item"><div class="dot" style="background: var(--success);"></div> +7.5h</div>
-                <div class="legend-item"><div class="dot" style="background: var(--warning);"></div> 6h a 7.5h</div>
-                <div class="legend-item"><div class="dot" style="background: var(--danger);"></div> -6h</div>
-            </div>
+        <div class="stats-card">
+            <h2>Horas reposadas (Semana actual)</h2>
+            <div class="hours" id="weekly-hours">0h 0m</div>
         </div>
-        
-        <button onclick="limpiarBaseDeDatos()" style="margin-top: 40px; width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--danger); background: transparent; color: var(--danger); cursor: pointer;">
-            Borrar todos mis datos
-        </button>
+
+        <div class="chart-wrapper">
+            <div class="chart-container" id="chart-container"></div>
+        </div>
+        <button onclick="limpiarBaseDeDatos()" style="margin-top: 20px; width: 100%; padding: 12px; background: transparent; border: 2px solid var(--danger); color: var(--danger); font-family: 'VT323'; font-size: 20px; cursor: pointer; text-transform: uppercase;">Quemar Crónicas (Borrar datos)</button>
     </div>
 
     <script>
@@ -253,21 +341,17 @@
             const toast = document.getElementById('toast');
             toast.innerText = message;
             toast.classList.add('show');
-            setTimeout(() => { toast.classList.remove('show'); }, 2500);
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
         function switchView(viewId) {
-            // Ocultar todas las vistas y limpiar estado activo de nav
             document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            
-            // Mostrar vista seleccionada
             document.getElementById(`view-${viewId}`).classList.add('active');
             document.getElementById(`nav-${viewId}`).classList.add('active');
             
-            // Refrescar datos al cambiar de pestaña
             if (viewId === 'history') renderHistory();
-            if (viewId === 'stats') renderChart();
+            if (viewId === 'stats') { renderChart(); updateWeeklyStats(); }
         }
 
         function setMode(mode) {
@@ -276,41 +360,33 @@
             const timeLabel = document.getElementById('time-label');
 
             if (mode === 'wake') {
-                wakeTab.classList.add('active');
-                sleepTab.classList.remove('active');
-                timeLabel.textContent = 'Me quiero despertar a las:';
+                wakeTab.classList.add('active'); sleepTab.classList.remove('active');
+                timeLabel.textContent = 'Deseo despertar a las:';
             } else {
-                sleepTab.classList.add('active');
-                wakeTab.classList.remove('active');
-                timeLabel.textContent = 'Me acuesto a las:';
+                sleepTab.classList.add('active'); wakeTab.classList.remove('active');
+                timeLabel.textContent = 'Apago el fuego a las:';
             }
             document.getElementById('results-table').style.display = 'none';
         }
 
-        function formatTime(date) {
-            return date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
-        }
+        function formatTime(date) { return date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0'); }
 
         function calcularCiclos() {
             const isWakeUp = document.getElementById('wake-tab').classList.contains('active');
             const timeInput = document.getElementById('time-input').value;
             const latencyInput = parseInt(document.getElementById('latency-input').value) || 0;
             
-            if (!timeInput) return showToast('Falta ingresar la hora');
+            if (!timeInput) return showToast('¡Falta indicar la hora en el reloj de sol!');
 
             const [hours, minutes] = timeInput.split(':').map(Number);
-            const baseDate = new Date();
-            baseDate.setHours(hours, minutes, 0, 0);
+            const baseDate = new Date(); baseDate.setHours(hours, minutes, 0, 0);
 
-            const tbody = document.getElementById('results-body');
-            tbody.innerHTML = '';
+            const tbody = document.getElementById('results-body'); tbody.innerHTML = '';
             document.getElementById('results-table').style.display = 'block';
 
             for (let i = 1; i <= 6; i++) {
-                const sleepDurationMins = i * 90;
-                const targetDate = new Date(baseDate);
-                let bedtimeStr = ""; // Calculamos a qué hora se acuesta realmente
-
+                const sleepDurationMins = i * 90; const targetDate = new Date(baseDate);
+                let bedtimeStr = ""; 
                 if (isWakeUp) {
                     targetDate.setMinutes(targetDate.getMinutes() - sleepDurationMins - latencyInput);
                     bedtimeStr = formatTime(targetDate);
@@ -320,93 +396,76 @@
                 }
 
                 const totalMins = sleepDurationMins + latencyInput;
-                const hrs = Math.floor(totalMins / 60);
-                const mins = totalMins % 60;
+                const hrs = Math.floor(totalMins / 60); const mins = totalMins % 60;
                 const row = document.createElement('tr');
                 if (i >= 4 && i <= 6) row.classList.add('optimal');
 
                 row.innerHTML = `
-                    <td style="font-weight:bold;">${i}</td>
+                    <td>${i}</td>
                     <td>${hrs}h ${mins}m</td>
-                    <td style="font-size: 16px; font-weight: bold; color: ${i>=4?'var(--accent)':'inherit'}">${formatTime(targetDate)}</td>
-                    <td>
-                        <button class="save-btn" onclick="saveRecord(${totalMins}, '${bedtimeStr}')">Guardar</button>
-                    </td>
+                    <td style="font-size: 24px; font-weight: bold; color: #5d4037;">${formatTime(targetDate)}</td>
+                    <td><button class="save-btn" onclick="saveRecord(${totalMins}, '${bedtimeStr}')">+ Sellar</button></td>
                 `;
                 tbody.appendChild(row);
             }
         }
 
-        function getDB() {
-            const data = localStorage.getItem('sleepDB_v2');
-            return data ? JSON.parse(data) : [];
-        }
-        function saveDB(data) {
-            localStorage.setItem('sleepDB_v2', JSON.stringify(data));
-        }
+        // --- SISTEMA DE ALMACENAMIENTO ---
+        function getDB() { const data = localStorage.getItem('sleepLoreDB'); return data ? JSON.parse(data) : []; }
+        function saveDB(data) { localStorage.setItem('sleepLoreDB', JSON.stringify(data)); }
 
         function saveRecord(minutes, bedtime) {
-            const db = getDB();
-            const now = new Date();
-            
-            const newRecord = {
-                id: Date.now().toString(),
-                timestamp: now.getTime(),
+            const db = getDB(); const now = new Date();
+            db.push({
+                id: Date.now().toString(), timestamp: now.getTime(),
                 dateStr: now.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }),
-                bedtime: bedtime,
-                minutes: minutes
-            };
-            
-            db.push(newRecord);
-            saveDB(db);
-            showToast("¡Registro guardado en tu diario!");
+                bedtime: bedtime, minutes: minutes
+            });
+            saveDB(db); showToast("¡Registro sellado en los pergaminos!");
         }
 
         function deleteRecord(id) {
-            let db = getDB();
-            db = db.filter(record => record.id !== id);
-            saveDB(db);
-            renderHistory();
-            renderChart();
-            showToast("Registro eliminado");
+            let db = getDB(); db = db.filter(record => record.id !== id);
+            saveDB(db); renderHistory(); renderChart(); updateWeeklyStats();
+            showToast("Pergamino quemado.");
         }
 
         function limpiarBaseDeDatos() {
-            if(confirm("Esta acción borrará todo tu historial. ¿Estás seguro?")) {
-                localStorage.removeItem('sleepDB_v2');
-                renderHistory();
-                renderChart();
-                showToast("Datos eliminados");
+            if(confirm("¿Quemar todas las crónicas? Esta acción es irreversible.")) {
+                localStorage.removeItem('sleepLoreDB'); renderHistory(); renderChart(); updateWeeklyStats();
+                showToast("Cenizas dispersadas.");
             }
         }
 
-        function renderHistory() {
-            const db = getDB();
-            const container = document.getElementById('history-container');
-            container.innerHTML = '';
+        function updateWeeklyStats() {
+            const db = getDB(); const hace7Dias = new Date().getTime() - (7 * 24 * 60 * 60 * 1000);
+            const recientes = db.filter(r => r.timestamp >= hace7Dias);
+            let totalMins = 0; recientes.forEach(r => totalMins += r.minutes);
+            document.getElementById('weekly-hours').innerText = `${Math.floor(totalMins / 60)}h ${totalMins % 60}m`;
+        }
 
-            // Filtrar últimos 7 días
+        function renderHistory() {
+            const db = getDB(); const container = document.getElementById('history-container'); container.innerHTML = '';
             const hace7Dias = new Date().getTime() - (7 * 24 * 60 * 60 * 1000);
             const recientes = db.filter(r => r.timestamp >= hace7Dias).sort((a,b) => b.timestamp - a.timestamp);
 
             if (recientes.length === 0) {
-                container.innerHTML = '<div class="empty-state">No hay registros esta semana. ¡Guarda tus ciclos desde la calculadora!</div>';
+                container.innerHTML = '<div class="empty-state">No has escrito nada en los últimos 7 soles. ¡Sella tus ciclos en la posada!</div>';
                 return;
             }
 
             recientes.forEach(record => {
-                const hrs = Math.floor(record.minutes / 60);
-                const mins = record.minutes % 60;
-                
                 container.innerHTML += `
                     <div class="history-card">
                         <div>
-                            <div class="history-date">${record.dateStr}</div>
-                            <div class="history-bedtime">Acostado: ${record.bedtime}</div>
+                            <div style="font-size:22px; font-weight:bold;">${record.dateStr}</div>
+                            <div style="font-size:16px;">Apagaste llama: ${record.bedtime}</div>
                         </div>
                         <div style="display:flex; align-items:center;">
-                            <div class="history-duration">${hrs}h ${mins}m</div>
-                            <button class="delete-btn" onclick="deleteRecord('${record.id}')">×</button>
+                            <div style="font-size:26px; font-weight:bold; color:var(--success); margin-right:10px;">
+                                ${Math.floor(record.minutes / 60)}h ${record.minutes % 60}m
+                            </div>
+                            <button class="delete-btn" onclick="deleteRecord('${record.id}')">X</button>
                         </div>
                     </div>
                 `;
@@ -414,63 +473,34 @@
         }
 
         function renderChart() {
-            const db = getDB();
-            const container = document.getElementById('chart-container');
-            container.innerHTML = '';
-            
-            // Filtrar últimos 30 días y agrupar por fecha string
+            const db = getDB(); const container = document.getElementById('chart-container'); container.innerHTML = '';
             const hace30Dias = new Date().getTime() - (30 * 24 * 60 * 60 * 1000);
             const recientes = db.filter(r => r.timestamp >= hace30Dias);
             
-            if (recientes.length === 0) {
-                container.innerHTML = '<div class="empty-state" style="width:100%;">No hay datos suficientes para el gráfico.</div>';
-                return;
-            }
+            if (recientes.length === 0) { container.innerHTML = '<div class="empty-state">Sin crónicas suficientes.</div>'; return; }
 
-            // Agrupación (por si se guardan 2 registros el mismo día, los suma)
             const grouped = {};
-            recientes.forEach(r => {
-                if(!grouped[r.dateStr]) grouped[r.dateStr] = 0;
-                grouped[r.dateStr] += r.minutes;
-            });
+            recientes.forEach(r => { if(!grouped[r.dateStr]) grouped[r.dateStr] = 0; grouped[r.dateStr] += r.minutes; });
 
-            // Motor de renderizado SVG/DOM
-            // Altura máxima del gráfico = 12 horas (720 minutos)
-            const MAX_MINUTES_CHART = 720; 
-
+            const MAX_MINUTES = 720; // 12 horas máx
             Object.keys(grouped).forEach(date => {
-                const mins = grouped[date];
-                const hrs = Math.floor(mins / 60);
-                const m = mins % 60;
+                const mins = grouped[date]; let heightPercent = (mins / MAX_MINUTES) * 100; if (heightPercent > 100) heightPercent = 100;
+                let colorClass = 'bad'; if (mins >= 360 && mins < 450) colorClass = 'ok'; if (mins >= 450) colorClass = 'good';
                 
-                // Calcular porcentaje de altura (máximo 100%)
-                let heightPercent = (mins / MAX_MINUTES_CHART) * 100;
-                if (heightPercent > 100) heightPercent = 100;
-
-                // Clasificador de calidad
-                let colorClass = 'bad'; // < 6h (360 mins)
-                if (mins >= 360 && mins < 450) colorClass = 'ok'; // 6h a 7.5h
-                if (mins >= 450) colorClass = 'good'; // > 7.5h
-
                 container.innerHTML += `
                     <div class="bar-group">
-                        <div class="bar ${colorClass}" style="height: ${heightPercent}%;">
-                            <div class="bar-tooltip">${hrs}h ${m}m</div>
-                        </div>
-                        <div class="bar-label">${date.split(',')[0]}</div> <!-- Muestra ej: 'lun' -->
+                        <div class="bar ${colorClass}" style="height: ${heightPercent}%;"></div>
+                        <div class="bar-label" style="font-family:'VT323'">${date.split(',')[0]}</div>
                     </div>
                 `;
             });
-            
-            // Auto-scroll a la derecha (datos más recientes)
             setTimeout(() => { container.scrollLeft = container.scrollWidth; }, 100);
         }
 
-        // Inicialización
         window.onload = () => {
             const now = new Date();
-            const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
-            document.getElementById('time-input').value = timeString;
+            document.getElementById('time-input').value = formatTime(now);
+            updateWeeklyStats();
         };
     </script>
 </body>
