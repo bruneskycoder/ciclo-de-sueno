@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <!-- El viewport es CRÍTICO. Le dice al iPhone que no aleje la pantalla, tratándola como una app real -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Etiquetas específicas de iOS para transformarlo en una PWA (Progressive Web App) genuina -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Sleep Cycles App</title>
+    
+    <!-- Usamos TailwindCSS mediante CDN para un diseño rápido, moderno y responsivo sin archivos extra -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Importamos una fuente moderna para mejorar la legibilidad y estética (UI/UX) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Usamos un fondo oscuro azulado para ser amigable con la vista nocturna */
+            background-color: #0f172a; 
+            color: #f8fafc;
+        }
+        
+        /* Ocultamos las barras de desplazamiento para que parezca una app nativa */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Animaciones suaves para las transiciones entre pestañas */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4">
+
+    <div class="w-full max-w-md mt-6 mb-8 text-center">
+        <h1 class="text-3xl font-bold text-indigo-400 mb-2">Ciclos de Sueño</h1>
+        <p class="text-slate-400 text-sm">Optimiza tu descanso (Ciclos de 90 min)</p>
+    </div>
+
+    <!-- Contenedor Principal (Tarjeta estilo Glassmorphism) -->
+    <div class="w-full max-w-md bg-slate-800 rounded-2xl shadow-2xl p-6 border border-slate-700">
+        
+        <!-- Pestañas de navegación simplificadas -->
+        <div class="flex bg-slate-900 rounded-lg p-1 mb-6 overflow-x-auto">
+            <button id="btn-dormir" class="flex-1 py-2 px-2 rounded-md bg-indigo-600 text-white font-semibold text-xs transition-colors shadow whitespace-nowrap" onclick="switchTab('dormir')">
+                Despertar
+            </button>
+            <button id="btn-despertar" class="flex-1 py-2 px-2 rounded-md text-slate-400 font-semibold text-xs transition-colors hover:text-white whitespace-nowrap" onclick="switchTab('despertar')">
+                Dormir
+            </button>
+        </div>
+
+        <!-- PESTAÑA 1: Si me duermo ahora/a cierta hora, ¿cuándo despierto? -->
+        <div id="tab-dormir" class="tab-content active">
+            <div class="mb-4">
+                <label class="block text-slate-300 text-sm mb-2">Me acuesto a las:</label>
+                <!-- input type="time" despliega el selector nativo de hora del iPhone, mejorando la UX -->
+                <input type="time" id="hora-acostarse" class="w-full bg-slate-700 text-white rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 border border-slate-600">
+            </div>
+            <div class="mb-6">
+                <label class="block text-slate-300 text-sm mb-2">Minutos que tardo en dormirme:</label>
+                <!-- Cambiamos el atributo value="15" a value="20" para reflejar tu preferencia por defecto -->
+                <input type="number" id="retraso-dormir-1" value="20" min="0" class="w-full bg-slate-700 text-white rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 border border-slate-600">
+            </div>
+            <button onclick="calcularDespertar()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-indigo-500/30">
+                Calcular
+            </button>
+        </div>
+
+        <!-- PESTAÑA 2: Si me quiero despertar a cierta hora, ¿cuándo me duermo? -->
+        <div id="tab-despertar" class="tab-content">
+            <div class="mb-4">
+                <label class="block text-slate-300 text-sm mb-2">Me quiero despertar a las:</label>
+                <input type="time" id="hora-despertar" class="w-full bg-slate-700 text-white rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 border border-slate-600">
+            </div>
+            <div class="mb-6">
+                <label class="block text-slate-300 text-sm mb-2">Minutos que tardo en dormirme:</label>
+                <input type="number" id="retraso-dormir-2" value="20" min="0" class="w-full bg-slate-700 text-white rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 border border-slate-600">
+            </div>
+            <button onclick="calcularAcostarse()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-emerald-500/30">
+                Calcular
+            </button>
+        </div>
+    </div>
+
+    <!-- Contenedor donde inyectaremos los resultados mediante JavaScript -->
+    <div id="resultados-container" class="w-full max-w-md mt-6 hidden">
+        <h2 class="text-xl font-semibold mb-4 text-slate-200" id="resultados-titulo">Resultados</h2>
+        <div class="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 shadow-xl">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-900 text-slate-400 text-sm">
+                        <th class="p-3 font-medium">Ciclos</th>
+                        <th class="p-3 font-medium">Horas</th>
+                        <th class="p-3 font-medium">Hora Sugerida</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-resultados" class="text-sm divide-y divide-slate-700">
+                    <!-- Las filas se generarán aquí -->
+                </tbody>
+            </table>
+        </div>
+        <p class="text-xs text-slate-500 mt-4 text-center">Se recomienda dormir entre 4 y 6 ciclos (6 a 9 horas) para un descanso óptimo.</p>
+    </div>
+
+    <script>
+        window.onload = () => {
+            const now = new Date();
+            // hour12: false garantiza que se utilice siempre el formato militar/24h 
+            const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+            document.getElementById('hora-acostarse').value = timeString;
+            document.getElementById('hora-despertar').value = timeString;
+        }
+
+        function switchTab(tab) {
+            document.getElementById('tab-dormir').classList.remove('active');
+            document.getElementById('tab-despertar').classList.remove('active');
+            
+            const inactiveClass = 'flex-1 py-2 px-2 rounded-md text-slate-400 font-semibold text-xs transition-colors hover:text-white whitespace-nowrap';
+            document.getElementById('btn-dormir').className = inactiveClass;
+            document.getElementById('btn-despertar').className = inactiveClass;
+            
+            if (tab === 'dormir') {
+                document.getElementById('tab-dormir').classList.add('active');
+                document.getElementById('btn-dormir').className = 'flex-1 py-2 px-2 rounded-md bg-indigo-600 text-white font-semibold text-xs transition-colors shadow whitespace-nowrap';
+            } else if (tab === 'despertar') {
+                document.getElementById('tab-despertar').classList.add('active');
+                document.getElementById('btn-despertar').className = 'flex-1 py-2 px-2 rounded-md bg-emerald-600 text-white font-semibold text-xs transition-colors shadow whitespace-nowrap';
+            }
+            
+            document.getElementById('resultados-container').classList.add('hidden');
+        }
+
+        function formatTime(date) {
+            return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+        }
+
+        function formatDuration(minutes) {
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+            return `${h}h ${m}m`;
+        }
+
+        function renderResultados(resultados, titulo) {
+            const tbody = document.getElementById('tabla-resultados');
+            tbody.innerHTML = ''; 
+            
+            resultados.forEach(res => {
+                const tr = document.createElement('tr');
+                
+                const isOptimal = res.ciclos >= 4 && res.ciclos <= 6;
+                if (isOptimal) tr.classList.add('bg-slate-700/30');
+
+                tr.innerHTML = `
+                    <td class="p-3">
+                        <span class="${isOptimal ? 'text-indigo-400 font-bold' : 'text-slate-300'}">${res.ciclos}</span>
+                    </td>
+                    <td class="p-3 text-slate-300">${res.duracion}</td>
+                    <td class="p-3">
+                        <span class="text-lg font-bold ${isOptimal ? 'text-emerald-400' : 'text-white'}">${res.hora}</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('resultados-titulo').innerText = titulo;
+            document.getElementById('resultados-container').classList.remove('hidden');
+            
+            setTimeout(() => {
+                document.getElementById('resultados-container').scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+
+        function calcularDespertar() {
+            const timeVal = document.getElementById('hora-acostarse').value;
+            const delay = parseInt(document.getElementById('retraso-dormir-1').value) || 0;
+            
+            if (!timeVal) return; 
+
+            const [hours, mins] = timeVal.split(':').map(Number);
+            
+            let baseDate = new Date();
+            baseDate.setHours(hours, mins, 0, 0);
+            
+            baseDate.setMinutes(baseDate.getMinutes() + delay);
+
+            const resultados = [];
+            for (let i = 1; i <= 6; i++) {
+                let futureDate = new Date(baseDate);
+                let minutesToAdd = i * 90; 
+                futureDate.setMinutes(futureDate.getMinutes() + minutesToAdd);
+                
+                resultados.push({
+                    ciclos: i,
+                    // Se suma el tiempo que se tarda en dormir a las horas reales de descanso
+                    duracion: formatDuration(minutesToAdd + delay),
+                    hora: formatTime(futureDate)
+                });
+            }
+            
+            renderResultados(resultados.reverse(), 'Deberías despertar a las:');
+        }
+
+        function calcularAcostarse() {
+            const timeVal = document.getElementById('hora-despertar').value;
+            const delay = parseInt(document.getElementById('retraso-dormir-2').value) || 0;
+            
+            if (!timeVal) return;
+
+            const [hours, mins] = timeVal.split(':').map(Number);
+            
+            let baseDate = new Date();
+            baseDate.setHours(hours, mins, 0, 0);
+
+            const resultados = [];
+            for (let i = 1; i <= 6; i++) {
+                let pastDate = new Date(baseDate);
+                let minutesToSubtract = (i * 90) + delay; 
+                pastDate.setMinutes(pastDate.getMinutes() - minutesToSubtract);
+                
+                resultados.push({
+                    ciclos: i,
+                    // Se suma el tiempo que se tarda en dormir a las horas reales de descanso
+                    duracion: formatDuration((i * 90) + delay),
+                    hora: formatTime(pastDate)
+                });
+            }
+            
+            renderResultados(resultados.reverse(), 'Deberías acostarte a las:');
+        }
+    </script>
+</body>
+</html>
