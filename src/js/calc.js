@@ -40,8 +40,8 @@ function dayOffsetFrom(baseDate, targetDate) {
 // despertar y se va hacia atrás (el resultado es la hora de acostarse);
 // en modo 'sleep' timeStr es la hora de acostarse y se va hacia adelante
 // (el resultado es la hora de despertar). Extraído de calcularCiclos para
-// que otras funciones (ver próximo commit) puedan reusar exactamente la
-// misma aritmética de horario/cruce de medianoche sin duplicarla.
+// que calcularSiesta pueda reusar exactamente la misma aritmética de
+// horario/cruce de medianoche sin duplicarla.
 function computeTimePoint({ mode, baseDate, totalMinutes }) {
     const targetDate = new Date(baseDate);
     let bedtimeDate;
@@ -119,4 +119,52 @@ export function calcularCiclos({
     }
 
     return { ok: true, latency, cycleLength, results };
+}
+
+// Duración de una siesta corta ("power nap"): lo bastante breve para no
+// entrar en sueño profundo, así se evita la inercia del sueño (el
+// atontamiento de despertarse a mitad de una fase profunda). Fuente:
+// Sleep Foundation y Mayo Clinic coinciden en un rango de 10–30 min, con
+// 15–20 min como punto ideal — ver README para las citas completas.
+export const SIESTA_CORTA_MINUTOS = 20;
+
+/**
+ * Calcula las dos recomendaciones estándar de siesta a partir de una hora
+ * de acostarse: una siesta CORTA (SIESTA_CORTA_MINUTOS, evita sueño
+ * profundo) y una siesta COMPLETA (un ciclo entero de cycleMinutes, se
+ * despierta en una fase más liviana). Deliberadamente NO es "menos ciclos
+ * que calcularCiclos": la siesta corta no es una fracción de ciclo, es una
+ * recomendación con lógica propia (cortar antes de la fase profunda). Por
+ * eso es una función separada — aunque comparte toda la aritmética de
+ * horario con calcularCiclos vía computeTimePoint.
+ *
+ * @param {Object} params
+ * @param {string} params.timeStr - Hora en la que se acuesta a sestear, "HH:MM".
+ * @param {number} params.latencyMinutes - Minutos hasta dormirse.
+ * @param {number} [params.cycleMinutes=90] - Duración de ciclo del usuario
+ *   (la misma preferencia de Fase 3), usada para la siesta completa.
+ * @param {Date} [params.referenceDate=new Date()]
+ * @returns {{ok: true, latency: number, cycleLength: number, corta: Object, completa: Object} | {ok: false, error: string}}
+ */
+export function calcularSiesta({ timeStr, latencyMinutes, cycleMinutes = 90, referenceDate = new Date() }) {
+    if (!timeStr || !/^\d{1,2}:\d{2}$/.test(timeStr)) {
+        return { ok: false, error: 'missing-time' };
+    }
+
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const latency = clampLatency(latencyMinutes);
+    const cycleLength = clampCycleLength(cycleMinutes);
+    const baseDate = new Date(referenceDate);
+    baseDate.setHours(hours, minutes, 0, 0);
+
+    const corta = {
+        tipo: 'corta',
+        ...computeTimePoint({ mode: 'sleep', baseDate, totalMinutes: SIESTA_CORTA_MINUTOS + latency }),
+    };
+    const completa = {
+        tipo: 'completa',
+        ...computeTimePoint({ mode: 'sleep', baseDate, totalMinutes: cycleLength + latency }),
+    };
+
+    return { ok: true, latency, cycleLength, corta, completa };
 }

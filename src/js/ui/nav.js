@@ -8,7 +8,7 @@ import { renderHistory } from './history-view.js';
 import { renderChart } from './stats-view.js';
 import { updateWeeklyStats } from '../storage.js';
 
-const VIEW_IDS = ['calc', 'history', 'stats'];
+const VIEW_IDS = ['calc', 'siesta', 'history', 'stats'];
 
 export function initNav() {
     VIEW_IDS.forEach((id) => {

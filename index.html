@@ -30,6 +30,9 @@
         <button type="button" class="nav-item active" id="nav-calc" aria-current="page">
             <span class="icon" aria-hidden="true">🔥</span><span>Fogón</span>
         </button>
+        <button type="button" class="nav-item" id="nav-siesta">
+            <span class="icon" aria-hidden="true">☀️</span><span>Sesteo</span>
+        </button>
         <button type="button" class="nav-item" id="nav-history">
             <span class="icon" aria-hidden="true">📓</span><span>Cuaderno de Ruta</span>
         </button>
@@ -106,6 +109,40 @@
                 </thead>
                 <tbody id="results-body"></tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- VISTA SIESTA (A LA SOMBRA DEL OMBÚ) -->
+    <div id="view-siesta" class="app-container view">
+        <h1 tabindex="-1">A la Sombra del Ombú</h1>
+        <p class="subtitle">Dos formas de sestear sin quedar más baqueteado que antes.</p>
+
+        <form id="siesta-form">
+            <div class="input-group">
+                <label for="siesta-time-input">¿A qué hora te tirás a la sombra?</label>
+                <input type="time" id="siesta-time-input" required>
+            </div>
+
+            <div class="input-group">
+                <label for="siesta-latency-input">Minutos hasta que se te cierren los ojos:</label>
+                <input type="number" id="siesta-latency-input" value="10" min="0" max="120">
+            </div>
+
+            <button type="submit" class="calc-btn">Marcar el Sesteo</button>
+        </form>
+
+        <div id="siesta-results" class="siesta-results" style="display: none;">
+            <div class="siesta-card">
+                <h2>Siesta corta</h2>
+                <div class="siesta-time" id="siesta-corta-time">--:--</div>
+                <p class="siesta-detail" id="siesta-corta-detail"></p>
+            </div>
+            <div class="siesta-card">
+                <h2>Siesta completa</h2>
+                <div class="siesta-time" id="siesta-completa-time">--:--</div>
+                <p class="siesta-detail" id="siesta-completa-detail"></p>
+            </div>
+            <p class="field-hint">Entre esas dos, ni a palos: si te despertás a mitad de camino corrés riesgo de levantarte más aturdido que si no hubieras sesteado — te agarra en lo más hondo del sueño.</p>
         </div>
     </div>
 

@@ -9,6 +9,7 @@ import './css/components.css';
 import { formatTime } from './js/calc.js';
 import { initNav } from './js/ui/nav.js';
 import { initCalculatorView } from './js/ui/calculator-view.js';
+import { initSiestaView } from './js/ui/siesta-view.js';
 import { initHistoryView } from './js/ui/history-view.js';
 import { initStatsView } from './js/ui/stats-view.js';
 import { updateWeeklyStats } from './js/storage.js';
@@ -16,6 +17,7 @@ import { updateWeeklyStats } from './js/storage.js';
 function init() {
     initNav();
     initCalculatorView();
+    initSiestaView();
     initHistoryView();
     initStatsView();
 

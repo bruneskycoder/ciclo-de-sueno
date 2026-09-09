@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcularCiclos, clampLatency, clampCycleLength, formatTime } from './calc.js';
+import { calcularCiclos, calcularSiesta, clampLatency, clampCycleLength, formatTime, SIESTA_CORTA_MINUTOS } from './calc.js';
 
 // Fecha de referencia fija para que los tests no dependan del día en que
 // se corren. calcularCiclos solo usa su año/mes/día — la hora la pisa
@@ -126,6 +126,46 @@ describe('clampLatency', () => {
     });
     it('deja pasar valores válidos sin cambios', () => {
         expect(clampLatency('45')).toBe(45);
+    });
+});
+
+describe('calcularSiesta — modo siesta (Fase 4)', () => {
+    it('la siesta corta usa SIESTA_CORTA_MINUTOS, no la duración de ciclo', () => {
+        const { corta } = calcularSiesta({ timeStr: '14:00', latencyMinutes: 0, cycleMinutes: 90, referenceDate: REF });
+        expect(corta.totalMinutes).toBe(SIESTA_CORTA_MINUTOS);
+        expect(corta.resultTimeStr).toBe('14:20');
+        expect(corta.tipo).toBe('corta');
+    });
+
+    it('la siesta completa usa la duración de ciclo del usuario', () => {
+        const { completa } = calcularSiesta({ timeStr: '14:00', latencyMinutes: 0, cycleMinutes: 90, referenceDate: REF });
+        expect(completa.totalMinutes).toBe(90);
+        expect(completa.resultTimeStr).toBe('15:30');
+        expect(completa.tipo).toBe('completa');
+    });
+
+    it('respeta una duración de ciclo distinta a 90 en la siesta completa', () => {
+        const { completa } = calcularSiesta({ timeStr: '14:00', latencyMinutes: 0, cycleMinutes: 100, referenceDate: REF });
+        expect(completa.totalMinutes).toBe(100);
+        expect(completa.resultTimeStr).toBe('15:40');
+    });
+
+    it('suma la latencia a ambas recomendaciones', () => {
+        const { corta, completa } = calcularSiesta({ timeStr: '14:00', latencyMinutes: 10, cycleMinutes: 90, referenceDate: REF });
+        expect(corta.totalMinutes).toBe(30);
+        expect(completa.totalMinutes).toBe(100);
+    });
+
+    it('bedtimeTimeStr de ambas es la hora de acostarse ingresada', () => {
+        const { corta, completa } = calcularSiesta({ timeStr: '14:00', latencyMinutes: 10, referenceDate: REF });
+        expect(corta.bedtimeTimeStr).toBe('14:00');
+        expect(completa.bedtimeTimeStr).toBe('14:00');
+    });
+
+    it('devuelve ok:false si falta la hora', () => {
+        const result = calcularSiesta({ timeStr: '', latencyMinutes: 0, referenceDate: REF });
+        expect(result.ok).toBe(false);
+        expect(result.error).toBe('missing-time');
     });
 });
 
