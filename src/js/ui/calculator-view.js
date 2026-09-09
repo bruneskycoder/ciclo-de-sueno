@@ -3,7 +3,7 @@
 // sin DOM) — acá solo se lee el formulario, se le pasan los datos, y se
 // pinta lo que devuelve.
 import { calcularCiclos } from '../calc.js';
-import { saveRecord } from '../storage.js';
+import { saveRecord, getCycleLength, saveCycleLength } from '../storage.js';
 import { showToast } from './toast.js';
 // saveRecord ya dispara su propio toast de confirmación (ver storage.js) —
 // esta vista no necesita mostrar el suyo.
@@ -20,6 +20,15 @@ export function initCalculatorView() {
     const sleepTab = document.getElementById('sleep-tab');
     wakeTab.addEventListener('click', () => setMode('wake'));
     sleepTab.addEventListener('click', () => setMode('sleep'));
+
+    // Duración de ciclo (Fase 3): se precarga con lo que el usuario haya
+    // configurado antes (o 90 por defecto) y se re-guarda cada vez que la
+    // cambia, para no tener que reconfigurarla en cada visita.
+    const cycleLengthInput = document.getElementById('cycle-length-input');
+    cycleLengthInput.value = getCycleLength();
+    cycleLengthInput.addEventListener('change', () => {
+        cycleLengthInput.value = saveCycleLength(cycleLengthInput.value);
+    });
 
     document.getElementById('calc-form').addEventListener('submit', (event) => {
         event.preventDefault();
@@ -57,8 +66,9 @@ export function setMode(mode) {
 function runCalculation() {
     const timeStr = document.getElementById('time-input').value;
     const latencyMinutes = document.getElementById('latency-input').value;
+    const cycleMinutes = document.getElementById('cycle-length-input').value;
 
-    const result = calcularCiclos({ mode: currentMode, timeStr, latencyMinutes });
+    const result = calcularCiclos({ mode: currentMode, timeStr, latencyMinutes, cycleMinutes });
     if (!result.ok) {
         showToast('¡Decime a qué hora, que si no ando a ciegas!');
         return;

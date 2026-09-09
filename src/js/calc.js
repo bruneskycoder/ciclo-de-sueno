@@ -15,6 +15,18 @@ export function clampLatency(value, { min = 0, max = 120 } = {}) {
     return Math.min(max, Math.max(min, n));
 }
 
+// Duración del ciclo de sueño en minutos. 90 es un promedio poblacional
+// (Fase 3 del plan), pero varía por persona — el rango 70–120 cubre la
+// variación típica reportada en la bibliografía de sueño. Igual que con
+// clampLatency, no confío solo en el min/max del <input>: si llega un
+// valor fuera de rango o no numérico (localStorage corrupto, input vacío),
+// caigo al default de 90 en vez de romper el cálculo.
+export function clampCycleLength(value, { min = 70, max = 120, fallback = 90 } = {}) {
+    const n = parseInt(value, 10);
+    if (Number.isNaN(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+}
+
 // Compara el día calendario de targetDate contra el de baseDate.
 // Devuelve -1 (día anterior), 0 (mismo día) o 1 (día siguiente).
 function dayOffsetFrom(baseDate, targetDate) {
@@ -34,7 +46,8 @@ function dayOffsetFrom(baseDate, targetDate) {
  * @param {string} params.timeStr - Hora en formato "HH:MM".
  * @param {number} params.latencyMinutes - Minutos hasta dormirse. Se acota
  *   internamente con clampLatency.
- * @param {number} [params.cycleMinutes=90] - Duración de un ciclo.
+ * @param {number} [params.cycleMinutes=90] - Duración de un ciclo, en
+ *   minutos. Se acota internamente con clampCycleLength (70–120).
  * @param {number} [params.minCycles=1]
  * @param {number} [params.maxCycles=6]
  * @param {number} [params.optimalMinCycles=4] - A partir de cuántos ciclos
@@ -43,7 +56,7 @@ function dayOffsetFrom(baseDate, targetDate) {
  * @param {Date} [params.referenceDate=new Date()] - Fecha base (para poder
  *   fijarla en los tests). Solo se usa su día/mes/año; la hora se pisa con
  *   timeStr.
- * @returns {{ok: true, latency: number, results: Array} | {ok: false, error: string}}
+ * @returns {{ok: true, latency: number, cycleLength: number, results: Array} | {ok: false, error: string}}
  */
 export function calcularCiclos({
     mode,
@@ -62,12 +75,13 @@ export function calcularCiclos({
 
     const [hours, minutes] = timeStr.split(':').map(Number);
     const latency = clampLatency(latencyMinutes);
+    const cycleLength = clampCycleLength(cycleMinutes);
     const baseDate = new Date(referenceDate);
     baseDate.setHours(hours, minutes, 0, 0);
 
     const results = [];
     for (let cycles = minCycles; cycles <= maxCycles; cycles++) {
-        const sleepMinutes = cycles * cycleMinutes;
+        const sleepMinutes = cycles * cycleLength;
         const totalMinutes = sleepMinutes + latency;
         const targetDate = new Date(baseDate);
         let bedtimeDate;
@@ -92,5 +106,5 @@ export function calcularCiclos({
         });
     }
 
-    return { ok: true, latency, results };
+    return { ok: true, latency, cycleLength, results };
 }

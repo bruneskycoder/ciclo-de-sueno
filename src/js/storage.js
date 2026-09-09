@@ -6,6 +6,23 @@ import { showToast } from './ui/toast.js';
 import { renderHistory } from './ui/history-view.js';
 import { renderChart } from './ui/stats-view.js';
 import { confirmModal } from './ui/modal.js';
+import { clampCycleLength } from './calc.js';
+
+const CYCLE_LENGTH_KEY = 'cycleLengthPref';
+
+// Preferencia de duración de ciclo (Fase 3): se guarda aparte de sleepLoreDB
+// porque es una configuración, no un registro de sueño. clampCycleLength
+// cubre tanto "nunca se configuró" (localStorage vacío) como un valor
+// corrupto o viejo fuera de rango — en ambos casos cae a 90.
+export function getCycleLength() {
+    return clampCycleLength(localStorage.getItem(CYCLE_LENGTH_KEY));
+}
+
+export function saveCycleLength(minutes) {
+    const clamped = clampCycleLength(minutes);
+    localStorage.setItem(CYCLE_LENGTH_KEY, String(clamped));
+    return clamped;
+}
 
 export function getDB() {
     const data = localStorage.getItem('sleepLoreDB');

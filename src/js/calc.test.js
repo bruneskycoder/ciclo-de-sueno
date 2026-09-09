@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcularCiclos, clampLatency, formatTime } from './calc.js';
+import { calcularCiclos, clampLatency, clampCycleLength, formatTime } from './calc.js';
 
 // Fecha de referencia fija para que los tests no dependan del día en que
 // se corren. calcularCiclos solo usa su año/mes/día — la hora la pisa
@@ -87,6 +87,31 @@ describe('calcularCiclos — entrada inválida', () => {
     });
 });
 
+describe('calcularCiclos — duración de ciclo configurable (Fase 3)', () => {
+    it('usa 90 min por defecto si no se pasa cycleMinutes', () => {
+        const { cycleLength, results } = calcularCiclos({ mode: 'wake', timeStr: '07:00', latencyMinutes: 0, referenceDate: REF });
+        expect(cycleLength).toBe(90);
+        expect(results.find((r) => r.cycles === 1).totalMinutes).toBe(90);
+    });
+
+    it('recalcula todo con una duración de ciclo distinta (ej. 100 min)', () => {
+        const { cycleLength, results } = calcularCiclos({
+            mode: 'wake', timeStr: '07:00', latencyMinutes: 0, cycleMinutes: 100, referenceDate: REF,
+        });
+        expect(cycleLength).toBe(100);
+        const r4 = results.find((r) => r.cycles === 4);
+        expect(r4.totalMinutes).toBe(400); // 4*100
+        expect(r4.resultTimeStr).toBe('00:20');
+    });
+
+    it('una duración de ciclo fuera de rango se acota antes de calcular', () => {
+        const { cycleLength } = calcularCiclos({
+            mode: 'wake', timeStr: '07:00', latencyMinutes: 0, cycleMinutes: 300, referenceDate: REF,
+        });
+        expect(cycleLength).toBe(120);
+    });
+});
+
 describe('clampLatency', () => {
     it('convierte valores vacíos o no numéricos a 0', () => {
         expect(clampLatency('')).toBe(0);
@@ -101,6 +126,26 @@ describe('clampLatency', () => {
     });
     it('deja pasar valores válidos sin cambios', () => {
         expect(clampLatency('45')).toBe(45);
+    });
+});
+
+describe('clampCycleLength', () => {
+    it('deja pasar valores dentro del rango 70–120', () => {
+        expect(clampCycleLength('90')).toBe(90);
+        expect(clampCycleLength(70)).toBe(70);
+        expect(clampCycleLength(120)).toBe(120);
+    });
+    it('acota valores por debajo del mínimo', () => {
+        expect(clampCycleLength('50')).toBe(70);
+        expect(clampCycleLength(0)).toBe(70);
+    });
+    it('acota valores por encima del máximo', () => {
+        expect(clampCycleLength('500')).toBe(120);
+    });
+    it('cae al default de 90 si el valor es vacío o no numérico', () => {
+        expect(clampCycleLength('')).toBe(90);
+        expect(clampCycleLength('abc')).toBe(90);
+        expect(clampCycleLength(undefined)).toBe(90);
     });
 });
 

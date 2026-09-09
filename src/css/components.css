@@ -151,6 +151,7 @@
 /* --- FORMULARIO --- */
 .input-group { margin-bottom: 16px; }
 label { display: block; margin-bottom: 5px; font-size: 13px; color: var(--hide); letter-spacing: 0.02em; }
+.field-hint { margin: 6px 2px 0; font-size: 12px; color: var(--text-muted); line-height: 1.4; }
 
 /* CORRECCIÓN iOS: font-size 18px (mayor a 16px) evita zoom. */
 input[type="time"], input[type="number"] {
