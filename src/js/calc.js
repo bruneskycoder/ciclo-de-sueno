@@ -35,6 +35,35 @@ function dayOffsetFrom(baseDate, targetDate) {
     return Math.round((target - base) / 86400000);
 }
 
+// Dado un instante base y una cantidad de minutos de sueño, calcula el
+// punto de tiempo resultante: en modo 'wake' timeStr es la hora de
+// despertar y se va hacia atrás (el resultado es la hora de acostarse);
+// en modo 'sleep' timeStr es la hora de acostarse y se va hacia adelante
+// (el resultado es la hora de despertar). Extraído de calcularCiclos para
+// que otras funciones (ver próximo commit) puedan reusar exactamente la
+// misma aritmética de horario/cruce de medianoche sin duplicarla.
+function computeTimePoint({ mode, baseDate, totalMinutes }) {
+    const targetDate = new Date(baseDate);
+    let bedtimeDate;
+
+    if (mode === 'wake') {
+        targetDate.setMinutes(targetDate.getMinutes() - totalMinutes);
+        bedtimeDate = targetDate;
+    } else {
+        bedtimeDate = baseDate;
+        targetDate.setMinutes(targetDate.getMinutes() + totalMinutes);
+    }
+
+    return {
+        totalMinutes,
+        hours: Math.floor(totalMinutes / 60),
+        minutes: totalMinutes % 60,
+        resultTimeStr: formatTime(targetDate),
+        dayOffset: dayOffsetFrom(baseDate, targetDate),
+        bedtimeTimeStr: formatTime(bedtimeDate),
+    };
+}
+
 /**
  * Calcula, para una hora de referencia (despertar o acostarse), las horas
  * de acostarse/despertar que caen en un número entero de ciclos de sueño.
@@ -81,28 +110,11 @@ export function calcularCiclos({
 
     const results = [];
     for (let cycles = minCycles; cycles <= maxCycles; cycles++) {
-        const sleepMinutes = cycles * cycleLength;
-        const totalMinutes = sleepMinutes + latency;
-        const targetDate = new Date(baseDate);
-        let bedtimeDate;
-
-        if (mode === 'wake') {
-            targetDate.setMinutes(targetDate.getMinutes() - totalMinutes);
-            bedtimeDate = targetDate;
-        } else {
-            bedtimeDate = baseDate;
-            targetDate.setMinutes(targetDate.getMinutes() + totalMinutes);
-        }
-
+        const totalMinutes = cycles * cycleLength + latency;
         results.push({
             cycles,
-            totalMinutes,
-            hours: Math.floor(totalMinutes / 60),
-            minutes: totalMinutes % 60,
-            resultTimeStr: formatTime(targetDate),
-            dayOffset: dayOffsetFrom(baseDate, targetDate),
-            bedtimeTimeStr: formatTime(bedtimeDate),
             isOptimal: cycles >= optimalMinCycles && cycles <= optimalMaxCycles,
+            ...computeTimePoint({ mode, baseDate, totalMinutes }),
         });
     }
 
