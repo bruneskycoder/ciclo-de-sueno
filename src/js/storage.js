@@ -5,6 +5,7 @@
 import { showToast } from './ui/toast.js';
 import { renderHistory } from './ui/history-view.js';
 import { renderChart } from './ui/stats-view.js';
+import { confirmModal } from './ui/modal.js';
 
 export function getDB() {
     const data = localStorage.getItem('sleepLoreDB');
@@ -31,8 +32,13 @@ export function deleteRecord(id) {
     showToast("Borrado del cuaderno.");
 }
 
-export function limpiarBaseDeDatos() {
-    if (confirm("¿Borrar el rastro? Esta acción es irreversible.")) {
+export async function limpiarBaseDeDatos() {
+    const confirmado = await confirmModal({
+        message: '¿Borrar el rastro? Esta acción es irreversible.',
+        confirmLabel: 'Borrar',
+        cancelLabel: 'Cancelar',
+    });
+    if (confirmado) {
         localStorage.removeItem('sleepLoreDB'); renderHistory(); renderChart(); updateWeeklyStats();
         showToast("Rastro borrado.");
     }

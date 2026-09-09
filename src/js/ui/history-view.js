@@ -1,4 +1,14 @@
-import { getDB } from '../storage.js';
+import { getDB, deleteRecord } from '../storage.js';
+
+export function initHistoryView() {
+    // Delegación: un solo listener para todos los botones "X" de borrar,
+    // en vez de un onclick="" inline por tarjeta generada.
+    document.getElementById('history-container').addEventListener('click', (event) => {
+        const btn = event.target.closest('.delete-btn');
+        if (!btn) return;
+        deleteRecord(btn.dataset.id);
+    });
+}
 
 export function renderHistory() {
     const db = getDB(); const container = document.getElementById('history-container'); container.innerHTML = '';
@@ -21,7 +31,7 @@ export function renderHistory() {
                     <div style="font-size:26px; font-weight:bold; color:var(--success); margin-right:10px;">
                         ${Math.floor(record.minutes / 60)}h ${record.minutes % 60}m
                     </div>
-                    <button class="delete-btn" onclick="deleteRecord('${record.id}')">X</button>
+                    <button type="button" class="delete-btn" data-id="${record.id}" aria-label="Borrar registro del ${record.dateStr}">X</button>
                 </div>
             </div>
         `;

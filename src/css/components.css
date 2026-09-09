@@ -218,8 +218,43 @@ tr:last-child td { border-bottom: none; }
 .bar.bad { background-color: var(--danger); }
 .bar-label { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
 
+/* --- MODAL (reemplaza confirm() nativo) --- */
+dialog.modal {
+    background: var(--leather-dark);
+    color: var(--text-main);
+    border: 3px solid var(--leather-light);
+    border-radius: 6px;
+    padding: 0;
+    max-width: 340px;
+    width: calc(100% - 48px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+}
+dialog.modal::backdrop { background: rgba(0,0,0,0.6); }
+.modal-content { padding: 20px; display: flex; flex-direction: column; gap: 18px; margin: 0; }
+.modal-message { margin: 0; font-family: var(--font-body); font-size: 15px; line-height: 1.5; color: var(--hide); }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.modal-btn {
+    font-family: var(--font-body); font-size: 14px; padding: 8px 16px; border-radius: 4px;
+    cursor: pointer; border: 2px solid var(--leather-light); background: transparent; color: var(--text-muted);
+}
+.modal-btn-confirm { background: var(--danger); border-color: var(--danger); color: var(--hide); }
+.modal-btn:focus-visible { outline: 2px solid var(--ember-mid); outline-offset: 2px; }
+
 .history-card {
     background: var(--hide); border: 2px solid #8b7355; padding: 12px; margin-bottom: 12px;
     display: flex; justify-content: space-between; align-items: center; color: #3e2723;
 }
 .delete-btn { background: var(--danger); color: white; border: none; border-radius: 3px; font-family: var(--font-body); font-size: 13px; padding: 4px 10px; cursor: pointer;}
+
+/* --- FOCO VISIBLE (accesibilidad de teclado) --- */
+.calc-btn:focus-visible,
+.save-btn:focus-visible,
+.delete-btn:focus-visible,
+.btn-danger:focus-visible,
+.stats-card button:focus-visible,
+input[type="time"]:focus-visible,
+input[type="number"]:focus-visible,
+h1:focus-visible {
+    outline: 2px solid var(--ember-mid);
+    outline-offset: 2px;
+}

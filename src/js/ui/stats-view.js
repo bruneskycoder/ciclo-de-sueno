@@ -1,4 +1,10 @@
-import { getDB } from '../storage.js';
+import { getDB, limpiarBaseDeDatos } from '../storage.js';
+
+export function initStatsView() {
+    document.getElementById('btn-clear-data').addEventListener('click', () => {
+        limpiarBaseDeDatos();
+    });
+}
 
 export function renderChart() {
     const db = getDB(); const container = document.getElementById('chart-container'); container.innerHTML = '';
@@ -14,11 +20,12 @@ export function renderChart() {
     Object.keys(grouped).forEach(date => {
         const mins = grouped[date]; let heightPercent = (mins / MAX_MINUTES) * 100; if (heightPercent > 100) heightPercent = 100;
         let colorClass = 'bad'; if (mins >= 360 && mins < 450) colorClass = 'ok'; if (mins >= 450) colorClass = 'good';
+        const hrs = Math.floor(mins / 60); const rem = mins % 60;
 
         container.innerHTML += `
-            <div class="bar-group">
+            <div class="bar-group" role="img" aria-label="${date}: ${hrs}h ${rem}m dormidas">
                 <div class="bar ${colorClass}" style="height: ${heightPercent}%;"></div>
-                <div class="bar-label">${date.split(',')[0]}</div>
+                <div class="bar-label" aria-hidden="true">${date.split(',')[0]}</div>
             </div>
         `;
     });

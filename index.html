@@ -14,24 +14,34 @@
 </head>
 <body>
 
-    <div id="toast" class="toast">Mensaje</div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchView('calc')" id="nav-calc">
-            <span class="icon">🔥</span><span>Fogón</span>
-        </div>
-        <div class="nav-item" onclick="switchView('history')" id="nav-history">
-            <span class="icon">📓</span><span>Cuaderno de Ruta</span>
-        </div>
-        <div class="nav-item" onclick="switchView('stats')" id="nav-stats">
-            <span class="icon">🌙</span><span>Recuento</span>
-        </div>
-    </div>
+    <dialog id="app-modal" class="modal">
+        <form method="dialog" class="modal-content">
+            <p class="modal-message"></p>
+            <div class="modal-actions">
+                <button type="submit" value="cancel" class="modal-btn modal-btn-cancel">Cancelar</button>
+                <button type="submit" value="confirm" class="modal-btn modal-btn-confirm">Confirmar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <nav class="bottom-nav">
+        <button type="button" class="nav-item active" id="nav-calc" aria-current="page">
+            <span class="icon" aria-hidden="true">🔥</span><span>Fogón</span>
+        </button>
+        <button type="button" class="nav-item" id="nav-history">
+            <span class="icon" aria-hidden="true">📓</span><span>Cuaderno de Ruta</span>
+        </button>
+        <button type="button" class="nav-item" id="nav-stats">
+            <span class="icon" aria-hidden="true">🌙</span><span>Recuento</span>
+        </button>
+    </nav>
 
     <!-- VISTA 1: CALCULADORA (EL FOGÓN) -->
     <div id="view-calc" class="app-container view active">
 
-        <div class="scene">
+        <div class="scene" aria-hidden="true">
             <div class="star" style="top:14px; left:18%;"></div>
             <div class="star" style="top:28px; left:32%; animation-delay:0.6s;"></div>
             <div class="star" style="top:10px; left:62%; animation-delay:1.1s;"></div>
@@ -55,34 +65,37 @@
             </div>
         </div>
 
-        <h1>A la Luz del Fogón</h1>
+        <h1 tabindex="-1">A la Luz del Fogón</h1>
         <p class="subtitle">Rearmá el cuero. Ciclos de sueño de 90 minutos.</p>
 
         <div class="tabs">
-            <button id="wake-tab" class="tab-btn active" onclick="setMode('wake')">Al Alba</button>
-            <button id="sleep-tab" class="tab-btn" onclick="setMode('sleep')">Al Pago</button>
+            <button type="button" id="wake-tab" class="tab-btn active" aria-pressed="true">Al Alba</button>
+            <button type="button" id="sleep-tab" class="tab-btn" aria-pressed="false">Al Pago</button>
         </div>
 
-        <div class="input-group">
-            <label id="time-label">Quiero levantarme con el sol a las:</label>
-            <input type="time" id="time-input" required>
-        </div>
+        <form id="calc-form">
+            <div class="input-group">
+                <label id="time-label" for="time-input">Quiero levantarme con el sol a las:</label>
+                <input type="time" id="time-input" required>
+            </div>
 
-        <div class="input-group">
-            <label>Minutos hasta que se me cierren los ojos:</label>
-            <input type="number" id="latency-input" value="20" min="0" max="120">
-        </div>
+            <div class="input-group">
+                <label for="latency-input">Minutos hasta que se me cierren los ojos:</label>
+                <input type="number" id="latency-input" value="20" min="0" max="120">
+            </div>
 
-        <button class="calc-btn" onclick="calcularCiclos()">Marcar el Rumbo</button>
+            <button type="submit" class="calc-btn">Marcar el Rumbo</button>
+        </form>
 
         <div id="results-table" class="results-box" style="display: none;">
             <table>
+                <caption class="visually-hidden">Horas de acostarse o despertar según cantidad de ciclos de 90 minutos</caption>
                 <thead>
                     <tr>
-                        <th>Ciclos</th>
-                        <th>Reposo</th>
-                        <th>Hora</th>
-                        <th></th>
+                        <th scope="col">Ciclos</th>
+                        <th scope="col">Reposo</th>
+                        <th scope="col">Hora</th>
+                        <th scope="col"><span class="visually-hidden">Acción</span></th>
                     </tr>
                 </thead>
                 <tbody id="results-body"></tbody>
@@ -92,14 +105,14 @@
 
     <!-- VISTA 2: HISTORIAL (CUADERNO DE RUTA) -->
     <div id="view-history" class="app-container view">
-        <h1>Cuaderno de Ruta</h1>
+        <h1 tabindex="-1">Cuaderno de Ruta</h1>
         <p class="subtitle">Tus noches de los últimos 7 soles.</p>
         <div id="history-container"></div>
     </div>
 
     <!-- VISTA 3: ESTADÍSTICAS (RECUENTO) -->
     <div id="view-stats" class="app-container view">
-        <h1>Recuento de 30 Lunas</h1>
+        <h1 tabindex="-1">Recuento de 30 Lunas</h1>
         <p class="subtitle">Salud recuperada en 30 lunas.</p>
 
         <div class="stats-card">
@@ -110,7 +123,7 @@
         <div class="chart-wrapper">
             <div class="chart-container" id="chart-container"></div>
         </div>
-        <button class="btn-danger" onclick="limpiarBaseDeDatos()">Borrar el Rastro (borrar datos)</button>
+        <button type="button" class="btn-danger" id="btn-clear-data">Borrar el Rastro (borrar datos)</button>
     </div>
 
     <script type="module" src="/src/main.js"></script>

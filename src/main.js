@@ -1,37 +1,26 @@
-// main.js — punto de entrada. Monta la app e importa CSS + módulos.
-// Expone en window las funciones que el HTML todavía invoca vía atributos
-// onclick="" (marcado sin tocar en esta fase). La Fase 2 elimina esos
-// atributos y los reemplaza por addEventListener.
+// main.js — punto de entrada. Monta la app: importa CSS y arranca cada
+// módulo de UI. Ya no expone nada en window ni depende de onclick="" en el
+// HTML — toda la interacción se cablea acá con addEventListener (Fase 2).
 import './css/tokens.css';
 import './css/base.css';
 import './css/layout.css';
 import './css/components.css';
 
-import { formatTime, calcularCiclos } from './js/calc.js';
-import { setMode } from './js/ui/calculator-view.js';
-import { renderHistory } from './js/ui/history-view.js';
-import { renderChart } from './js/ui/stats-view.js';
-import { saveRecord, deleteRecord, limpiarBaseDeDatos, updateWeeklyStats } from './js/storage.js';
+import { formatTime } from './js/calc.js';
+import { initNav } from './js/ui/nav.js';
+import { initCalculatorView } from './js/ui/calculator-view.js';
+import { initHistoryView } from './js/ui/history-view.js';
+import { initStatsView } from './js/ui/stats-view.js';
+import { updateWeeklyStats } from './js/storage.js';
 
-function switchView(viewId) {
-    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    document.getElementById(`view-${viewId}`).classList.add('active');
-    document.getElementById(`nav-${viewId}`).classList.add('active');
+function init() {
+    initNav();
+    initCalculatorView();
+    initHistoryView();
+    initStatsView();
 
-    if (viewId === 'history') renderHistory();
-    if (viewId === 'stats') { renderChart(); updateWeeklyStats(); }
+    document.getElementById('time-input').value = formatTime(new Date());
+    updateWeeklyStats();
 }
 
-window.switchView = switchView;
-window.setMode = setMode;
-window.calcularCiclos = calcularCiclos;
-window.saveRecord = saveRecord;
-window.deleteRecord = deleteRecord;
-window.limpiarBaseDeDatos = limpiarBaseDeDatos;
-
-window.onload = () => {
-    const now = new Date();
-    document.getElementById('time-input').value = formatTime(now);
-    updateWeeklyStats();
-};
+document.addEventListener('DOMContentLoaded', init);
