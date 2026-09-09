@@ -1,0 +1,38 @@
+/* tokens.css — variables de diseño: color, tipografía, espaciado.
+   Identidad gauchesca rioplatense (campo argentino, ~1800-1900).
+   Fase 1 del plan de rediseño — ver también Anexo de decisiones en el
+   preview publicado durante el checkpoint (paleta + contraste WCAG AA).
+*/
+:root {
+    /* Cielo de pampa nocturno (reemplaza el negro puro medieval) */
+    --bg-night: #10161a;
+    --bg-night-2: #161f24;
+
+    /* Cuero / tierra (reemplaza la madera de taberna) */
+    --leather-dark: #3d2b1f;
+    --leather-light: #5a3d28;
+
+    /* Brasas del fogón (reemplaza el naranja "fuego de fantasía") */
+    --ember-core: #f2c987;
+    --ember-mid: #d99a3f;
+    --ember-edge: #c9782f;
+
+    /* Cuero viejo / hueso (reemplaza el dorado brillante "pergamino") */
+    --hide: #e8dcc4;
+    --text-main: #e8dcc4;
+    --text-muted: #b8a888;
+
+    /* Semánticos. --danger ya NO se usa como texto plano sobre fondo
+       oscuro (fallaba WCAG AA, 2.1:1) — sólo como fondo sólido con
+       texto claro encima (ver .btn-danger en components.css). */
+    --danger: #b3261e;
+    --success: #386641;
+
+    /* Tipografía: display "cartel de pulpería" para títulos y elementos
+       de señalética (nav, tabs, CTA principal); monoespaciada para
+       números y contenido de lectura/datos. */
+    --font-display: 'Rye', Georgia, serif;
+    --font-body: 'Space Mono', 'Courier New', monospace;
+
+    --nav-height: 70px;
+}

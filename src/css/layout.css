@@ -1,0 +1,24 @@
+/* layout.css — estructura de página: contenedor, nav inferior, sistema de vistas */
+.app-container {
+    width: 100%;
+    max-width: 500px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.bottom-nav {
+    position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height);
+    background: var(--leather-dark); border-top: 4px solid var(--leather-light);
+    display: flex; justify-content: space-around; align-items: center; z-index: 100;
+}
+.nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    color: var(--text-muted); cursor: pointer; width: 33%;
+    font-family: var(--font-display); font-size: 16px;
+}
+.nav-item .icon { font-size: 19px; }
+.nav-item.active { color: var(--ember-mid); text-shadow: 0 0 5px var(--ember-edge); }
+
+.view { display: none; animation: fadeIn 0.3s; }
+.view.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
