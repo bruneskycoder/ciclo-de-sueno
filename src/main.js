@@ -12,6 +12,7 @@ import { initCalculatorView } from './js/ui/calculator-view.js';
 import { initSiestaView } from './js/ui/siesta-view.js';
 import { initHistoryView } from './js/ui/history-view.js';
 import { initStatsView, renderStatsPanels } from './js/ui/stats-view.js';
+import { initBackupView } from './js/ui/backup-view.js';
 
 function init() {
     initNav();
@@ -19,6 +20,7 @@ function init() {
     initSiestaView();
     initHistoryView();
     initStatsView();
+    initBackupView();
 
     document.getElementById('time-input').value = formatTime(new Date());
     renderStatsPanels();

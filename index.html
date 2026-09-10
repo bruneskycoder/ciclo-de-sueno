@@ -19,10 +19,10 @@
     <dialog id="app-modal" class="modal">
         <form method="dialog" class="modal-content">
             <p class="modal-message"></p>
-            <div class="modal-actions">
-                <button type="submit" value="cancel" class="modal-btn modal-btn-cancel">Cancelar</button>
-                <button type="submit" value="confirm" class="modal-btn modal-btn-confirm">Confirmar</button>
-            </div>
+            <!-- Los botones se arman en JS (ver ui/modal.js) — la cantidad
+                 varía según el caso (2 para confirmar/cancelar, 3 para
+                 elegir fusionar/reemplazar en el import de la Fase 6). -->
+            <div class="modal-actions"></div>
         </form>
     </dialog>
 
@@ -237,6 +237,15 @@
         <div class="chart-wrapper">
             <div class="chart-container" id="chart-container"></div>
         </div>
+
+        <h2 class="section-label">Copia de seguridad</h2>
+        <p class="field-hint">No hay servidor guardando esto en ningún lado — el único respaldo sos vos. Exportá de tanto en tanto.</p>
+        <div class="backup-actions">
+            <button type="button" class="btn-secondary" id="btn-export-data">Exportar datos</button>
+            <button type="button" class="btn-secondary" id="btn-import-data">Importar datos</button>
+        </div>
+        <input type="file" id="import-file-input" accept="application/json,.json" hidden>
+
         <button type="button" class="btn-danger" id="btn-clear-data">Borrar el Rastro (borrar datos)</button>
     </div>
 

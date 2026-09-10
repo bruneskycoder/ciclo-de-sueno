@@ -237,6 +237,16 @@ tr:last-child td { border-bottom: none; }
     text-transform: uppercase; letter-spacing: 0.03em;
 }
 
+/* --- BACKUP (Fase 6): exportar/importar, acción neutra (ni "calc-btn"
+   de acento fuerte ni "btn-danger" — es una acción de mantenimiento) --- */
+.backup-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.backup-actions .btn-secondary { flex: 1; min-width: 140px; }
+.btn-secondary {
+    padding: 12px; background: transparent; border: 2px solid var(--leather-light); border-radius: 4px;
+    color: var(--text-main); font-family: var(--font-body); font-size: 14px; cursor: pointer;
+    text-transform: uppercase; letter-spacing: 0.02em;
+}
+
 /* --- TOAST --- */
 .toast {
     position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px);
@@ -272,12 +282,13 @@ dialog.modal {
 dialog.modal::backdrop { background: rgba(0,0,0,0.6); }
 .modal-content { padding: 20px; display: flex; flex-direction: column; gap: 18px; margin: 0; }
 .modal-message { margin: 0; font-family: var(--font-body); font-size: 15px; line-height: 1.5; color: var(--hide); }
-.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
 .modal-btn {
     font-family: var(--font-body); font-size: 14px; padding: 8px 16px; border-radius: 4px;
     cursor: pointer; border: 2px solid var(--leather-light); background: transparent; color: var(--text-muted);
 }
 .modal-btn-confirm { background: var(--danger); border-color: var(--danger); color: var(--hide); }
+.modal-btn-primary { background: var(--success); border-color: var(--success); color: var(--hide); }
 .modal-btn:focus-visible { outline: 2px solid var(--ember-mid); outline-offset: 2px; }
 
 .history-card {
@@ -296,6 +307,7 @@ dialog.modal::backdrop { background: rgba(0,0,0,0.6); }
 .calc-btn:focus-visible,
 .delete-btn:focus-visible,
 .btn-danger:focus-visible,
+.btn-secondary:focus-visible,
 .stats-card button:focus-visible,
 input[type="time"]:focus-visible,
 input[type="number"]:focus-visible,
