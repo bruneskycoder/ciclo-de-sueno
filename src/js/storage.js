@@ -1,10 +1,24 @@
-// storage.js — sistema de almacenamiento (localStorage) + estadística semanal.
-// Agrupamiento idéntico al bloque "SISTEMA DE ALMACENAMIENTO" del index.html
-// original. La Fase 5 introduce un esquema de datos nuevo con migración;
-// no lo adelantes acá.
+// storage.js — sistema de almacenamiento (localStorage).
+//
+// Fase 5 — cambio de esquema: hasta la Fase 4, "Marcar" en el Fogón
+// guardaba el CÁLCULO SUGERIDO (a qué hora convendría acostarse/
+// despertar), no lo que realmente pasó. Eso alcanzaba como recordatorio,
+// pero no sirve para medir calidad de sueño real. A partir de acá el
+// único flujo de guardado es el logueo real (fecha + hora real de
+// acostarse/despertar + calidad/nota opcional), bajo la clave nueva
+// `sleepLogReal` — ver esquema en saveSleepLog más abajo.
+//
+// Qué pasa con los datos viejos (clave `sleepLoreDB`, esquema
+// {id, timestamp, dateStr, bedtime, minutes}): NO se leen, NO se
+// escriben y NO se borran desde acá. Quedan intactos en el localStorage
+// de quien ya los tenía, simplemente huérfanos — es la forma más simple
+// de cumplir "no los rompas ni los corrompas silenciosamente" sin migrar
+// datos que significan otra cosa (una sugerencia calculada no es lo
+// mismo que sueño real: convertirlos mezclaría ficción con dato real en
+// las métricas nuevas). "Borrar el Rastro" solo borra `sleepLogReal`.
 import { showToast } from './ui/toast.js';
 import { renderHistory } from './ui/history-view.js';
-import { renderChart } from './ui/stats-view.js';
+import { renderChart, renderStatsPanels } from './ui/stats-view.js';
 import { confirmModal } from './ui/modal.js';
 import { clampCycleLength } from './calc.js';
 
@@ -24,29 +38,43 @@ export function saveCycleLength(minutes) {
     return clamped;
 }
 
-export function getDB() {
-    const data = localStorage.getItem('sleepLoreDB');
+const SLEEP_LOG_KEY = 'sleepLogReal';
+
+export function getSleepLogs() {
+    const data = localStorage.getItem(SLEEP_LOG_KEY);
     return data ? JSON.parse(data) : [];
 }
 
-export function saveDB(data) {
-    localStorage.setItem('sleepLoreDB', JSON.stringify(data));
+function saveSleepLogs(data) {
+    localStorage.setItem(SLEEP_LOG_KEY, JSON.stringify(data));
 }
 
-export function saveRecord(minutes, bedtime) {
-    const db = getDB(); const now = new Date();
-    db.push({
-        id: Date.now().toString(), timestamp: now.getTime(),
-        dateStr: now.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }),
-        bedtime: bedtime, minutes: minutes
+/**
+ * Guarda una noche de sueño REAL (no una sugerencia calculada). Espera
+ * los campos ya validados/derivados por quien llama (ver history-view.js,
+ * que usa calcularDuracionReal de calc.js antes de invocar esto) — acá
+ * solo se persiste, no se recalcula nada.
+ *
+ * Esquema: {id, date: "YYYY-MM-DD", bedtimeActual: "HH:MM",
+ * waketimeActual: "HH:MM", durationMinutes, cyclesCompleted,
+ * quality: 1-5|null, notes: string}
+ */
+export function saveSleepLog({ date, bedtimeActual, waketimeActual, durationMinutes, cyclesCompleted, quality, notes }) {
+    const logs = getSleepLogs();
+    logs.push({
+        id: Date.now().toString(),
+        date, bedtimeActual, waketimeActual, durationMinutes, cyclesCompleted,
+        quality: quality ?? null,
+        notes: notes || '',
     });
-    saveDB(db); showToast("¡Quedó marcado en el cuaderno!");
+    saveSleepLogs(logs);
+    showToast('¡Quedó marcado en el cuaderno!');
 }
 
-export function deleteRecord(id) {
-    let db = getDB(); db = db.filter(record => record.id !== id);
-    saveDB(db); renderHistory(); renderChart(); updateWeeklyStats();
-    showToast("Borrado del cuaderno.");
+export function deleteSleepLog(id) {
+    const logs = getSleepLogs().filter((record) => record.id !== id);
+    saveSleepLogs(logs); renderHistory(); renderChart(); renderStatsPanels();
+    showToast('Borrado del cuaderno.');
 }
 
 export async function limpiarBaseDeDatos() {
@@ -56,14 +84,7 @@ export async function limpiarBaseDeDatos() {
         cancelLabel: 'Cancelar',
     });
     if (confirmado) {
-        localStorage.removeItem('sleepLoreDB'); renderHistory(); renderChart(); updateWeeklyStats();
+        localStorage.removeItem(SLEEP_LOG_KEY); renderHistory(); renderChart(); renderStatsPanels();
         showToast("Rastro borrado.");
     }
-}
-
-export function updateWeeklyStats() {
-    const db = getDB(); const hace7Dias = new Date().getTime() - (7 * 24 * 60 * 60 * 1000);
-    const recientes = db.filter(r => r.timestamp >= hace7Dias);
-    let totalMins = 0; recientes.forEach(r => totalMins += r.minutes);
-    document.getElementById('weekly-hours').innerText = `${Math.floor(totalMins / 60)}h ${totalMins % 60}m`;
 }
