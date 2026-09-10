@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { calcularCiclos, calcularSiesta, clampLatency, clampCycleLength, formatTime, SIESTA_CORTA_MINUTOS } from './calc.js';
+import {
+    calcularCiclos,
+    calcularSiesta,
+    calcularDuracionReal,
+    clampLatency,
+    clampCycleLength,
+    formatTime,
+    SIESTA_CORTA_MINUTOS,
+} from './calc.js';
 
 // Fecha de referencia fija para que los tests no dependan del día en que
 // se corren. calcularCiclos solo usa su año/mes/día — la hora la pisa
@@ -186,6 +194,54 @@ describe('clampCycleLength', () => {
         expect(clampCycleLength('')).toBe(90);
         expect(clampCycleLength('abc')).toBe(90);
         expect(clampCycleLength(undefined)).toBe(90);
+    });
+});
+
+describe('calcularDuracionReal — logueo real de sueño (Fase 5)', () => {
+    it('calcula duración normal cruzando medianoche', () => {
+        const { ok, durationMinutes, cyclesCompleted } = calcularDuracionReal({
+            bedtimeActual: '23:30', waketimeActual: '07:00', cycleMinutes: 90,
+        });
+        expect(ok).toBe(true);
+        expect(durationMinutes).toBe(450); // 23:30 -> 07:00 = 7h30 = 450min
+        expect(cyclesCompleted).toBe(5); // 450/90 = 5.0
+    });
+
+    it('no cruza medianoche si la hora de despertar es mayor (ej. siesta larga anotada a mano)', () => {
+        const { durationMinutes } = calcularDuracionReal({ bedtimeActual: '14:00', waketimeActual: '16:00' });
+        expect(durationMinutes).toBe(120);
+    });
+
+    it('hora de despertar igual a la de acostarse se interpreta como 24h', () => {
+        const { durationMinutes } = calcularDuracionReal({ bedtimeActual: '08:00', waketimeActual: '08:00' });
+        expect(durationMinutes).toBe(24 * 60);
+    });
+
+    it('redondea ciclos completados al entero más cercano', () => {
+        const { cyclesCompleted } = calcularDuracionReal({
+            bedtimeActual: '23:00', waketimeActual: '06:50', cycleMinutes: 90, // 470 min / 90 = 5.22
+        });
+        expect(cyclesCompleted).toBe(5);
+    });
+
+    it('respeta una duración de ciclo distinta a 90', () => {
+        const { cyclesCompleted, cycleLength } = calcularDuracionReal({
+            bedtimeActual: '23:00', waketimeActual: '07:00', cycleMinutes: 100, // 480 min / 100 = 4.8
+        });
+        expect(cycleLength).toBe(100);
+        expect(cyclesCompleted).toBe(5);
+    });
+
+    it('devuelve ok:false si falta la hora de acostarse', () => {
+        const result = calcularDuracionReal({ bedtimeActual: '', waketimeActual: '07:00' });
+        expect(result.ok).toBe(false);
+        expect(result.error).toBe('missing-bedtime');
+    });
+
+    it('devuelve ok:false si falta la hora de despertar', () => {
+        const result = calcularDuracionReal({ bedtimeActual: '23:00', waketimeActual: '' });
+        expect(result.ok).toBe(false);
+        expect(result.error).toBe('missing-waketime');
     });
 });
 

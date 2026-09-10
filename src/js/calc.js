@@ -146,6 +146,44 @@ export const SIESTA_CORTA_MINUTOS = 20;
  * @param {Date} [params.referenceDate=new Date()]
  * @returns {{ok: true, latency: number, cycleLength: number, corta: Object, completa: Object} | {ok: false, error: string}}
  */
+/**
+ * A diferencia de calcularCiclos/calcularSiesta (que proyectan una hora
+ * FUTURA a partir de una sola hora conocida), esto es para el logueo real
+ * (Fase 5): ya se conocen las dos horas reales (acostarse y despertar) y
+ * lo que hace falta es derivar cuánto se durmió. Asume cruce de
+ * medianoche si la hora de despertar cae antes o igual que la de
+ * acostarse (caso normal de una noche de sueño) — si son iguales, se
+ * interpreta como 24h completas en vez de 0, que sería un dato inútil.
+ *
+ * @param {Object} params
+ * @param {string} params.bedtimeActual - Hora real de acostarse, "HH:MM".
+ * @param {string} params.waketimeActual - Hora real de despertar, "HH:MM".
+ * @param {number} [params.cycleMinutes=90] - Duración de ciclo del usuario
+ *   (Fase 3), para estimar cuántos ciclos completó. Se acota con
+ *   clampCycleLength igual que en el resto de la app.
+ * @returns {{ok: true, durationMinutes: number, cyclesCompleted: number, cycleLength: number} | {ok: false, error: string}}
+ */
+export function calcularDuracionReal({ bedtimeActual, waketimeActual, cycleMinutes = 90 }) {
+    if (!bedtimeActual || !/^\d{1,2}:\d{2}$/.test(bedtimeActual)) {
+        return { ok: false, error: 'missing-bedtime' };
+    }
+    if (!waketimeActual || !/^\d{1,2}:\d{2}$/.test(waketimeActual)) {
+        return { ok: false, error: 'missing-waketime' };
+    }
+
+    const [bh, bm] = bedtimeActual.split(':').map(Number);
+    const [wh, wm] = waketimeActual.split(':').map(Number);
+    const bedtimeMinutes = bh * 60 + bm;
+    let wakeMinutes = wh * 60 + wm;
+    if (wakeMinutes <= bedtimeMinutes) wakeMinutes += 24 * 60;
+
+    const durationMinutes = wakeMinutes - bedtimeMinutes;
+    const cycleLength = clampCycleLength(cycleMinutes);
+    const cyclesCompleted = Math.round(durationMinutes / cycleLength);
+
+    return { ok: true, durationMinutes, cyclesCompleted, cycleLength };
+}
+
 export function calcularSiesta({ timeStr, latencyMinutes, cycleMinutes = 90, referenceDate = new Date() }) {
     if (!timeStr || !/^\d{1,2}:\d{2}$/.test(timeStr)) {
         return { ok: false, error: 'missing-time' };
