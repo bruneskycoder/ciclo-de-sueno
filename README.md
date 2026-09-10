@@ -65,7 +65,7 @@ siguiente.
 - ✅ Fase 3 — Duración de ciclo configurable (70–120 min, persistida)
 - ✅ Fase 4 — Modo siesta ("A la Sombra del Ombú")
 - ✅ Fase 5 — Métricas de calidad de sueño real
-- ⏳ Fase 6 — Export/import de datos
+- ✅ Fase 6 — Export/import de datos (backup manual)
 - ⏳ Fase 7 — PWA offline
 - ⏳ Fase 8 — Página informativa sobre la base científica de los ciclos de sueño
 - ⏳ Fase 9 — QA y deploy final
@@ -86,6 +86,24 @@ salen de:
 La Fase 8 (página informativa) va a documentar con más detalle la base
 científica de los ciclos de sueño en general, con las mismas fuentes
 primarias.
+
+## Backup manual (Fase 6)
+
+No hay backend — todo vive en el `localStorage` del navegador. Eso
+significa que borrar datos del sitio, cambiar de navegador o de
+dispositivo, o una reinstalación limpia, se lleva puesto el historial
+entero sin previo aviso. En Recuento hay dos botones para esto:
+
+- **Exportar datos**: descarga un JSON (`{version, exportedAt,
+  cycleLength, records}`) con todo el historial real y la preferencia de
+  duración de ciclo. Sirve como backup manual y como forma de pasar el
+  historial a otro dispositivo.
+- **Importar datos**: lee un JSON con esa misma forma (rechaza con un
+  aviso claro cualquier archivo que no matchee, sin tocar nada) y deja
+  elegir entre **fusionar** (agrega las noches que falten, sin duplicar
+  por id o por fecha, y no toca la configuración actual) o **reemplazar
+  todo** (tira el historial actual y lo cambia por el del archivo, y
+  también restaura la duración de ciclo guardada en el backup).
 
 ## Cambio de esquema en la Fase 5 (rompe compatibilidad con lo guardado antes)
 
