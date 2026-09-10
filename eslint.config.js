@@ -16,6 +16,17 @@ export default [
         },
     },
     {
+        // Corre en su propio scope global (ServiceWorkerGlobalScope), no
+        // en el de una página normal — self/caches/clients no existen en
+        // globals.browser.
+        files: ['public/service-worker.js'],
+        languageOptions: {
+            globals: {
+                ...globals.serviceworker,
+            },
+        },
+    },
+    {
         ignores: ['dist/**', 'node_modules/**'],
     },
 ];
