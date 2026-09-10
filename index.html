@@ -104,7 +104,6 @@
                         <th scope="col">Ciclos</th>
                         <th scope="col">Reposo</th>
                         <th scope="col">Hora</th>
-                        <th scope="col"><span class="visually-hidden">Acción</span></th>
                     </tr>
                 </thead>
                 <tbody id="results-body"></tbody>
@@ -149,18 +148,90 @@
     <!-- VISTA 2: HISTORIAL (CUADERNO DE RUTA) -->
     <div id="view-history" class="app-container view">
         <h1 tabindex="-1">Cuaderno de Ruta</h1>
-        <p class="subtitle">Tus noches de los últimos 7 soles.</p>
+        <p class="subtitle">Marcá lo que realmente dormiste — no lo que calculaste.</p>
+
+        <form id="sleep-log-form">
+            <div class="input-group">
+                <label for="log-date-input">¿Qué noche marcás?</label>
+                <input type="date" id="log-date-input" required>
+            </div>
+
+            <div class="log-time-row">
+                <div class="input-group">
+                    <label for="log-bedtime-input">Te fuiste a las pilchas a las:</label>
+                    <input type="time" id="log-bedtime-input" required>
+                </div>
+                <div class="input-group">
+                    <label for="log-waketime-input">Te levantaste a las:</label>
+                    <input type="time" id="log-waketime-input" required>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="log-quality-input">¿Cómo dormiste? (opcional)</label>
+                <select id="log-quality-input">
+                    <option value="">Sin calificar</option>
+                    <option value="1">1 — Muy mal</option>
+                    <option value="2">2 — Mal</option>
+                    <option value="3">3 — Más o menos</option>
+                    <option value="4">4 — Bien</option>
+                    <option value="5">5 — Como nuevo</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="log-notes-input">Nota (opcional)</label>
+                <input type="text" id="log-notes-input" maxlength="140" placeholder="Ej: ladró el perro toda la noche...">
+            </div>
+
+            <button type="submit" class="calc-btn">Marcar la Noche</button>
+        </form>
+
+        <h2 class="section-label">Últimos 7 soles</h2>
         <div id="history-container"></div>
     </div>
 
     <!-- VISTA 3: ESTADÍSTICAS (RECUENTO) -->
     <div id="view-stats" class="app-container view">
         <h1 tabindex="-1">Recuento de 30 Lunas</h1>
-        <p class="subtitle">Salud recuperada en 30 lunas.</p>
+        <p class="subtitle">Cómo rendiste, semana a semana y luna a luna.</p>
 
-        <div class="stats-card">
-            <h2>Horas reposadas (Semana actual)</h2>
-            <div class="hours" id="weekly-hours">0h 0m</div>
+        <div class="metrics-grid">
+            <div class="stats-card">
+                <h2>Últimos 7 días</h2>
+                <div class="hours" id="week-avg-duration">0h 0m</div>
+                <p class="field-hint">Promedio de horas dormidas por noche</p>
+                <div class="metric-row">
+                    <span>Noches marcadas</span><strong id="week-count">0</strong>
+                </div>
+                <div class="metric-row">
+                    <span>Calidad promedio</span><strong id="week-avg-quality">—</strong>
+                </div>
+                <div class="metric-row">
+                    <span>Consistencia al acostarse</span><strong id="week-bedtime-consistency">—</strong>
+                </div>
+                <div class="metric-row">
+                    <span>Consistencia al despertar</span><strong id="week-waketime-consistency">—</strong>
+                </div>
+            </div>
+
+            <div class="stats-card">
+                <h2>Últimos 30 días</h2>
+                <div class="hours" id="month-avg-duration">0h 0m</div>
+                <p class="field-hint">Promedio de horas dormidas por noche</p>
+                <div class="metric-row">
+                    <span>Noches marcadas</span><strong id="month-count">0</strong>
+                </div>
+                <div class="metric-row">
+                    <span>Calidad promedio</span><strong id="month-avg-quality">—</strong>
+                </div>
+                <div class="metric-row">
+                    <span>Consistencia al acostarse</span><strong id="month-bedtime-consistency">—</strong>
+                </div>
+                <div class="metric-row">
+                    <span>Consistencia al despertar</span><strong id="month-waketime-consistency">—</strong>
+                </div>
+            </div>
         </div>
 
         <div class="chart-wrapper">

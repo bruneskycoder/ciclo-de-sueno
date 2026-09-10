@@ -3,10 +3,12 @@
 // sin DOM) — acá solo se lee el formulario, se le pasan los datos, y se
 // pinta lo que devuelve.
 import { calcularCiclos } from '../calc.js';
-import { saveRecord, getCycleLength, saveCycleLength } from '../storage.js';
+import { getCycleLength, saveCycleLength } from '../storage.js';
 import { showToast } from './toast.js';
-// saveRecord ya dispara su propio toast de confirmación (ver storage.js) —
-// esta vista no necesita mostrar el suyo.
+// Hasta la Fase 4 acá había un botón "Marcar" por fila que guardaba el
+// cálculo sugerido como si fuera una noche dormida. La Fase 5 separa eso
+// del logueo real (ver Cuaderno de Ruta / history-view.js): esta vista
+// vuelve a ser lo que su nombre dice, una calculadora, sin guardar nada.
 
 let currentMode = 'wake';
 
@@ -33,17 +35,6 @@ export function initCalculatorView() {
     document.getElementById('calc-form').addEventListener('submit', (event) => {
         event.preventDefault();
         runCalculation();
-    });
-
-    // Delegación: un solo listener para todos los botones "Marcar" de la
-    // tabla, en vez de uno por fila (y sin onclick="" inline en el HTML
-    // generado).
-    document.getElementById('results-body').addEventListener('click', (event) => {
-        const btn = event.target.closest('.save-btn');
-        if (!btn) return;
-        const minutes = Number(btn.dataset.minutes);
-        const bedtime = btn.dataset.bedtime;
-        saveRecord(minutes, bedtime);
     });
 }
 
@@ -92,7 +83,6 @@ function renderResults(results) {
             <td>${r.cycles}</td>
             <td>${r.hours}h ${r.minutes}m</td>
             <td style="font-weight:700; color:var(--hide);">${r.resultTimeStr}${dayNote}</td>
-            <td><button type="button" class="save-btn" data-minutes="${r.totalMinutes}" data-bedtime="${r.bedtimeTimeStr}">Marcar</button></td>
         `;
         tbody.appendChild(row);
     });

@@ -5,8 +5,7 @@
 // de que "la página" cambió, porque técnicamente nunca navegamos a ningún
 // lado.
 import { renderHistory } from './history-view.js';
-import { renderChart } from './stats-view.js';
-import { updateWeeklyStats } from '../storage.js';
+import { renderChart, renderStatsPanels } from './stats-view.js';
 
 const VIEW_IDS = ['calc', 'siesta', 'history', 'stats'];
 
@@ -30,7 +29,7 @@ export function switchView(viewId) {
     });
 
     if (viewId === 'history') renderHistory();
-    if (viewId === 'stats') { renderChart(); updateWeeklyStats(); }
+    if (viewId === 'stats') { renderChart(); renderStatsPanels(); }
 
     const heading = document.querySelector(`#view-${viewId} h1`);
     if (heading) heading.focus();
