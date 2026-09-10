@@ -2,9 +2,15 @@
 <html lang="es">
     <head>
         <meta charset="UTF-8" />
+        <!-- Fase 9 (QA): sacamos maximum-scale/user-scalable=no — impedía
+             el pinch-to-zoom, algo que Lighthouse marca con razón como
+             problema de accesibilidad para gente con baja visión. Ninguna
+             pantalla de esta app depende de que no se pueda hacer zoom. -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
         <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+            name="description"
+            content="Calculadora de ciclos de sueño de 90 minutos con identidad gauchesca rioplatense: calculá horas de acostarte o despertar, llevá registro de tu descanso real y entendé la ciencia detrás del cálculo."
         />
 
         <!-- PWA (Fase 7): manifest real + service worker cache-first (ver
@@ -21,7 +27,12 @@
         <title>A la Luz del Fogón</title>
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-        <!-- Tipografía: Rye (títulos y señalética) + Space Mono (datos y texto) -->
+        <!-- Tipografía: Rye (títulos y señalética) + Space Mono (datos y texto).
+             preconnect (Fase 9/QA, Lighthouse): adelanta el handshake DNS/TLS
+             con Google Fonts antes de pedir la hoja de estilos, para que
+             ese request bloquee el render lo menos posible. -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
             href="https://fonts.googleapis.com/css2?family=Rye&family=Space+Mono:wght@400;700&display=swap"
             rel="stylesheet"
@@ -55,378 +66,395 @@
             </button>
         </nav>
 
-        <!-- VISTA 1: CALCULADORA (EL FOGÓN) -->
-        <div id="view-calc" class="app-container view active">
-            <div class="scene" aria-hidden="true">
-                <div class="star" style="top: 14px; left: 18%"></div>
-                <div class="star" style="top: 28px; left: 32%; animation-delay: 0.6s"></div>
-                <div class="star" style="top: 10px; left: 62%; animation-delay: 1.1s"></div>
-                <div class="star" style="top: 34px; left: 78%; animation-delay: 1.7s"></div>
-                <div class="star" style="top: 20px; left: 48%; animation-delay: 2.2s"></div>
-                <div class="moon"></div>
-                <div class="fogon-group">
-                    <div class="fire-container">
-                        <div class="log left"></div>
-                        <div class="log right"></div>
-                        <div class="flame"></div>
-                        <div class="flame inner"></div>
-                        <div class="flame core"></div>
+        <!-- Fase 9 (QA): <main> agrupa las 5 vistas en un único landmark
+             — Lighthouse marcaba su ausencia (landmark-one-main). Solo una
+             está visible a la vez (ver .view.active en layout.css), pero
+             para el árbol de accesibilidad las cinco son "el contenido
+             principal", nunca navegación ni barra lateral. -->
+        <main>
+            <!-- VISTA 1: CALCULADORA (EL FOGÓN) -->
+            <div id="view-calc" class="app-container view active">
+                <div class="scene" aria-hidden="true">
+                    <div class="star" style="top: 14px; left: 18%"></div>
+                    <div class="star" style="top: 28px; left: 32%; animation-delay: 0.6s"></div>
+                    <div class="star" style="top: 10px; left: 62%; animation-delay: 1.1s"></div>
+                    <div class="star" style="top: 34px; left: 78%; animation-delay: 1.7s"></div>
+                    <div class="star" style="top: 20px; left: 48%; animation-delay: 2.2s"></div>
+                    <div class="moon"></div>
+                    <div class="fogon-group">
+                        <div class="fire-container">
+                            <div class="log left"></div>
+                            <div class="log right"></div>
+                            <div class="flame"></div>
+                            <div class="flame inner"></div>
+                            <div class="flame core"></div>
+                        </div>
+                        <div class="gaucho">
+                            <div class="hat-brim"></div>
+                            <div class="hat-crown"></div>
+                            <div class="poncho"></div>
+                            <div class="z-sleep">Zz</div>
+                        </div>
                     </div>
-                    <div class="gaucho">
-                        <div class="hat-brim"></div>
-                        <div class="hat-crown"></div>
-                        <div class="poncho"></div>
-                        <div class="z-sleep">Zz</div>
+                </div>
+
+                <h1 tabindex="-1">A la Luz del Fogón</h1>
+                <p class="subtitle">Rearmá el cuero. Ciclos de sueño de 90 minutos.</p>
+                <button type="button" id="info-link" class="info-link">
+                    ¿Por qué 90 minutos? Leé la posta →
+                </button>
+
+                <div class="tabs">
+                    <button type="button" id="wake-tab" class="tab-btn active" aria-pressed="true">
+                        Al Alba
+                    </button>
+                    <button type="button" id="sleep-tab" class="tab-btn" aria-pressed="false">
+                        Al Pago
+                    </button>
+                </div>
+
+                <form id="calc-form">
+                    <div class="input-group">
+                        <label id="time-label" for="time-input"
+                            >Quiero levantarme con el sol a las:</label
+                        >
+                        <input type="time" id="time-input" required />
                     </div>
+
+                    <div class="input-group">
+                        <label for="latency-input">Minutos hasta que se me cierren los ojos:</label>
+                        <input type="number" id="latency-input" value="20" min="0" max="120" />
+                    </div>
+
+                    <div class="input-group">
+                        <label for="cycle-length-input"
+                            >Tu tranco de sueño (duración del ciclo, en minutos):</label
+                        >
+                        <input
+                            type="number"
+                            id="cycle-length-input"
+                            value="90"
+                            min="70"
+                            max="120"
+                            step="5"
+                        />
+                        <p class="field-hint">
+                            90 minutos es el promedio de la tropa; el tuyo puede rendir distinto.
+                            Ajustalo si notás que los resultados no te cierran.
+                        </p>
+                    </div>
+
+                    <button type="submit" class="calc-btn">Marcar el Rumbo</button>
+                </form>
+
+                <div id="results-table" class="results-box" style="display: none">
+                    <table>
+                        <caption class="visually-hidden">
+                            Horas de acostarse o despertar según cantidad de ciclos de 90 minutos
+                        </caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Ciclos</th>
+                                <th scope="col">Reposo</th>
+                                <th scope="col">Hora</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-body"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <h1 tabindex="-1">A la Luz del Fogón</h1>
-            <p class="subtitle">Rearmá el cuero. Ciclos de sueño de 90 minutos.</p>
-            <button type="button" id="info-link" class="info-link">
-                ¿Por qué 90 minutos? Leé la posta →
-            </button>
+            <!-- VISTA SIESTA (A LA SOMBRA DEL OMBÚ) -->
+            <div id="view-siesta" class="app-container view">
+                <h1 tabindex="-1">A la Sombra del Ombú</h1>
+                <p class="subtitle">Dos formas de sestear sin quedar más baqueteado que antes.</p>
 
-            <div class="tabs">
-                <button type="button" id="wake-tab" class="tab-btn active" aria-pressed="true">
-                    Al Alba
-                </button>
-                <button type="button" id="sleep-tab" class="tab-btn" aria-pressed="false">
-                    Al Pago
-                </button>
-            </div>
+                <form id="siesta-form">
+                    <div class="input-group">
+                        <label for="siesta-time-input">¿A qué hora te tirás a la sombra?</label>
+                        <input type="time" id="siesta-time-input" required />
+                    </div>
 
-            <form id="calc-form">
-                <div class="input-group">
-                    <label id="time-label" for="time-input"
-                        >Quiero levantarme con el sol a las:</label
-                    >
-                    <input type="time" id="time-input" required />
-                </div>
+                    <div class="input-group">
+                        <label for="siesta-latency-input"
+                            >Minutos hasta que se te cierren los ojos:</label
+                        >
+                        <input
+                            type="number"
+                            id="siesta-latency-input"
+                            value="10"
+                            min="0"
+                            max="120"
+                        />
+                    </div>
 
-                <div class="input-group">
-                    <label for="latency-input">Minutos hasta que se me cierren los ojos:</label>
-                    <input type="number" id="latency-input" value="20" min="0" max="120" />
-                </div>
+                    <button type="submit" class="calc-btn">Marcar el Sesteo</button>
+                </form>
 
-                <div class="input-group">
-                    <label for="cycle-length-input"
-                        >Tu tranco de sueño (duración del ciclo, en minutos):</label
-                    >
-                    <input
-                        type="number"
-                        id="cycle-length-input"
-                        value="90"
-                        min="70"
-                        max="120"
-                        step="5"
-                    />
+                <div id="siesta-results" class="siesta-results" style="display: none">
+                    <div class="siesta-card">
+                        <h2>Siesta corta</h2>
+                        <div class="siesta-time" id="siesta-corta-time">--:--</div>
+                        <p class="siesta-detail" id="siesta-corta-detail"></p>
+                    </div>
+                    <div class="siesta-card">
+                        <h2>Siesta completa</h2>
+                        <div class="siesta-time" id="siesta-completa-time">--:--</div>
+                        <p class="siesta-detail" id="siesta-completa-detail"></p>
+                    </div>
                     <p class="field-hint">
-                        90 minutos es el promedio de la tropa; el tuyo puede rendir distinto.
-                        Ajustalo si notás que los resultados no te cierran.
+                        Entre esas dos, ni a palos: si te despertás a mitad de camino corrés riesgo
+                        de levantarte más aturdido que si no hubieras sesteado — te agarra en lo más
+                        hondo del sueño.
                     </p>
                 </div>
-
-                <button type="submit" class="calc-btn">Marcar el Rumbo</button>
-            </form>
-
-            <div id="results-table" class="results-box" style="display: none">
-                <table>
-                    <caption class="visually-hidden">
-                        Horas de acostarse o despertar según cantidad de ciclos de 90 minutos
-                    </caption>
-                    <thead>
-                        <tr>
-                            <th scope="col">Ciclos</th>
-                            <th scope="col">Reposo</th>
-                            <th scope="col">Hora</th>
-                        </tr>
-                    </thead>
-                    <tbody id="results-body"></tbody>
-                </table>
             </div>
-        </div>
 
-        <!-- VISTA SIESTA (A LA SOMBRA DEL OMBÚ) -->
-        <div id="view-siesta" class="app-container view">
-            <h1 tabindex="-1">A la Sombra del Ombú</h1>
-            <p class="subtitle">Dos formas de sestear sin quedar más baqueteado que antes.</p>
+            <!-- VISTA 2: HISTORIAL (CUADERNO DE RUTA) -->
+            <div id="view-history" class="app-container view">
+                <h1 tabindex="-1">Cuaderno de Ruta</h1>
+                <p class="subtitle">Marcá lo que realmente dormiste — no lo que calculaste.</p>
 
-            <form id="siesta-form">
-                <div class="input-group">
-                    <label for="siesta-time-input">¿A qué hora te tirás a la sombra?</label>
-                    <input type="time" id="siesta-time-input" required />
+                <form id="sleep-log-form">
+                    <div class="input-group">
+                        <label for="log-date-input">¿Qué noche marcás?</label>
+                        <input type="date" id="log-date-input" required />
+                    </div>
+
+                    <div class="log-time-row">
+                        <div class="input-group">
+                            <label for="log-bedtime-input">Te fuiste a las pilchas a las:</label>
+                            <input type="time" id="log-bedtime-input" required />
+                        </div>
+                        <div class="input-group">
+                            <label for="log-waketime-input">Te levantaste a las:</label>
+                            <input type="time" id="log-waketime-input" required />
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="log-quality-input">¿Cómo dormiste? (opcional)</label>
+                        <select id="log-quality-input">
+                            <option value="">Sin calificar</option>
+                            <option value="1">1 — Muy mal</option>
+                            <option value="2">2 — Mal</option>
+                            <option value="3">3 — Más o menos</option>
+                            <option value="4">4 — Bien</option>
+                            <option value="5">5 — Como nuevo</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="log-notes-input">Nota (opcional)</label>
+                        <input
+                            type="text"
+                            id="log-notes-input"
+                            maxlength="140"
+                            placeholder="Ej: ladró el perro toda la noche..."
+                        />
+                    </div>
+
+                    <button type="submit" class="calc-btn">Marcar la Noche</button>
+                </form>
+
+                <h2 class="section-label">Últimos 7 soles</h2>
+                <div id="history-container"></div>
+            </div>
+
+            <!-- VISTA 3: ESTADÍSTICAS (RECUENTO) -->
+            <div id="view-stats" class="app-container view">
+                <h1 tabindex="-1">Recuento de 30 Lunas</h1>
+                <p class="subtitle">Cómo rendiste, semana a semana y luna a luna.</p>
+
+                <div class="metrics-grid">
+                    <div class="stats-card">
+                        <h2>Últimos 7 días</h2>
+                        <div class="hours" id="week-avg-duration">0h 0m</div>
+                        <p class="field-hint">Promedio de horas dormidas por noche</p>
+                        <div class="metric-row">
+                            <span>Noches marcadas</span><strong id="week-count">0</strong>
+                        </div>
+                        <div class="metric-row">
+                            <span>Calidad promedio</span><strong id="week-avg-quality">—</strong>
+                        </div>
+                        <div class="metric-row">
+                            <span>Consistencia al acostarse</span
+                            ><strong id="week-bedtime-consistency">—</strong>
+                        </div>
+                        <div class="metric-row">
+                            <span>Consistencia al despertar</span
+                            ><strong id="week-waketime-consistency">—</strong>
+                        </div>
+                    </div>
+
+                    <div class="stats-card">
+                        <h2>Últimos 30 días</h2>
+                        <div class="hours" id="month-avg-duration">0h 0m</div>
+                        <p class="field-hint">Promedio de horas dormidas por noche</p>
+                        <div class="metric-row">
+                            <span>Noches marcadas</span><strong id="month-count">0</strong>
+                        </div>
+                        <div class="metric-row">
+                            <span>Calidad promedio</span><strong id="month-avg-quality">—</strong>
+                        </div>
+                        <div class="metric-row">
+                            <span>Consistencia al acostarse</span
+                            ><strong id="month-bedtime-consistency">—</strong>
+                        </div>
+                        <div class="metric-row">
+                            <span>Consistencia al despertar</span
+                            ><strong id="month-waketime-consistency">—</strong>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="input-group">
-                    <label for="siesta-latency-input"
-                        >Minutos hasta que se te cierren los ojos:</label
-                    >
-                    <input type="number" id="siesta-latency-input" value="10" min="0" max="120" />
+                <div class="chart-wrapper">
+                    <div class="chart-container" id="chart-container"></div>
                 </div>
 
-                <button type="submit" class="calc-btn">Marcar el Sesteo</button>
-            </form>
-
-            <div id="siesta-results" class="siesta-results" style="display: none">
-                <div class="siesta-card">
-                    <h2>Siesta corta</h2>
-                    <div class="siesta-time" id="siesta-corta-time">--:--</div>
-                    <p class="siesta-detail" id="siesta-corta-detail"></p>
-                </div>
-                <div class="siesta-card">
-                    <h2>Siesta completa</h2>
-                    <div class="siesta-time" id="siesta-completa-time">--:--</div>
-                    <p class="siesta-detail" id="siesta-completa-detail"></p>
-                </div>
+                <h2 class="section-label">Copia de seguridad</h2>
                 <p class="field-hint">
-                    Entre esas dos, ni a palos: si te despertás a mitad de camino corrés riesgo de
-                    levantarte más aturdido que si no hubieras sesteado — te agarra en lo más hondo
-                    del sueño.
+                    No hay servidor guardando esto en ningún lado — el único respaldo sos vos.
+                    Exportá de tanto en tanto.
                 </p>
-            </div>
-        </div>
-
-        <!-- VISTA 2: HISTORIAL (CUADERNO DE RUTA) -->
-        <div id="view-history" class="app-container view">
-            <h1 tabindex="-1">Cuaderno de Ruta</h1>
-            <p class="subtitle">Marcá lo que realmente dormiste — no lo que calculaste.</p>
-
-            <form id="sleep-log-form">
-                <div class="input-group">
-                    <label for="log-date-input">¿Qué noche marcás?</label>
-                    <input type="date" id="log-date-input" required />
+                <div class="backup-actions">
+                    <button type="button" class="btn-secondary" id="btn-export-data">
+                        Exportar datos
+                    </button>
+                    <button type="button" class="btn-secondary" id="btn-import-data">
+                        Importar datos
+                    </button>
                 </div>
+                <input type="file" id="import-file-input" accept="application/json,.json" hidden />
 
-                <div class="log-time-row">
-                    <div class="input-group">
-                        <label for="log-bedtime-input">Te fuiste a las pilchas a las:</label>
-                        <input type="time" id="log-bedtime-input" required />
-                    </div>
-                    <div class="input-group">
-                        <label for="log-waketime-input">Te levantaste a las:</label>
-                        <input type="time" id="log-waketime-input" required />
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <label for="log-quality-input">¿Cómo dormiste? (opcional)</label>
-                    <select id="log-quality-input">
-                        <option value="">Sin calificar</option>
-                        <option value="1">1 — Muy mal</option>
-                        <option value="2">2 — Mal</option>
-                        <option value="3">3 — Más o menos</option>
-                        <option value="4">4 — Bien</option>
-                        <option value="5">5 — Como nuevo</option>
-                    </select>
-                </div>
-
-                <div class="input-group">
-                    <label for="log-notes-input">Nota (opcional)</label>
-                    <input
-                        type="text"
-                        id="log-notes-input"
-                        maxlength="140"
-                        placeholder="Ej: ladró el perro toda la noche..."
-                    />
-                </div>
-
-                <button type="submit" class="calc-btn">Marcar la Noche</button>
-            </form>
-
-            <h2 class="section-label">Últimos 7 soles</h2>
-            <div id="history-container"></div>
-        </div>
-
-        <!-- VISTA 3: ESTADÍSTICAS (RECUENTO) -->
-        <div id="view-stats" class="app-container view">
-            <h1 tabindex="-1">Recuento de 30 Lunas</h1>
-            <p class="subtitle">Cómo rendiste, semana a semana y luna a luna.</p>
-
-            <div class="metrics-grid">
-                <div class="stats-card">
-                    <h2>Últimos 7 días</h2>
-                    <div class="hours" id="week-avg-duration">0h 0m</div>
-                    <p class="field-hint">Promedio de horas dormidas por noche</p>
-                    <div class="metric-row">
-                        <span>Noches marcadas</span><strong id="week-count">0</strong>
-                    </div>
-                    <div class="metric-row">
-                        <span>Calidad promedio</span><strong id="week-avg-quality">—</strong>
-                    </div>
-                    <div class="metric-row">
-                        <span>Consistencia al acostarse</span
-                        ><strong id="week-bedtime-consistency">—</strong>
-                    </div>
-                    <div class="metric-row">
-                        <span>Consistencia al despertar</span
-                        ><strong id="week-waketime-consistency">—</strong>
-                    </div>
-                </div>
-
-                <div class="stats-card">
-                    <h2>Últimos 30 días</h2>
-                    <div class="hours" id="month-avg-duration">0h 0m</div>
-                    <p class="field-hint">Promedio de horas dormidas por noche</p>
-                    <div class="metric-row">
-                        <span>Noches marcadas</span><strong id="month-count">0</strong>
-                    </div>
-                    <div class="metric-row">
-                        <span>Calidad promedio</span><strong id="month-avg-quality">—</strong>
-                    </div>
-                    <div class="metric-row">
-                        <span>Consistencia al acostarse</span
-                        ><strong id="month-bedtime-consistency">—</strong>
-                    </div>
-                    <div class="metric-row">
-                        <span>Consistencia al despertar</span
-                        ><strong id="month-waketime-consistency">—</strong>
-                    </div>
-                </div>
-            </div>
-
-            <div class="chart-wrapper">
-                <div class="chart-container" id="chart-container"></div>
-            </div>
-
-            <h2 class="section-label">Copia de seguridad</h2>
-            <p class="field-hint">
-                No hay servidor guardando esto en ningún lado — el único respaldo sos vos. Exportá
-                de tanto en tanto.
-            </p>
-            <div class="backup-actions">
-                <button type="button" class="btn-secondary" id="btn-export-data">
-                    Exportar datos
-                </button>
-                <button type="button" class="btn-secondary" id="btn-import-data">
-                    Importar datos
+                <button type="button" class="btn-danger" id="btn-clear-data">
+                    Borrar el Rastro (borrar datos)
                 </button>
             </div>
-            <input type="file" id="import-file-input" accept="application/json,.json" hidden />
 
-            <button type="button" class="btn-danger" id="btn-clear-data">
-                Borrar el Rastro (borrar datos)
-            </button>
-        </div>
-
-        <!-- VISTA INFORMATIVA (LA POSTA DEL TRANCO) — Fase 8. No forma parte de
+            <!-- VISTA INFORMATIVA (LA POSTA DEL TRANCO) — Fase 8. No forma parte de
          la navegación inferior a propósito: es contenido de referencia, no
          una acción de uso diario, así que se llega por un link puntual
          (ver #info-link en view-calc) y se sale con el botón de abajo, no
          compitiendo por espacio con Fogón/Sesteo/Cuaderno/Recuento. -->
-        <div id="view-info" class="app-container view">
-            <h1 tabindex="-1">Por Qué Dormimos en Tranco</h1>
-            <p class="subtitle">
-                La ciencia detrás del fogón, para el que quiera algo más que la hora de levantarse.
-            </p>
-
-            <section class="info-section">
-                <h2>Las cuatro etapas de una noche</h2>
-                <p>
-                    Ni bien cerrás los ojos, el cuerpo no se apaga de una: atraviesa etapas bien
-                    distintas, una atrás de la otra, en este orden — N1 → N2 → N3 → N2 → REM — y
-                    después arranca de nuevo.
+            <div id="view-info" class="app-container view">
+                <h1 tabindex="-1">Por Qué Dormimos en Tranco</h1>
+                <p class="subtitle">
+                    La ciencia detrás del fogón, para el que quiera algo más que la hora de
+                    levantarse.
                 </p>
-                <p>
-                    <strong>N1</strong> es la transición entre estar despierto y dormido: dura poco
-                    y cualquier ruido te saca de ahí. <strong>N2</strong> ya es sueño de verdad,
-                    aunque liviano — es la etapa donde más tiempo se pasa en total durante la noche.
-                    <strong>N3</strong>, el sueño profundo o "de ondas lentas", es la más difícil de
-                    interrumpir y la que más se concentra en las primeras horas; ahí el cuerpo hace
-                    buena parte de su trabajo de restauración física. En <strong>REM</strong> el
-                    cerebro se pone casi tan activo como despierto, los ojos se mueven rápido y es
-                    donde más se sueña — se estira hacia el final de la noche, a medida que el sueño
-                    profundo se acorta.
+
+                <section class="info-section">
+                    <h2>Las cuatro etapas de una noche</h2>
+                    <p>
+                        Ni bien cerrás los ojos, el cuerpo no se apaga de una: atraviesa etapas bien
+                        distintas, una atrás de la otra, en este orden — N1 → N2 → N3 → N2 → REM — y
+                        después arranca de nuevo.
+                    </p>
+                    <p>
+                        <strong>N1</strong> es la transición entre estar despierto y dormido: dura
+                        poco y cualquier ruido te saca de ahí. <strong>N2</strong> ya es sueño de
+                        verdad, aunque liviano — es la etapa donde más tiempo se pasa en total
+                        durante la noche. <strong>N3</strong>, el sueño profundo o "de ondas
+                        lentas", es la más difícil de interrumpir y la que más se concentra en las
+                        primeras horas; ahí el cuerpo hace buena parte de su trabajo de restauración
+                        física. En <strong>REM</strong> el cerebro se pone casi tan activo como
+                        despierto, los ojos se mueven rápido y es donde más se sueña — se estira
+                        hacia el final de la noche, a medida que el sueño profundo se acorta.
+                    </p>
+                </section>
+
+                <section class="info-section">
+                    <h2>Por qué el tranco ronda los 90 minutos</h2>
+                    <p>
+                        Las cifras que más se citan van de 80 a 110 minutos por ciclo, con 4 a 6
+                        vueltas completas por noche — pero es un promedio, no una ley pareja: el
+                        primer ciclo de la noche suele ser más corto (70 a 100 minutos) y los
+                        siguientes se estiran un poco más (90 a 120). También varía de persona a
+                        persona y de noche a noche según la edad, cómo veniste durmiendo los días
+                        previos, y cosas como el alcohol. La edad pesa bastante: los recién nacidos
+                        duermen en ciclos de apenas unos 50 minutos, y el sueño profundo — abundante
+                        de chico — se va reduciendo con los años hasta casi desaparecer en la vejez.
+                    </p>
+                    <p class="field-hint">
+                        Por eso la calculadora te deja ajustar tu propio tranco entre 70 y 120
+                        minutos en vez de forzarte a los 90 de manual.
+                    </p>
+                </section>
+
+                <section class="info-section">
+                    <h2>Por qué a veces te levantás baqueteado</h2>
+                    <p>
+                        Ese atontamiento de recién levantado — reflejos lentos, cabeza espesa —
+                        tiene nombre: inercia del sueño. Por lo general se disipa en la primera
+                        media hora, aunque en tareas mentales exigentes puede arrastrarse varias
+                        horas más. Se explica por una mezcla de cosas que pasan en el cerebro al
+                        despertar: la actividad eléctrica tarda en acomodarse, el riego sanguíneo
+                        (sobre todo adelante, en la zona frontal) queda por debajo de lo normal un
+                        rato, y una sustancia que se va acumulando mientras dormís (adenosina) tarda
+                        en bajar.
+                    </p>
+                    <div class="info-note">
+                        <strong>Ojo, que acá no hay nada cerrado del todo:</strong> la idea de que
+                        despertarte en medio del sueño profundo (N3) te deja peor que despertarte en
+                        una etapa liviana tiene buen respaldo — algunos trabajos encontraron inercia
+                        marcada en hasta cuatro de cada diez despertares durante sueño profundo —
+                        pero otros estudios no encontraron esa diferencia, y el efecto parece
+                        notarse más que nada después de siestas largas con mucho sueño acumulado. Es
+                        una hipótesis con sustento, no una certeza cerrada. Calcular el tranco para
+                        despertarte al final de un ciclo es una apuesta razonable — no una garantía.
+                    </div>
+                </section>
+
+                <p class="info-disclaimer">
+                    Esto es información general, resumida de fuentes serias, para entender el porqué
+                    de los números — no reemplaza el consejo de un médico o especialista en sueño.
+                    Si dormís mal de manera sostenida, consultá con alguien capacitado.
                 </p>
-            </section>
 
-            <section class="info-section">
-                <h2>Por qué el tranco ronda los 90 minutos</h2>
-                <p>
-                    Las cifras que más se citan van de 80 a 110 minutos por ciclo, con 4 a 6 vueltas
-                    completas por noche — pero es un promedio, no una ley pareja: el primer ciclo de
-                    la noche suele ser más corto (70 a 100 minutos) y los siguientes se estiran un
-                    poco más (90 a 120). También varía de persona a persona y de noche a noche según
-                    la edad, cómo veniste durmiendo los días previos, y cosas como el alcohol. La
-                    edad pesa bastante: los recién nacidos duermen en ciclos de apenas unos 50
-                    minutos, y el sueño profundo — abundante de chico — se va reduciendo con los
-                    años hasta casi desaparecer en la vejez.
-                </p>
-                <p class="field-hint">
-                    Por eso la calculadora te deja ajustar tu propio tranco entre 70 y 120 minutos
-                    en vez de forzarte a los 90 de manual.
-                </p>
-            </section>
+                <button type="button" id="info-back" class="btn-secondary">
+                    ← Volver al Fogón
+                </button>
 
-            <section class="info-section">
-                <h2>Por qué a veces te levantás baqueteado</h2>
-                <p>
-                    Ese atontamiento de recién levantado — reflejos lentos, cabeza espesa — tiene
-                    nombre: inercia del sueño. Por lo general se disipa en la primera media hora,
-                    aunque en tareas mentales exigentes puede arrastrarse varias horas más. Se
-                    explica por una mezcla de cosas que pasan en el cerebro al despertar: la
-                    actividad eléctrica tarda en acomodarse, el riego sanguíneo (sobre todo
-                    adelante, en la zona frontal) queda por debajo de lo normal un rato, y una
-                    sustancia que se va acumulando mientras dormís (adenosina) tarda en bajar.
-                </p>
-                <div class="info-note">
-                    <strong>Ojo, que acá no hay nada cerrado del todo:</strong> la idea de que
-                    despertarte en medio del sueño profundo (N3) te deja peor que despertarte en una
-                    etapa liviana tiene buen respaldo — algunos trabajos encontraron inercia marcada
-                    en hasta cuatro de cada diez despertares durante sueño profundo — pero otros
-                    estudios no encontraron esa diferencia, y el efecto parece notarse más que nada
-                    después de siestas largas con mucho sueño acumulado. Es una hipótesis con
-                    sustento, no una certeza cerrada. Calcular el tranco para despertarte al final
-                    de un ciclo es una apuesta razonable — no una garantía.
-                </div>
-            </section>
-
-            <p class="info-disclaimer">
-                Esto es información general, resumida de fuentes serias, para entender el porqué de
-                los números — no reemplaza el consejo de un médico o especialista en sueño. Si
-                dormís mal de manera sostenida, consultá con alguien capacitado.
-            </p>
-
-            <button type="button" id="info-back" class="btn-secondary">← Volver al Fogón</button>
-
-            <footer class="info-sources">
-                <p>Fuentes consultadas:</p>
-                <ul>
-                    <li>
-                        <a
-                            href="https://www.ncbi.nlm.nih.gov/books/NBK526132/"
-                            target="_blank"
-                            rel="noopener"
-                            >NCBI / StatPearls — Physiology, Sleep Stages</a
-                        >
-                    </li>
-                    <li>
-                        <a
-                            href="https://www.nhlbi.nih.gov/health/sleep/stages-of-sleep"
-                            target="_blank"
-                            rel="noopener"
-                            >NHLBI (NIH) — Stages of Sleep</a
-                        >
-                    </li>
-                    <li>
-                        <a
-                            href="https://www.sleepfoundation.org/stages-of-sleep"
-                            target="_blank"
-                            rel="noopener"
-                            >Sleep Foundation — Stages of Sleep</a
-                        >
-                    </li>
-                    <li>
-                        <a
-                            href="https://www.dovepress.com/sleep-inertia-current-insights-peer-reviewed-fulltext-article-NSS"
-                            target="_blank"
-                            rel="noopener"
-                            >Nature and Science of Sleep — Sleep inertia: current insights</a
-                        >
-                    </li>
-                </ul>
-            </footer>
-        </div>
+                <footer class="info-sources">
+                    <p>Fuentes consultadas:</p>
+                    <ul>
+                        <li>
+                            <a
+                                href="https://www.ncbi.nlm.nih.gov/books/NBK526132/"
+                                target="_blank"
+                                rel="noopener"
+                                >NCBI / StatPearls — Physiology, Sleep Stages</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                href="https://www.nhlbi.nih.gov/health/sleep/stages-of-sleep"
+                                target="_blank"
+                                rel="noopener"
+                                >NHLBI (NIH) — Stages of Sleep</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                href="https://www.sleepfoundation.org/stages-of-sleep"
+                                target="_blank"
+                                rel="noopener"
+                                >Sleep Foundation — Stages of Sleep</a
+                            >
+                        </li>
+                        <li>
+                            <a
+                                href="https://www.dovepress.com/sleep-inertia-current-insights-peer-reviewed-fulltext-article-NSS"
+                                target="_blank"
+                                rel="noopener"
+                                >Nature and Science of Sleep — Sleep inertia: current insights</a
+                            >
+                        </li>
+                    </ul>
+                </footer>
+            </div>
+        </main>
 
         <script type="module" src="/src/main.js"></script>
     </body>

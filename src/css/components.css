@@ -630,8 +630,11 @@ dialog.modal::backdrop {
 .info-link {
     display: block;
     width: 100%;
-    margin: -8px 0 20px;
-    padding: 4px;
+    margin: -4px 0 20px;
+    /* Fase 9 (QA): 12px verticales para que el área tocable ronde los
+       40px de alto (recomendación de tamaño de tap target), sin que el
+       link deje de leerse como algo secundario frente a .calc-btn. */
+    padding: 12px 4px;
     background: none;
     border: none;
     text-align: center;
