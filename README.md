@@ -66,7 +66,7 @@ siguiente.
 - ✅ Fase 4 — Modo siesta ("A la Sombra del Ombú")
 - ✅ Fase 5 — Métricas de calidad de sueño real
 - ✅ Fase 6 — Export/import de datos (backup manual)
-- ⏳ Fase 7 — PWA offline
+- ✅ Fase 7 — PWA real offline (manifest, service worker, íconos)
 - ⏳ Fase 8 — Página informativa sobre la base científica de los ciclos de sueño
 - ⏳ Fase 9 — QA y deploy final
 
@@ -86,6 +86,27 @@ salen de:
 La Fase 8 (página informativa) va a documentar con más detalle la base
 científica de los ciclos de sueño en general, con las mismas fuentes
 primarias.
+
+## PWA offline (Fase 7)
+
+La app se puede "instalar" (Agregar a inicio / Install app) y funciona
+sin conexión después de la primera visita: `manifest.json` define
+nombre, ícono y modo `standalone`, y un service worker
+(`public/service-worker.js`) cachea los assets estáticos.
+
+Dos estrategias distintas a propósito: el HTML de navegación va
+*network-first* (si hay red, siempre se sirve la versión más nueva; sin
+red, se cae a la última cacheada) para no quedar pegado sirviendo un
+HTML viejo que apunta a bundles que ya no existen después de un deploy.
+Los bundles JS/CSS (que Vite nombra con un hash de su contenido) van
+*cache-first*, porque al tener nombre inmutable no hace falta revalidar
+contra la red.
+
+Importante: el service worker recién controla la página a partir de la
+**segunda** visita (así funcionan los service workers en general — no
+pueden interceptar los pedidos de la carga en la que se instalan a sí
+mismos). La primera vez que se abre la app hace falta red; a partir de
+la segunda, ya funciona sin conexión.
 
 ## Backup manual (Fase 6)
 
