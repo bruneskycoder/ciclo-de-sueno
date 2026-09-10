@@ -7,11 +7,16 @@
 import { renderHistory } from './history-view.js';
 import { renderChart, renderStatsPanels } from './stats-view.js';
 
-const VIEW_IDS = ['calc', 'siesta', 'history', 'stats'];
+// 'info' (Fase 8) no tiene botón en el nav inferior a propósito — es
+// contenido de referencia al que se llega por un link puntual, no una de
+// las 4 acciones de uso diario. switchView() y initNav() lo tratan igual
+// que a cualquier otra vista, pero ambos toleran que `nav-info` no exista.
+const VIEW_IDS = ['calc', 'siesta', 'history', 'stats', 'info'];
 
 export function initNav() {
     VIEW_IDS.forEach((id) => {
-        document.getElementById(`nav-${id}`).addEventListener('click', () => switchView(id));
+        const navBtn = document.getElementById(`nav-${id}`);
+        if (navBtn) navBtn.addEventListener('click', () => switchView(id));
     });
 }
 
@@ -20,16 +25,21 @@ export function switchView(viewId) {
         const isActive = id === viewId;
         document.getElementById(`view-${id}`).classList.toggle('active', isActive);
         const navBtn = document.getElementById(`nav-${id}`);
-        navBtn.classList.toggle('active', isActive);
-        if (isActive) {
-            navBtn.setAttribute('aria-current', 'page');
-        } else {
-            navBtn.removeAttribute('aria-current');
+        if (navBtn) {
+            navBtn.classList.toggle('active', isActive);
+            if (isActive) {
+                navBtn.setAttribute('aria-current', 'page');
+            } else {
+                navBtn.removeAttribute('aria-current');
+            }
         }
     });
 
     if (viewId === 'history') renderHistory();
-    if (viewId === 'stats') { renderChart(); renderStatsPanels(); }
+    if (viewId === 'stats') {
+        renderChart();
+        renderStatsPanels();
+    }
 
     const heading = document.querySelector(`#view-${viewId} h1`);
     if (heading) heading.focus();

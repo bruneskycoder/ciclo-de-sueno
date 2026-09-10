@@ -13,6 +13,7 @@ import { initSiestaView } from './js/ui/siesta-view.js';
 import { initHistoryView } from './js/ui/history-view.js';
 import { initStatsView, renderStatsPanels } from './js/ui/stats-view.js';
 import { initBackupView } from './js/ui/backup-view.js';
+import { initInfoView } from './js/ui/info-view.js';
 import { registerServiceWorker } from './sw-register.js';
 
 function init() {
@@ -22,6 +23,7 @@ function init() {
     initHistoryView();
     initStatsView();
     initBackupView();
+    initInfoView();
 
     document.getElementById('time-input').value = formatTime(new Date());
     renderStatsPanels();
