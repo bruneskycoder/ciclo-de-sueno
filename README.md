@@ -7,10 +7,10 @@ despertar o de acostarse, las horas de acostarse/despertar que caen en un
 número entero de ciclos — y permite llevar un registro del descanso real a
 lo largo del tiempo.
 
-> Proyecto en rediseño activo. La identidad visual (Fase 1 del rediseño)
-> ya migró de un concepto medieval a una estética gauchesca rioplatense
-> (campo argentino, ~1800–1900) en la vista de la calculadora. Ver el
-> estado del rediseño más abajo.
+> Rediseño completo (Fases 0 a 9, ver más abajo): de un archivo único con
+> estética medieval a una app con build, tests, accesibilidad WCAG AA,
+> PWA offline e identidad gauchesca rioplatense (campo argentino,
+> ~1800–1900).
 
 ![Captura de la vista principal](./docs/screenshot.png)
 
@@ -68,7 +68,7 @@ siguiente.
 - ✅ Fase 6 — Export/import de datos (backup manual)
 - ✅ Fase 7 — PWA real offline (manifest, service worker, íconos)
 - ✅ Fase 8 — Página informativa sobre la base científica de los ciclos de sueño
-- ⏳ Fase 9 — QA y deploy final
+- ✅ Fase 9 — QA y deploy final
 
 ## Fuentes consultadas
 
@@ -115,6 +115,51 @@ Fuentes citadas en el pie de esa vista:
 - [NHLBI (NIH) — Stages of Sleep](https://www.nhlbi.nih.gov/health/sleep/stages-of-sleep)
 - [Sleep Foundation — Stages of Sleep](https://www.sleepfoundation.org/stages-of-sleep)
 - [Nature and Science of Sleep — Sleep inertia: current insights](https://www.dovepress.com/sleep-inertia-current-insights-peer-reviewed-fulltext-article-NSS) (paper revisado por pares)
+
+![Captura de la página informativa](./docs/screenshot-info.png)
+
+## QA final (Fase 9)
+
+Antes de cerrar el rediseño:
+
+- **Tests**: los 64 tests de Vitest (`calc.test.js`, `metrics.test.js`,
+  `storage.test.js`) pasan en verde.
+- **Lighthouse** (build de producción, servido local): **98 performance
+  / 96 accesibilidad / 96 best practices / 100 SEO**. De la primera
+  corrida se corrigieron tres cosas reales:
+    - el `<meta name="viewport">` traía `user-scalable=no` y
+      `maximum-scale=1.0`, que bloqueaban el pinch-to-zoom — mal para
+      usuarios con baja visión y en contra del criterio de accesibilidad
+      que se viene sosteniendo desde la Fase 2. Se sacó.
+    - faltaba un landmark `<main>` — ahora envuelve las 5 vistas.
+    - faltaba `<meta name="description">` — se agregó.
+    - de paso, se agregaron `rel="preconnect"` a Google Fonts para achicar
+      el tiempo de bloqueo de esa hoja de estilos en el render inicial.
+
+    Quedó un aviso de contraste de color en el ítem activo del nav
+    (`3.85:1`, el mínimo AA es `4.5:1`) que revisé a mano: el color real
+    (`#d99a3f` sobre `#3d2b1f`) da `~5.5:1` calculado con la fórmula de
+    WCAG — pasa cómodo. La herramienta lo mide mal porque el
+    `text-shadow` (el brillo del texto activo) le contamina el muestreo
+    del fondo. No es un problema real, quedó documentado acá en vez de
+    "corregido" a ciegas.
+
+- **Mobile real**: no hay un dispositivo físico disponible en este
+  entorno de trabajo — ojo con esto, es la limitación más importante de
+  esta fase. Lo que sí se hizo, con Playwright emulando iPhone SE,
+  iPhone 13, Pixel 5 y un Android angosto (360px): cero desbordes
+  horizontales en ninguna de las 5 vistas, el zoom quedó habilitado en
+  los cuatro perfiles, y se agrandó el área tocable del link "¿Por qué
+  90 minutos?" (pasó de 23px a ~40px de alto). Esto corre sobre motor
+  Chromium, no WebKit real — Safari iOS en particular tiene mañas
+  propias con el `manifest.json` y el ícono de instalación que esto no
+  puede probar. Antes de dar el PWA por 100% validado en iOS, conviene
+  que lo abras una vez en un iPhone de verdad y pruebes "Agregar a
+  inicio".
+- **Deploy end-to-end**: confirmado en dos niveles — `git ls-remote`
+  contra GitHub muestra `main` en el commit correcto, y el sitio en vivo
+  (`bruneskycoder.github.io`) ya sirve el HTML, el `manifest.json` y el
+  `service-worker.js` esperados.
 
 ## PWA offline (Fase 7)
 
