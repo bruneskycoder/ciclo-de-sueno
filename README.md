@@ -64,7 +64,7 @@ siguiente.
   modal accesible, lógica de cálculo pura y testeada)
 - ✅ Fase 3 — Duración de ciclo configurable (70–120 min, persistida)
 - ✅ Fase 4 — Modo siesta ("A la Sombra del Ombú")
-- ⏳ Fase 5 — Métricas de calidad de sueño real
+- ✅ Fase 5 — Métricas de calidad de sueño real
 - ⏳ Fase 6 — Export/import de datos
 - ⏳ Fase 7 — PWA offline
 - ⏳ Fase 8 — Página informativa sobre la base científica de los ciclos de sueño
@@ -86,6 +86,28 @@ salen de:
 La Fase 8 (página informativa) va a documentar con más detalle la base
 científica de los ciclos de sueño en general, con las mismas fuentes
 primarias.
+
+## Cambio de esquema en la Fase 5 (rompe compatibilidad con lo guardado antes)
+
+Hasta la Fase 4, el botón "Marcar" de la tabla de resultados del Fogón
+guardaba el **cálculo sugerido** (a qué hora convendría acostarse o
+despertar) como si fuera una noche dormida. Servía como recordatorio,
+pero no como dato real: no había forma de saber si esa noche
+efectivamente pasó así.
+
+La Fase 5 separa esto. El Cuaderno de Ruta ahora es un logueo de sueño
+**real**: fecha, hora real de acostarse, hora real de despertar, y
+opcionalmente una calificación (1-5) y una nota. El botón "Marcar" de la
+calculadora desapareció — la calculadora vuelve a ser solo una
+calculadora.
+
+Los registros viejos (clave de `localStorage` `sleepLoreDB`) no se leen,
+no se escriben ni se borran: quedan intactos pero inactivos en el
+navegador de quien ya los tenía. No se migraron al esquema nuevo a
+propósito — una sugerencia calculada y una noche real son datos
+distintos, y convertir una en la otra habría mezclado ficción con datos
+reales en los promedios de la Fase 5. El historial nuevo vive bajo la
+clave `sleepLogReal`.
 
 ## Licencia
 
