@@ -1,5 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
     <rect width="512" height="512" rx="100" fill="#161f24"/>
+
+    <!-- Llama: tres capas concéntricas, mismo criterio que .flame/.flame.inner/.flame.core en components.css.
+         Sin troncos: a tamaño ícono (48-192px) se perdían y quedaban como
+         una mancha suelta — la llama sola lee mejor y más limpio. -->
     <path d="M256 108 C 331 156 342 233 300 285 C 345 262 366 315 351 361 C 400 331 424 405 384 450 C 330 494 220 486 186 415 C 158 356 178 300 224 274 C 188 250 194 187 240 148 C 250 132 256 120 256 108 Z" fill="#c9782f"/>
     <path d="M262 178 C 312 210 320 262 292 297 C 322 282 336 317 324 348 C 356 328 372 375 344 404 C 308 431 238 424 217 379 C 200 342 213 306 242 288 C 219 272 224 231 253 205 C 259 195 262 187 262 178 Z" fill="#d99a3f"/>
     <path d="M268 240 C 298 260 302 292 285 313 C 303 304 312 325 304 344 C 324 332 334 359 316 377 C 294 393 250 389 238 362 C 228 340 236 318 254 307 C 240 297 244 273 261 258 C 264 252 267 246 268 240 Z" fill="#f2c987"/>
