@@ -67,7 +67,7 @@ siguiente.
 - ✅ Fase 5 — Métricas de calidad de sueño real
 - ✅ Fase 6 — Export/import de datos (backup manual)
 - ✅ Fase 7 — PWA real offline (manifest, service worker, íconos)
-- ⏳ Fase 8 — Página informativa sobre la base científica de los ciclos de sueño
+- ✅ Fase 8 — Página informativa sobre la base científica de los ciclos de sueño
 - ⏳ Fase 9 — QA y deploy final
 
 ## Fuentes consultadas
@@ -83,9 +83,38 @@ salen de:
   20–30 min como duración ideal, y la relación directa entre siesta
   más larga y más grogui al despertar.
 
-La Fase 8 (página informativa) va a documentar con más detalle la base
-científica de los ciclos de sueño en general, con las mismas fuentes
-primarias.
+La página informativa de la Fase 8 (ver más abajo) documenta con más
+detalle la base científica de los ciclos de sueño en general, con fuentes
+adicionales.
+
+## Página informativa (Fase 8)
+
+"Por Qué Dormimos en Tranco" es una vista de referencia sobre la base
+científica de los ciclos de sueño: qué son las etapas NREM 1–3 y REM, por
+qué el ciclo promedio ronda los 90 minutos (con el rango real de
+variación entre 70 y 120 según la persona y la noche), y por qué
+despertar en medio del sueño profundo suele producir más inercia del
+sueño (el aturdimiento de recién levantado).
+
+Un punto a propósito: la relación entre despertar en sueño profundo (N3)
+y peor inercia del sueño —la premisa detrás de esta calculadora— está
+bien respaldada pero **no es un hecho cerrado**. Hay estudios que la
+confirman y otros que no encuentran la diferencia; el efecto se ve más
+que nada después de siestas largas con mucha presión de sueño acumulada.
+La página lo dice así, sin vender la premisa de la app como una certeza
+que no es.
+
+No forma parte de la navegación inferior a propósito — es contenido para
+leer una vez, no una acción de uso diario, así que no le saca lugar a
+Fogón/Sesteo/Cuaderno/Recuento. Se llega desde un link en la vista del
+Fogón ("¿Por qué 90 minutos?") y se vuelve con un botón dedicado.
+
+Fuentes citadas en el pie de esa vista:
+
+- [NCBI / StatPearls — Physiology, Sleep Stages](https://www.ncbi.nlm.nih.gov/books/NBK526132/)
+- [NHLBI (NIH) — Stages of Sleep](https://www.nhlbi.nih.gov/health/sleep/stages-of-sleep)
+- [Sleep Foundation — Stages of Sleep](https://www.sleepfoundation.org/stages-of-sleep)
+- [Nature and Science of Sleep — Sleep inertia: current insights](https://www.dovepress.com/sleep-inertia-current-insights-peer-reviewed-fulltext-article-NSS) (paper revisado por pares)
 
 ## PWA offline (Fase 7)
 
@@ -95,11 +124,11 @@ nombre, ícono y modo `standalone`, y un service worker
 (`public/service-worker.js`) cachea los assets estáticos.
 
 Dos estrategias distintas a propósito: el HTML de navegación va
-*network-first* (si hay red, siempre se sirve la versión más nueva; sin
+_network-first_ (si hay red, siempre se sirve la versión más nueva; sin
 red, se cae a la última cacheada) para no quedar pegado sirviendo un
 HTML viejo que apunta a bundles que ya no existen después de un deploy.
 Los bundles JS/CSS (que Vite nombra con un hash de su contenido) van
-*cache-first*, porque al tener nombre inmutable no hace falta revalidar
+_cache-first_, porque al tener nombre inmutable no hace falta revalidar
 contra la red.
 
 Importante: el service worker recién controla la página a partir de la
@@ -116,7 +145,7 @@ dispositivo, o una reinstalación limpia, se lleva puesto el historial
 entero sin previo aviso. En Recuento hay dos botones para esto:
 
 - **Exportar datos**: descarga un JSON (`{version, exportedAt,
-  cycleLength, records}`) con todo el historial real y la preferencia de
+cycleLength, records}`) con todo el historial real y la preferencia de
   duración de ciclo. Sirve como backup manual y como forma de pasar el
   historial a otro dispositivo.
 - **Importar datos**: lee un JSON con esa misma forma (rechaza con un
