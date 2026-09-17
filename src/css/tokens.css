@@ -1,38 +1,78 @@
-/* tokens.css — variables de diseño: color, tipografía, espaciado.
-   Identidad gauchesca rioplatense (campo argentino, ~1800-1900).
-   Fase 1 del plan de rediseño — ver también Anexo de decisiones en el
-   preview publicado durante el checkpoint (paleta + contraste WCAG AA).
-*/
+/* tokens.css — las variables de diseño: color, tipografía, espacio.
+   Identidad: campo argentino de noche. La imagen manda; el vocabulario de
+   época no. En la v1 la interfaz hablaba como un libro del siglo XIX
+   ("pilchas", "baqueteado", "al pago") y ni el propio autor lo entendía.
+   Ahora el campo entra por lo que se ve, no por cómo se nombran las cosas.
+
+   La idea que ordena toda la paleta: la pantalla está iluminada por el
+   fuego. No hay una luz blanca desde arriba — hay una brasa abajo, y todo
+   lo demás recibe ese calor y se va apagando hacia los bordes. */
 :root {
-    /* Cielo de pampa nocturno (reemplaza el negro puro medieval) */
-    --bg-night: #10161a;
-    --bg-night-2: #161f24;
+    color-scheme: dark;
 
-    /* Cuero / tierra (reemplaza la madera de taberna) */
-    --leather-dark: #3d2b1f;
-    --leather-light: #5a3d28;
+    /* Cielo de campo, ya entrada la noche */
+    --noche: #0d1216;
+    --noche-alta: #151d23;
+    --noche-borde: #202b33;
 
-    /* Brasas del fogón (reemplaza el naranja "fuego de fantasía") */
-    --ember-core: #f2c987;
-    --ember-mid: #d99a3f;
-    --ember-edge: #c9782f;
+    /* Cuero y tierra */
+    --cuero: #3a2a1e;
+    --cuero-claro: #5a3f2a;
 
-    /* Cuero viejo / hueso (reemplaza el dorado brillante "pergamino") */
-    --hide: #e8dcc4;
-    --text-main: #e8dcc4;
-    --text-muted: #b8a888;
+    /* El fuego. Tres temperaturas: el corazón, la llama y el borde que
+       se apaga. Se usan en ese orden de adentro hacia afuera. */
+    --brasa-viva: #f4cf94;
+    --brasa: #dd9f45;
+    --brasa-honda: #c06a2a;
 
-    /* Semánticos. --danger ya NO se usa como texto plano sobre fondo
-       oscuro (fallaba WCAG AA, 2.1:1) — sólo como fondo sólido con
-       texto claro encima (ver .btn-danger en components.css). */
-    --danger: #b3261e;
-    --success: #386641;
+    /* Hueso viejo: el texto */
+    --hueso: #ece2cc;
+    --hueso-tenue: #b9a98a;
 
-    /* Tipografía: display "cartel de pulpería" para títulos y elementos
-       de señalética (nav, tabs, CTA principal); monoespaciada para
-       números y contenido de lectura/datos. */
-    --font-display: 'Rye', Georgia, serif;
-    --font-body: 'Space Mono', 'Courier New', monospace;
+    /* Semánticos. --peligro nunca va como texto suelto sobre fondo
+       oscuro (no llega a contraste AA); solo como fondo con texto claro
+       encima. */
+    --peligro: #b3261e;
+    --bien: #4a7c52;
 
-    --nav-height: 70px;
+    /* Tipografía. La display quedó reservada para UN solo lugar, el
+       título: es un cartel, no una voz para leer datos a la madrugada. */
+    --tipo-titulo: 'Rye', Georgia, serif;
+    --tipo: 'Space Mono', 'Courier New', monospace;
+
+    /* Espacio en una escala corta: menos decisiones, más ritmo. */
+    --esp-1: 4px;
+    --esp-2: 8px;
+    --esp-3: 16px;
+    --esp-4: 24px;
+    --esp-5: 40px;
+
+    --radio: 10px;
+    --ancho: 460px;
+
+    /* Cuánto alumbra el fuego sobre la página. El modo brasa lo baja. */
+    --luz-fuego: 0.22;
+    --fuego-anim: 3s;
+}
+
+/* MODO BRASA. Para mirar la app a oscuras sin comerse la pantalla en la
+   cara. No es un tema alternativo por gusto: es una app que se usa de
+   noche, y bajar luminancia total importa más que filtrar azul. El fuego
+   se queda quieto — a oscuras, algo moviéndose es lo único que mira el
+   ojo. Es manual y no automático por horario: adivinar por hora del día
+   acierta poco y sorprende cuando la app cambia sola. */
+:root[data-tema='brasa'] {
+    --noche: #080b0d;
+    --noche-alta: #0e1316;
+    --noche-borde: #161d21;
+
+    --brasa-viva: #c9a877;
+    --brasa: #b07f39;
+    --brasa-honda: #8d5323;
+
+    --hueso: #b9ad97;
+    --hueso-tenue: #8a7f6c;
+
+    --luz-fuego: 0.08;
+    --fuego-anim: 0s;
 }

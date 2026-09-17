@@ -270,3 +270,22 @@ export function formatDuration(totalMinutes) {
     if (minutes === 0) return `${hours}h`;
     return `${hours}h ${minutes}m`;
 }
+
+/**
+ * Suma minutos a una hora de reloj, dando la vuelta a la medianoche.
+ * Se usa para deducir la hora de despertar cuando se conoce la de
+ * acostarse y la persona dice cuánto durmió: acostarse 00:30 y dormir 7
+ * horas da 07:30. Eso no es inventar un dato, es aritmética sobre dos
+ * datos reales.
+ *
+ * @param {string} timeStr - Hora de partida, "HH:MM".
+ * @param {number} minutes - Minutos a sumar (puede ser negativo).
+ * @returns {string|null} La hora resultante, o null si timeStr no sirve.
+ */
+export function addMinutesToClock(timeStr, minutes) {
+    if (!timeStr || !/^\d{1,2}:\d{2}$/.test(timeStr)) return null;
+
+    const [h, m] = timeStr.split(':').map(Number);
+    const total = (((h * 60 + m + Math.round(minutes)) % 1440) + 1440) % 1440;
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}

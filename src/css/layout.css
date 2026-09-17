@@ -1,26 +1,123 @@
-/* layout.css — estructura de página: contenedor, nav inferior, sistema de vistas */
-.app-container {
+/* layout.css — la estructura: una pantalla, y tres capas que se abren
+   encima. En la v1 había una barra de navegación fija de 70px con cuatro
+   ítems; para una app de una sola pantalla, eso era mobiliario. */
+.pantalla {
     width: 100%;
-    max-width: 500px;
-    padding: 20px;
-    box-sizing: border-box;
+    max-width: var(--ancho);
+    margin: 0 auto;
+    padding: var(--esp-3) var(--esp-3) var(--esp-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-4);
 }
 
-.bottom-nav {
-    position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height);
-    background: var(--leather-dark); border-top: 4px solid var(--leather-light);
-    display: flex; justify-content: space-around; align-items: center; z-index: 100;
+.cabecera {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--esp-2);
+    padding-top: var(--esp-2);
 }
-.nav-item {
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-    color: var(--text-muted); cursor: pointer; flex: 1; /* reparte el ancho entre los ítems que haya, sin fijar una cantidad */
-    font-family: var(--font-display); font-size: 16px;
-    background: none; border: none; padding: 8px 4px; /* reset de <button> */
-}
-.nav-item .icon { font-size: 19px; }
-.nav-item.active { color: var(--ember-mid); text-shadow: 0 0 5px var(--ember-edge); }
-.nav-item:focus-visible, .tab-btn:focus-visible { outline: 2px solid var(--ember-mid); outline-offset: 2px; }
 
-.view { display: none; animation: fadeIn 0.3s; }
-.view.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.acciones-cabecera {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    gap: var(--esp-1);
+}
+
+.bajada {
+    max-width: 34ch;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--hueso-tenue);
+    text-wrap: balance;
+}
+
+.enlaces {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--noche-borde);
+    border: 1px solid var(--noche-borde);
+    border-radius: var(--radio);
+    overflow: hidden;
+}
+
+/* --- CAPAS (hojas) --- */
+/* <dialog> nativo: trae foco atrapado, cierre con Escape y fondo inerte
+   sin escribir una línea de JS para eso. */
+.hoja {
+    width: 100%;
+    max-width: var(--ancho);
+    max-height: 88vh;
+    margin: auto auto 0;
+    padding: 0;
+    border: none;
+    border-top: 3px solid var(--cuero-claro);
+    border-radius: var(--radio) var(--radio) 0 0;
+    background: var(--noche-alta);
+    color: var(--hueso);
+    overflow: hidden;
+}
+
+.hoja::backdrop {
+    background: rgba(5, 8, 10, 0.72);
+}
+
+.hoja[open] {
+    animation: subir 0.22s ease-out;
+}
+
+@keyframes subir {
+    from {
+        transform: translateY(16px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.hoja-contenido {
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 0 var(--esp-3) var(--esp-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-3);
+}
+
+/* La barra queda pegada arriba: en el cuaderno o en la página
+   informativa se scrollea largo, y el botón de cerrar tiene que estar
+   siempre a mano. */
+.hoja-barra {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--esp-2);
+    padding: var(--esp-3) 0 var(--esp-2);
+    background: var(--noche-alta);
+    border-bottom: 1px solid var(--noche-borde);
+}
+
+.hoja-barra h2 {
+    font-family: var(--tipo-titulo);
+    font-size: 21px;
+    font-weight: 400;
+}
+
+@media (min-width: 520px) {
+    .hoja {
+        margin: auto;
+        border-radius: var(--radio);
+        border: 1px solid var(--cuero-claro);
+    }
+}

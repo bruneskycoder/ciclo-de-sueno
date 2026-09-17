@@ -6,6 +6,7 @@ import {
     clampLatency,
     minutesUntilClock,
     formatDuration,
+    addMinutesToClock,
     clampCycleLength,
     formatTime,
     SIESTA_CORTA_MINUTOS,
@@ -410,5 +411,26 @@ describe('clampLatency con fallback (v2)', () => {
 
     it('el fallback no pisa un valor válido', () => {
         expect(clampLatency('35', { fallback: 20 })).toBe(35);
+    });
+});
+
+describe('addMinutesToClock', () => {
+    it('suma dentro del mismo día', () => {
+        expect(addMinutesToClock('23:00', 30)).toBe('23:30');
+        expect(addMinutesToClock('00:30', 420)).toBe('07:30');
+    });
+
+    it('da la vuelta a la medianoche', () => {
+        expect(addMinutesToClock('23:30', 60)).toBe('00:30');
+        expect(addMinutesToClock('22:00', 600)).toBe('08:00');
+    });
+
+    it('acepta minutos negativos y también da la vuelta', () => {
+        expect(addMinutesToClock('00:30', -60)).toBe('23:30');
+    });
+
+    it('devuelve null si la hora no sirve', () => {
+        expect(addMinutesToClock('', 60)).toBe(null);
+        expect(addMinutesToClock('tarde', 60)).toBe(null);
     });
 });

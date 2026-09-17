@@ -16,10 +16,6 @@
 // datos que significan otra cosa (una sugerencia calculada no es lo
 // mismo que sueño real: convertirlos mezclaría ficción con dato real en
 // las métricas nuevas). "Borrar el Rastro" solo borra `sleepLogReal`.
-import { showToast } from './ui/toast.js';
-import { renderHistory } from './ui/history-view.js';
-import { renderChart, renderStatsPanels } from './ui/stats-view.js';
-import { confirmModal } from './ui/modal.js';
 import { clampCycleLength, clampLatency, formatTime } from './calc.js';
 import {
     closeSleepSession,
@@ -29,6 +25,23 @@ import {
     recalledRecord,
     recordKind,
 } from './sleep-session.js';
+
+// storage.js NO importa ninguna vista. Antes sí: llamaba a mano a
+// renderHistory(), renderChart() y renderStatsPanels() después de cada
+// cambio, con lo cual la capa de datos dependía de la de pantalla — al
+// revés de como corresponde, y una trampa para cualquiera que quisiera
+// reusar estas funciones. Ahora solo avisa que algo cambió, y cada vista
+// decide qué hacer con ese aviso.
+const suscriptores = new Set();
+
+export function onChange(fn) {
+    suscriptores.add(fn);
+    return () => suscriptores.delete(fn);
+}
+
+function avisar() {
+    suscriptores.forEach((fn) => fn());
+}
 
 const CYCLE_LENGTH_KEY = 'cycleLengthPref';
 
@@ -43,6 +56,7 @@ export function getCycleLength() {
 export function saveCycleLength(minutes) {
     const clamped = clampCycleLength(minutes);
     localStorage.setItem(CYCLE_LENGTH_KEY, String(clamped));
+    avisar();
     return clamped;
 }
 
@@ -60,6 +74,7 @@ export function getLatency() {
 export function saveLatency(minutes) {
     const clamped = clampLatency(minutes, { fallback: DEFAULT_LATENCY });
     localStorage.setItem(LATENCY_KEY, String(clamped));
+    avisar();
     return clamped;
 }
 
@@ -126,6 +141,7 @@ export function saveSleepLog({
     };
     logs.push(registro);
     saveSleepLogs(logs);
+    avisar();
     // Devuelve el registro (con su id) para que quien llama pueda ofrecer
     // calificarlo después. El aviso en pantalla lo da la vista: persistir
     // y comunicar son dos responsabilidades distintas.
@@ -144,6 +160,7 @@ export function updateSleepLog(id, patch) {
 
     Object.assign(registro, patch);
     saveSleepLogs(logs);
+    avisar();
     return registro;
 }
 
@@ -171,11 +188,13 @@ export function getOpenSleep() {
 export function startOpenSleep(now = new Date(), opciones = {}) {
     const abierta = openSleepFrom(now, opciones);
     localStorage.setItem(OPEN_SLEEP_KEY, JSON.stringify(abierta));
+    avisar();
     return abierta;
 }
 
 export function clearOpenSleep() {
     localStorage.removeItem(OPEN_SLEEP_KEY);
+    avisar();
 }
 
 /**
@@ -224,6 +243,7 @@ export function skipNight(night) {
 
     const nuevas = [...actuales, night].slice(-MAX_SKIPPED);
     localStorage.setItem(SKIPPED_NIGHTS_KEY, JSON.stringify(nuevas));
+    avisar();
     return nuevas;
 }
 
@@ -247,29 +267,19 @@ export function saveRecalledNight({ hours, night = nightToAskAbout(), notes = ''
 export function deleteSleepLog(id) {
     const logs = getSleepLogs().filter((record) => record.id !== id);
     saveSleepLogs(logs);
-    renderHistory();
-    renderChart();
-    renderStatsPanels();
-    showToast('Borrado del cuaderno.');
+    avisar();
+    avisar();
 }
 
-export async function limpiarBaseDeDatos() {
-    const confirmado = await confirmModal({
-        message: '¿Borrar el rastro? Esta acción es irreversible.',
-        confirmLabel: 'Borrar',
-        cancelLabel: 'Cancelar',
-    });
-    if (confirmado) {
-        localStorage.removeItem(SLEEP_LOG_KEY);
-        // Si queda una noche abierta, borrar el historial y dejarla viva
-        // sería incoherente: "borrar todo" tiene que borrar todo.
-        clearOpenSleep();
-        localStorage.removeItem(SKIPPED_NIGHTS_KEY);
-        renderHistory();
-        renderChart();
-        renderStatsPanels();
-        showToast('Rastro borrado.');
-    }
+// Sin confirmación ni aviso acá: pedir permiso y avisar en pantalla es
+// trabajo de la vista (ver ajustes.js). Esta función solo borra.
+export function clearAllData() {
+    localStorage.removeItem(SLEEP_LOG_KEY);
+    localStorage.removeItem(SKIPPED_NIGHTS_KEY);
+    // Si queda una noche abierta, borrar el historial y dejarla viva sería
+    // incoherente: "borrar todo" tiene que borrar todo.
+    localStorage.removeItem(OPEN_SLEEP_KEY);
+    avisar();
 }
 
 // --- FASE 6: EXPORT/IMPORT (backup manual — no hay backend) ---
@@ -409,9 +419,6 @@ export function importData(data, { mode }) {
         saveSleepLogs(mergeSleepLogs(getSleepLogs(), data.records));
     }
 
-    renderHistory();
-    renderChart();
-    renderStatsPanels();
-    showToast(mode === 'replace' ? 'Datos reemplazados.' : 'Datos fusionados.');
+    avisar();
     return { ok: true };
 }

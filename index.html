@@ -2,20 +2,13 @@
 <html lang="es">
     <head>
         <meta charset="UTF-8" />
-        <!-- Fase 9 (QA): sacamos maximum-scale/user-scalable=no — impedía
-             el pinch-to-zoom, algo que Lighthouse marca con razón como
-             problema de accesibilidad para gente con baja visión. Ninguna
-             pantalla de esta app depende de que no se pueda hacer zoom. -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
         <meta
             name="description"
-            content="Calculadora de ciclos de sueño de 90 minutos con identidad gauchesca rioplatense: calculá horas de acostarte o despertar, llevá registro de tu descanso real y entendé la ciencia detrás del cálculo."
+            content="Calculadora de ciclos de sueño: a qué hora conviene despertarse o acostarse para no cortar un ciclo por la mitad. Con cuaderno de noches y la ciencia detrás del cálculo."
         />
 
-        <!-- PWA (Fase 7): manifest real + service worker cache-first (ver
-         public/service-worker.js) — antes estas meta tags de iOS
-         prometían un comportamiento que no existía todavía. -->
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#161f24" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -27,10 +20,6 @@
         <title>A la Luz del Fogón</title>
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-        <!-- Tipografía: Rye (títulos y señalética) + Space Mono (datos y texto).
-             preconnect (Fase 9/QA, Lighthouse): adelanta el handshake DNS/TLS
-             con Google Fonts antes de pedir la hoja de estilos, para que
-             ese request bloquee el render lo menos posible. -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
@@ -44,380 +33,366 @@
         <dialog id="app-modal" class="modal">
             <form method="dialog" class="modal-content">
                 <p class="modal-message"></p>
-                <!-- Los botones se arman en JS (ver ui/modal.js) — la cantidad
-                 varía según el caso (2 para confirmar/cancelar, 3 para
-                 elegir fusionar/reemplazar en el import de la Fase 6). -->
                 <div class="modal-actions"></div>
             </form>
         </dialog>
 
-        <nav class="bottom-nav">
-            <button type="button" class="nav-item active" id="nav-calc" aria-current="page">
-                <span class="icon" aria-hidden="true">🔥</span><span>Fogón</span>
-            </button>
-            <button type="button" class="nav-item" id="nav-siesta">
-                <span class="icon" aria-hidden="true">☀️</span><span>Sesteo</span>
-            </button>
-            <button type="button" class="nav-item" id="nav-history">
-                <span class="icon" aria-hidden="true">📓</span><span>Cuaderno de Ruta</span>
-            </button>
-            <button type="button" class="nav-item" id="nav-stats">
-                <span class="icon" aria-hidden="true">🌙</span><span>Recuento</span>
-            </button>
-        </nav>
-
-        <!-- Fase 9 (QA): <main> agrupa las 5 vistas en un único landmark
-             — Lighthouse marcaba su ausencia (landmark-one-main). Solo una
-             está visible a la vez (ver .view.active en layout.css), pero
-             para el árbol de accesibilidad las cinco son "el contenido
-             principal", nunca navegación ni barra lateral. -->
-        <main>
-            <!-- VISTA 1: CALCULADORA (EL FOGÓN) -->
-            <div id="view-calc" class="app-container view active">
-                <div class="scene" aria-hidden="true">
-                    <div class="star" style="top: 14px; left: 18%"></div>
-                    <div class="star" style="top: 28px; left: 32%; animation-delay: 0.6s"></div>
-                    <div class="star" style="top: 10px; left: 62%; animation-delay: 1.1s"></div>
-                    <div class="star" style="top: 34px; left: 78%; animation-delay: 1.7s"></div>
-                    <div class="star" style="top: 20px; left: 48%; animation-delay: 2.2s"></div>
-                    <div class="moon"></div>
-                    <div class="fogon-group">
-                        <div class="fire-container">
-                            <div class="log left"></div>
-                            <div class="log right"></div>
-                            <div class="flame"></div>
-                            <div class="flame inner"></div>
-                            <div class="flame core"></div>
-                        </div>
-                        <div class="gaucho">
-                            <div class="hat-brim"></div>
-                            <div class="hat-crown"></div>
-                            <div class="poncho"></div>
-                            <div class="z-sleep">Zz</div>
-                        </div>
-                    </div>
+        <main class="pantalla">
+            <!-- CABECERA. La escena es una sola: el fuego. En la v1 había
+                 además estrellas titilando, una luna, un gaucho y brillo en
+                 los títulos; eran cuatro cosas compitiendo por la atención
+                 en la pantalla que uno mira a la una de la madrugada. -->
+            <header class="cabecera">
+                <div class="acciones-cabecera">
+                    <button
+                        type="button"
+                        id="btn-tema"
+                        class="btn-icono"
+                        aria-pressed="false"
+                        title="Bajar el brillo"
+                    >
+                        <span aria-hidden="true">☾</span>
+                        <span class="visually-hidden">Bajar el brillo</span>
+                    </button>
+                    <button type="button" id="btn-ajustes" class="btn-icono" title="Ajustes">
+                        <span aria-hidden="true">⚙</span>
+                        <span class="visually-hidden">Ajustes</span>
+                    </button>
                 </div>
+
+                <!-- El fogón. SVG en línea y no un archivo aparte: son
+                     cuatro trazos, viaja con el HTML sin un pedido más, y
+                     se le puede animar cada llama por separado desde el
+                     CSS. Es la única ilustración de la app. -->
+                <svg class="fogon" viewBox="0 0 120 96" role="img" aria-label="Un fogón encendido">
+                    <defs>
+                        <radialGradient id="resplandor" cx="50%" cy="82%" r="55%">
+                            <stop offset="0%" stop-color="var(--brasa-viva)" stop-opacity="0.75" />
+                            <stop
+                                offset="55%"
+                                stop-color="var(--brasa-honda)"
+                                stop-opacity="0.28"
+                            />
+                            <stop offset="100%" stop-color="var(--brasa-honda)" stop-opacity="0" />
+                        </radialGradient>
+                        <linearGradient id="llama-fria" x1="0" y1="1" x2="0" y2="0">
+                            <stop offset="0%" stop-color="var(--brasa-honda)" />
+                            <stop offset="100%" stop-color="var(--brasa)" />
+                        </linearGradient>
+                        <linearGradient id="llama-caliente" x1="0" y1="1" x2="0" y2="0">
+                            <stop offset="0%" stop-color="var(--brasa)" />
+                            <stop offset="100%" stop-color="var(--brasa-viva)" />
+                        </linearGradient>
+                    </defs>
+
+                    <ellipse
+                        class="resplandor"
+                        cx="60"
+                        cy="74"
+                        rx="52"
+                        ry="22"
+                        fill="url(#resplandor)"
+                    />
+
+                    <!-- Las tres lenguas: la de afuera es la más grande y
+                         la más fría; hacia adentro se achican y se
+                         calientan. Cada una respira a su tiempo, que es lo
+                         que hace que parezca fuego y no un dibujo quieto. -->
+                    <path
+                        class="llama fria"
+                        d="M57 16c4 10 6 14 12 19 8 6 13 13 13 22a22 22 0 0 1-44 0c0-11 6-17 11-23 5-6 7-10 8-18z"
+                        fill="url(#llama-fria)"
+                    />
+                    <path
+                        class="llama media"
+                        d="M58 32c3 8 6 11 10 15 4 4 6 8 6 12a14 14 0 0 1-28 0c0-6 3-10 7-14 3-4 5-7 5-13z"
+                        fill="url(#llama-caliente)"
+                    />
+                    <path
+                        class="llama centro"
+                        d="M60 48c3 6 7 8 7 13a7 7 0 0 1-14 0c0-5 4-7 7-13z"
+                        fill="var(--brasa-viva)"
+                    />
+
+                    <g class="lenas">
+                        <rect
+                            x="16"
+                            y="74"
+                            width="72"
+                            height="8"
+                            rx="4"
+                            transform="rotate(-8 52 78)"
+                        />
+                        <rect
+                            x="32"
+                            y="74"
+                            width="72"
+                            height="8"
+                            rx="4"
+                            transform="rotate(8 68 78)"
+                        />
+                    </g>
+                </svg>
 
                 <h1 tabindex="-1">A la Luz del Fogón</h1>
-                <p class="subtitle">Rearmá el cuero. Ciclos de sueño de 90 minutos.</p>
-                <button type="button" id="info-link" class="info-link">
-                    ¿Por qué 90 minutos? Leé la posta →
+                <p class="bajada">
+                    Los ciclos duran noventa minutos. Conviene despertarse cuando uno termina, no en
+                    el medio.
+                </p>
+            </header>
+
+            <!-- ANOCHE. Aparece solo si quedó una noche sin anotar. A un
+                 desconocido en su primera visita no se le muestra nunca:
+                 sin historial no hay ninguna "anoche" sobre la que
+                 preguntar, y un formulario de entrada sería la peor
+                 primera impresión posible. -->
+            <section
+                id="tarjeta-anoche"
+                class="tarjeta-anoche"
+                hidden
+                aria-labelledby="anoche-titulo"
+            >
+                <h2 id="anoche-titulo" class="anoche-titulo">¿Cómo dormiste anoche?</h2>
+                <p id="anoche-detalle" class="anoche-detalle"></p>
+
+                <div id="anoche-confirmar" class="anoche-opciones" hidden>
+                    <button type="button" class="btn-chip" id="anoche-si">Fue así</button>
+                    <button type="button" class="btn-chip" id="anoche-distinto">
+                        Fue distinto
+                    </button>
+                </div>
+
+                <div
+                    id="anoche-horas"
+                    class="anoche-opciones"
+                    hidden
+                    role="group"
+                    aria-label="Horas dormidas"
+                >
+                    <!-- Las opciones se arman en JS: el rango sale de la
+                         duración de ciclo configurada, no de números fijos. -->
+                </div>
+
+                <div id="anoche-nota" class="anoche-nota" hidden>
+                    <label for="anoche-nota-input">¿Algo para anotar de esa noche?</label>
+                    <input
+                        type="text"
+                        id="anoche-nota-input"
+                        maxlength="140"
+                        placeholder="Dormí tarde y encima tomé vino"
+                        autocomplete="off"
+                    />
+                    <button type="button" class="btn-chip" id="anoche-guardar-nota">Guardar</button>
+                </div>
+
+                <button type="button" class="btn-saltear" id="anoche-saltear">No la anoto</button>
+            </section>
+
+            <!-- RESULTADO. Ya calculado al abrir: es una función pura del
+                 reloj, no hay razón para pedirle al usuario que lo pida. -->
+            <section class="resultado" aria-labelledby="resultado-titulo" aria-live="polite">
+                <h2 id="resultado-titulo" class="resultado-titulo">
+                    Si te dormís ahora, poné el despertador a las:
+                </h2>
+
+                <ul id="resultado-filas" class="resultado-filas">
+                    <li class="fila-vacia">Un momento…</li>
+                </ul>
+
+                <p id="resultado-pie" class="resultado-pie"></p>
+            </section>
+
+            <!-- ACCIÓN. Un solo botón grande, que cambia según el estado.
+                 Nunca hay dos acciones compitiendo. -->
+            <section class="accion">
+                <button type="button" id="btn-principal" class="btn-principal">
+                    Me voy a dormir
                 </button>
+                <p id="accion-detalle" class="accion-detalle"></p>
 
-                <div class="tabs">
-                    <button type="button" id="wake-tab" class="tab-btn active" aria-pressed="true">
-                        Al Alba
-                    </button>
-                    <button type="button" id="sleep-tab" class="tab-btn" aria-pressed="false">
-                        Al Pago
-                    </button>
-                </div>
-
-                <form id="calc-form">
-                    <div class="input-group">
-                        <label id="time-label" for="time-input"
-                            >Quiero levantarme con el sol a las:</label
-                        >
-                        <input type="time" id="time-input" required />
+                <form id="form-despertar" class="form-despertar">
+                    <label for="hora-despertar">O quiero levantarme a las</label>
+                    <div class="fila-hora">
+                        <input type="time" id="hora-despertar" required />
+                        <button type="submit" class="btn-secundario">Calcular</button>
                     </div>
-
-                    <div class="input-group">
-                        <label for="latency-input">Minutos hasta que se me cierren los ojos:</label>
-                        <input type="number" id="latency-input" value="20" min="0" max="120" />
-                    </div>
-
-                    <div class="input-group">
-                        <label for="cycle-length-input"
-                            >Tu tranco de sueño (duración del ciclo, en minutos):</label
-                        >
-                        <input
-                            type="number"
-                            id="cycle-length-input"
-                            value="90"
-                            min="70"
-                            max="120"
-                            step="5"
-                        />
-                        <p class="field-hint">
-                            90 minutos es el promedio de la tropa; el tuyo puede rendir distinto.
-                            Ajustalo si notás que los resultados no te cierran.
-                        </p>
-                    </div>
-
-                    <button type="submit" class="calc-btn">Marcar el Rumbo</button>
                 </form>
+            </section>
 
-                <div id="results-table" class="results-box" style="display: none">
-                    <table>
-                        <caption class="visually-hidden">
-                            Horas de acostarse o despertar según cantidad de ciclos de 90 minutos
-                        </caption>
-                        <thead>
-                            <tr>
-                                <th scope="col">Ciclos</th>
-                                <th scope="col">Reposo</th>
-                                <th scope="col">Hora</th>
-                            </tr>
-                        </thead>
-                        <tbody id="results-body"></tbody>
-                    </table>
+            <nav class="enlaces" aria-label="Más">
+                <button type="button" class="enlace" id="abrir-cuaderno">
+                    <span>El cuaderno</span><span aria-hidden="true">→</span>
+                </button>
+                <button type="button" class="enlace" id="abrir-info">
+                    <span>¿Por qué 90 minutos?</span><span aria-hidden="true">→</span>
+                </button>
+            </nav>
+        </main>
+
+        <!-- ============ CAPA: EL CUADERNO ============ -->
+        <dialog id="hoja-cuaderno" class="hoja" aria-labelledby="cuaderno-titulo">
+            <div class="hoja-contenido">
+                <div class="hoja-barra">
+                    <h2 id="cuaderno-titulo" tabindex="-1">El cuaderno</h2>
+                    <button type="button" class="btn-cerrar" data-cerrar-hoja>
+                        <span aria-hidden="true">✕</span>
+                        <span class="visually-hidden">Cerrar</span>
+                    </button>
                 </div>
+
+                <div class="resumen" id="cuaderno-resumen"></div>
+
+                <ul id="cuaderno-noches" class="noches"></ul>
+
+                <details class="detalle-grafico">
+                    <summary>Ver el gráfico de los últimos 30 días</summary>
+                    <div class="chart-wrapper">
+                        <div class="chart-container" id="chart-container"></div>
+                    </div>
+                </details>
             </div>
+        </dialog>
 
-            <!-- VISTA SIESTA (A LA SOMBRA DEL OMBÚ) -->
-            <div id="view-siesta" class="app-container view">
-                <h1 tabindex="-1">A la Sombra del Ombú</h1>
-                <p class="subtitle">Dos formas de sestear sin quedar más baqueteado que antes.</p>
+        <!-- ============ CAPA: AJUSTES ============ -->
+        <dialog id="hoja-ajustes" class="hoja" aria-labelledby="ajustes-titulo">
+            <div class="hoja-contenido">
+                <div class="hoja-barra">
+                    <h2 id="ajustes-titulo" tabindex="-1">Ajustes</h2>
+                    <button type="button" class="btn-cerrar" data-cerrar-hoja>
+                        <span aria-hidden="true">✕</span>
+                        <span class="visually-hidden">Cerrar</span>
+                    </button>
+                </div>
 
-                <form id="siesta-form">
-                    <div class="input-group">
-                        <label for="siesta-time-input">¿A qué hora te tirás a la sombra?</label>
-                        <input type="time" id="siesta-time-input" required />
+                <div class="campo">
+                    <label for="ajuste-latencia">Cuánto tardás en dormirte</label>
+                    <div class="fila-hora">
+                        <input type="number" id="ajuste-latencia" min="0" max="120" step="5" />
+                        <span class="unidad">minutos</span>
                     </div>
-
-                    <div class="input-group">
-                        <label for="siesta-latency-input"
-                            >Minutos hasta que se te cierren los ojos:</label
-                        >
-                        <input
-                            type="number"
-                            id="siesta-latency-input"
-                            value="10"
-                            min="0"
-                            max="120"
-                        />
-                    </div>
-
-                    <button type="submit" class="calc-btn">Marcar el Sesteo</button>
-                </form>
-
-                <div id="siesta-results" class="siesta-results" style="display: none">
-                    <div class="siesta-card">
-                        <h2>Siesta corta</h2>
-                        <div class="siesta-time" id="siesta-corta-time">--:--</div>
-                        <p class="siesta-detail" id="siesta-corta-detail"></p>
-                    </div>
-                    <div class="siesta-card">
-                        <h2>Siesta completa</h2>
-                        <div class="siesta-time" id="siesta-completa-time">--:--</div>
-                        <p class="siesta-detail" id="siesta-completa-detail"></p>
-                    </div>
-                    <p class="field-hint">
-                        Entre esas dos, ni a palos: si te despertás a mitad de camino corrés riesgo
-                        de levantarte más aturdido que si no hubieras sesteado — te agarra en lo más
-                        hondo del sueño.
+                    <p class="ayuda">
+                        Se suma al cálculo. Si te dormís apenas apoyás la cabeza, poné 5; si te
+                        quedás un rato dando vueltas, subilo.
                     </p>
                 </div>
-            </div>
 
-            <!-- VISTA 2: HISTORIAL (CUADERNO DE RUTA) -->
-            <div id="view-history" class="app-container view">
-                <h1 tabindex="-1">Cuaderno de Ruta</h1>
-                <p class="subtitle">Marcá lo que realmente dormiste — no lo que calculaste.</p>
-
-                <form id="sleep-log-form">
-                    <div class="input-group">
-                        <label for="log-date-input">¿Qué noche marcás?</label>
-                        <input type="date" id="log-date-input" required />
+                <div class="campo">
+                    <label for="ajuste-ciclo">Cuánto dura tu ciclo</label>
+                    <div class="fila-hora">
+                        <input type="number" id="ajuste-ciclo" min="70" max="120" step="5" />
+                        <span class="unidad">minutos</span>
                     </div>
-
-                    <div class="log-time-row">
-                        <div class="input-group">
-                            <label for="log-bedtime-input">Te fuiste a las pilchas a las:</label>
-                            <input type="time" id="log-bedtime-input" required />
-                        </div>
-                        <div class="input-group">
-                            <label for="log-waketime-input">Te levantaste a las:</label>
-                            <input type="time" id="log-waketime-input" required />
-                        </div>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="log-quality-input">¿Cómo dormiste? (opcional)</label>
-                        <select id="log-quality-input">
-                            <option value="">Sin calificar</option>
-                            <option value="1">1 — Muy mal</option>
-                            <option value="2">2 — Mal</option>
-                            <option value="3">3 — Más o menos</option>
-                            <option value="4">4 — Bien</option>
-                            <option value="5">5 — Como nuevo</option>
-                        </select>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="log-notes-input">Nota (opcional)</label>
-                        <input
-                            type="text"
-                            id="log-notes-input"
-                            maxlength="140"
-                            placeholder="Ej: ladró el perro toda la noche..."
-                        />
-                    </div>
-
-                    <button type="submit" class="calc-btn">Marcar la Noche</button>
-                </form>
-
-                <h2 class="section-label">Últimos 7 soles</h2>
-                <div id="history-container"></div>
-            </div>
-
-            <!-- VISTA 3: ESTADÍSTICAS (RECUENTO) -->
-            <div id="view-stats" class="app-container view">
-                <h1 tabindex="-1">Recuento de 30 Lunas</h1>
-                <p class="subtitle">Cómo rendiste, semana a semana y luna a luna.</p>
-
-                <div class="metrics-grid">
-                    <div class="stats-card">
-                        <h2>Últimos 7 días</h2>
-                        <div class="hours" id="week-avg-duration">0h 0m</div>
-                        <p class="field-hint">Promedio de horas dormidas por noche</p>
-                        <div class="metric-row">
-                            <span>Noches marcadas</span><strong id="week-count">0</strong>
-                        </div>
-                        <div class="metric-row">
-                            <span>Calidad promedio</span><strong id="week-avg-quality">—</strong>
-                        </div>
-                        <div class="metric-row">
-                            <span>Consistencia al acostarse</span
-                            ><strong id="week-bedtime-consistency">—</strong>
-                        </div>
-                        <div class="metric-row">
-                            <span>Consistencia al despertar</span
-                            ><strong id="week-waketime-consistency">—</strong>
-                        </div>
-                    </div>
-
-                    <div class="stats-card">
-                        <h2>Últimos 30 días</h2>
-                        <div class="hours" id="month-avg-duration">0h 0m</div>
-                        <p class="field-hint">Promedio de horas dormidas por noche</p>
-                        <div class="metric-row">
-                            <span>Noches marcadas</span><strong id="month-count">0</strong>
-                        </div>
-                        <div class="metric-row">
-                            <span>Calidad promedio</span><strong id="month-avg-quality">—</strong>
-                        </div>
-                        <div class="metric-row">
-                            <span>Consistencia al acostarse</span
-                            ><strong id="month-bedtime-consistency">—</strong>
-                        </div>
-                        <div class="metric-row">
-                            <span>Consistencia al despertar</span
-                            ><strong id="month-waketime-consistency">—</strong>
-                        </div>
-                    </div>
+                    <p class="ayuda">
+                        Noventa es el promedio, pero varía de persona a persona y de noche a noche.
+                        Si los resultados no te cierran, movelo.
+                    </p>
                 </div>
 
-                <div class="chart-wrapper">
-                    <div class="chart-container" id="chart-container"></div>
+                <div class="campo">
+                    <span class="etiqueta-grupo">Brillo</span>
+                    <label class="interruptor">
+                        <input type="checkbox" id="ajuste-brasa" />
+                        <span>Modo brasa: baja el brillo y frena el fuego</span>
+                    </label>
+                    <p class="ayuda">
+                        Para cuando la mirás a oscuras y no querés la pantalla en la cara.
+                    </p>
                 </div>
 
-                <h2 class="section-label">Copia de seguridad</h2>
-                <p class="field-hint">
-                    No hay servidor guardando esto en ningún lado — el único respaldo sos vos.
-                    Exportá de tanto en tanto.
+                <h3 class="subtitulo-ajustes">Tus datos</h3>
+                <p class="ayuda">
+                    Todo esto vive en este navegador y en ningún otro lado. No hay servidor
+                    guardando nada: si borrás los datos del sitio o cambiás de teléfono, se va todo.
+                    El único respaldo sos vos.
                 </p>
-                <div class="backup-actions">
-                    <button type="button" class="btn-secondary" id="btn-export-data">
-                        Exportar datos
-                    </button>
-                    <button type="button" class="btn-secondary" id="btn-import-data">
-                        Importar datos
-                    </button>
+                <div class="botonera">
+                    <button type="button" class="btn-secundario" id="btn-exportar">Exportar</button>
+                    <button type="button" class="btn-secundario" id="btn-importar">Importar</button>
                 </div>
                 <input type="file" id="import-file-input" accept="application/json,.json" hidden />
 
-                <button type="button" class="btn-danger" id="btn-clear-data">
-                    Borrar el Rastro (borrar datos)
-                </button>
+                <button type="button" class="btn-peligro" id="btn-borrar-todo">Borrar todo</button>
             </div>
+        </dialog>
 
-            <!-- VISTA INFORMATIVA (LA POSTA DEL TRANCO) — Fase 8. No forma parte de
-         la navegación inferior a propósito: es contenido de referencia, no
-         una acción de uso diario, así que se llega por un link puntual
-         (ver #info-link en view-calc) y se sale con el botón de abajo, no
-         compitiendo por espacio con Fogón/Sesteo/Cuaderno/Recuento. -->
-            <div id="view-info" class="app-container view">
-                <h1 tabindex="-1">Por Qué Dormimos en Tranco</h1>
-                <p class="subtitle">
-                    La ciencia detrás del fogón, para el que quiera algo más que la hora de
-                    levantarse.
-                </p>
+        <!-- ============ CAPA: POR QUÉ 90 MINUTOS ============ -->
+        <dialog id="hoja-info" class="hoja" aria-labelledby="info-titulo">
+            <div class="hoja-contenido">
+                <div class="hoja-barra">
+                    <h2 id="info-titulo" tabindex="-1">¿Por qué 90 minutos?</h2>
+                    <button type="button" class="btn-cerrar" data-cerrar-hoja>
+                        <span aria-hidden="true">✕</span>
+                        <span class="visually-hidden">Cerrar</span>
+                    </button>
+                </div>
 
-                <section class="info-section">
-                    <h2>Las cuatro etapas de una noche</h2>
+                <section class="info-seccion">
+                    <h3>Las cuatro etapas de una noche</h3>
                     <p>
-                        Ni bien cerrás los ojos, el cuerpo no se apaga de una: atraviesa etapas bien
+                        Cuando cerrás los ojos el cuerpo no se apaga de golpe: atraviesa etapas bien
                         distintas, una atrás de la otra, en este orden — N1 → N2 → N3 → N2 → REM — y
                         después arranca de nuevo.
                     </p>
                     <p>
-                        <strong>N1</strong> es la transición entre estar despierto y dormido: dura
-                        poco y cualquier ruido te saca de ahí. <strong>N2</strong> ya es sueño de
-                        verdad, aunque liviano — es la etapa donde más tiempo se pasa en total
-                        durante la noche. <strong>N3</strong>, el sueño profundo o "de ondas
-                        lentas", es la más difícil de interrumpir y la que más se concentra en las
-                        primeras horas; ahí el cuerpo hace buena parte de su trabajo de restauración
-                        física. En <strong>REM</strong> el cerebro se pone casi tan activo como
-                        despierto, los ojos se mueven rápido y es donde más se sueña — se estira
-                        hacia el final de la noche, a medida que el sueño profundo se acorta.
+                        <strong>N1</strong> es el pasaje entre estar despierto y dormido: dura poco
+                        y cualquier ruido te saca. <strong>N2</strong> ya es sueño de verdad, aunque
+                        liviano, y es donde más tiempo pasás en total. <strong>N3</strong>, el sueño
+                        profundo, es el más difícil de interrumpir y se concentra en las primeras
+                        horas; ahí el cuerpo hace buena parte de su trabajo de reparación. En
+                        <strong>REM</strong> el cerebro se pone casi tan activo como despierto, los
+                        ojos se mueven rápido y es donde más soñás — se va estirando hacia el final
+                        de la noche, a medida que el sueño profundo se acorta.
                     </p>
                 </section>
 
-                <section class="info-section">
-                    <h2>Por qué el tranco ronda los 90 minutos</h2>
+                <section class="info-seccion">
+                    <h3>Por qué el ciclo ronda los 90 minutos</h3>
                     <p>
                         Las cifras que más se citan van de 80 a 110 minutos por ciclo, con 4 a 6
-                        vueltas completas por noche — pero es un promedio, no una ley pareja: el
-                        primer ciclo de la noche suele ser más corto (70 a 100 minutos) y los
-                        siguientes se estiran un poco más (90 a 120). También varía de persona a
-                        persona y de noche a noche según la edad, cómo veniste durmiendo los días
-                        previos, y cosas como el alcohol. La edad pesa bastante: los recién nacidos
-                        duermen en ciclos de apenas unos 50 minutos, y el sueño profundo — abundante
-                        de chico — se va reduciendo con los años hasta casi desaparecer en la vejez.
+                        vueltas por noche. Pero es un promedio, no una ley pareja: el primer ciclo
+                        suele ser más corto, entre 70 y 100 minutos, y los siguientes se estiran
+                        hasta 90 o 120. También cambia según la edad, cómo veniste durmiendo los
+                        días previos y cosas como el alcohol. La edad pesa bastante — un recién
+                        nacido duerme en ciclos de unos 50 minutos, y el sueño profundo, abundante
+                        de chico, se va reduciendo con los años hasta casi desaparecer en la vejez.
                     </p>
-                    <p class="field-hint">
-                        Por eso la calculadora te deja ajustar tu propio tranco entre 70 y 120
-                        minutos en vez de forzarte a los 90 de manual.
+                    <p class="ayuda">
+                        Por eso en Ajustes podés mover tu ciclo entre 70 y 120 minutos, en vez de
+                        quedar atado a los 90 de manual.
                     </p>
                 </section>
 
-                <section class="info-section">
-                    <h2>Por qué a veces te levantás baqueteado</h2>
+                <section class="info-seccion">
+                    <h3>Por qué a veces te levantás peor que si no hubieras dormido</h3>
                     <p>
                         Ese atontamiento de recién levantado — reflejos lentos, cabeza espesa —
-                        tiene nombre: inercia del sueño. Por lo general se disipa en la primera
-                        media hora, aunque en tareas mentales exigentes puede arrastrarse varias
-                        horas más. Se explica por una mezcla de cosas que pasan en el cerebro al
-                        despertar: la actividad eléctrica tarda en acomodarse, el riego sanguíneo
-                        (sobre todo adelante, en la zona frontal) queda por debajo de lo normal un
-                        rato, y una sustancia que se va acumulando mientras dormís (adenosina) tarda
-                        en bajar.
+                        tiene nombre: inercia del sueño. Por lo general se va en la primera media
+                        hora, aunque en tareas mentales exigentes puede arrastrarse varias horas
+                        más. Se explica por una mezcla de cosas que pasan al despertar: la actividad
+                        eléctrica del cerebro tarda en acomodarse, el riego sanguíneo queda por
+                        debajo de lo normal un rato sobre todo en la zona frontal, y una sustancia
+                        que se acumula mientras dormís, la adenosina, tarda en bajar.
                     </p>
-                    <div class="info-note">
-                        <strong>Ojo, que acá no hay nada cerrado del todo:</strong> la idea de que
-                        despertarte en medio del sueño profundo (N3) te deja peor que despertarte en
-                        una etapa liviana tiene buen respaldo — algunos trabajos encontraron inercia
+                    <div class="info-aviso">
+                        <strong>Acá no hay nada cerrado del todo.</strong> La idea de que
+                        despertarte en medio del sueño profundo te deja peor que despertarte en una
+                        etapa liviana tiene buen respaldo — algunos trabajos encontraron inercia
                         marcada en hasta cuatro de cada diez despertares durante sueño profundo —
                         pero otros estudios no encontraron esa diferencia, y el efecto parece
-                        notarse más que nada después de siestas largas con mucho sueño acumulado. Es
-                        una hipótesis con sustento, no una certeza cerrada. Calcular el tranco para
-                        despertarte al final de un ciclo es una apuesta razonable — no una garantía.
+                        notarse sobre todo después de siestas largas con mucho sueño acumulado. Es
+                        una hipótesis con sustento, no una certeza. Calcular para despertarte al
+                        final de un ciclo es una apuesta razonable, no una garantía.
                     </div>
                 </section>
 
-                <p class="info-disclaimer">
-                    Esto es información general, resumida de fuentes serias, para entender el porqué
-                    de los números — no reemplaza el consejo de un médico o especialista en sueño.
-                    Si dormís mal de manera sostenida, consultá con alguien capacitado.
+                <p class="info-descargo">
+                    Esto es información general, resumida de fuentes serias, para entender de dónde
+                    salen los números. No reemplaza a un médico ni a un especialista en sueño. Si
+                    dormís mal de manera sostenida, consultá con alguien capacitado.
                 </p>
 
-                <button type="button" id="info-back" class="btn-secondary">
-                    ← Volver al Fogón
-                </button>
-
-                <footer class="info-sources">
-                    <p>Fuentes consultadas:</p>
+                <footer class="info-fuentes">
+                    <p>Fuentes:</p>
                     <ul>
                         <li>
                             <a
@@ -454,7 +429,7 @@
                     </ul>
                 </footer>
             </div>
-        </main>
+        </dialog>
 
         <script type="module" src="/src/main.js"></script>
     </body>

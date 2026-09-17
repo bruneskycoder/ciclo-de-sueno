@@ -9,8 +9,8 @@
 // sites que ya lo usaban desde la Fase 2.
 
 const VARIANT_CLASS = {
-    primary: 'modal-btn-primary',
-    danger: 'modal-btn-confirm',
+    primary: 'primario',
+    danger: 'peligro',
 };
 
 export function chooseModal({ message, choices }) {
@@ -23,7 +23,7 @@ export function chooseModal({ message, choices }) {
         const btn = document.createElement('button');
         btn.type = 'submit';
         btn.value = value;
-        btn.className = `modal-btn ${VARIANT_CLASS[variant] || ''}`.trim();
+        btn.className = VARIANT_CLASS[variant] || '';
         btn.textContent = label;
         actions.appendChild(btn);
     });
@@ -39,7 +39,11 @@ export function chooseModal({ message, choices }) {
     });
 }
 
-export function confirmModal({ message, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar' } = {}) {
+export function confirmModal({
+    message,
+    confirmLabel = 'Confirmar',
+    cancelLabel = 'Cancelar',
+} = {}) {
     return chooseModal({
         message,
         choices: [

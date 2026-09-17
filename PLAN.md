@@ -312,17 +312,25 @@ clave `openSleep`, modo brasa, y las reglas de voz del repo.
 - [x] 3. `calc.js`: cálculo de "falta Xh Ym" (`minutesUntilClock` y
       `formatDuration`) — **hecho y testeado**, incluido el cruce de
       medianoche y la hora que ya pasó.
-- [ ] 4. Reescribir `index.html`: una pantalla + tres capas, sin nav —
-      **verificación:** capturas de las 4 superficies a 360px sin
-      desbordes.
-- [ ] 5. Identidad visual: fogón y cielo nocturno trabajados, no podados;
-      modo brasa — **verificación:** capturas en ambos modos y contraste
-      WCAG AA medido en los dos. **Checkpoint con vos antes de seguir.**
-- [ ] 6. Cablear la pantalla: cálculo al abrir, máquina de estados,
-      siesta fusionada, copiar al portapapeles — **verificación:**
-      recorrido manual completo.
-- [ ] 7. Cablear las tres capas con el texto reescrito —
-      **verificación:** abren, cierran y se navegan con teclado.
+- [x] 4. Reescribir `index.html`: una pantalla + tres capas, sin nav —
+      **hecho.** 371 líneas contra 461, incluyendo toda la página
+      informativa.
+- [x] 5. Identidad visual y modo brasa — **hecho, esperando tu visto
+      bueno.** El fogón pasó a SVG en línea (tres lenguas con gradiente y
+      animación propia) porque en CSS puro se leía como una gota de agua.
+      Se fueron las estrellas, la luna, el gaucho y el brillo de los
+      títulos. **Medido, no mirado a ojo:** la luz que emite el botón más
+      grande de la pantalla baja de 0.66 a 0.014 en modo brasa (47 veces
+      menos).
+- [x] 6. Cablear la pantalla: cálculo al abrir, máquina de estados,
+      siesta fusionada — **hecho.** Se adelantó respecto del plan: con la
+      pantalla sin cablear, las capturas del checkpoint habrían sido de
+      contenido falso, y el punto del checkpoint es mirar la app de
+      verdad. Falta copiar al portapapeles.
+- [x] 7. Cablear las tres capas con el texto reescrito — **hecho.** Son
+      `<dialog>` nativos: foco atrapado, cierre con Escape y semántica
+      correcta sin escribir nada de eso a mano. **Verificado:** las tres
+      llegan hasta su último control scrolleando.
 - [ ] 8. Primera visita de un desconocido — **verificación:** abrir en
       una ventana privada, sin datos, y confirmar que se entiende sin
       contexto. Estados vacíos que explican en vez de solo avisar.
@@ -394,6 +402,24 @@ clave `openSleep`, modo brasa, y las reglas de voz del repo.
 9. Leé el README como si cayeras de un portfolio. Esperado: entendés qué
    es, cómo se ve y cómo se hizo, sin abrir el código.
 
+## Bugs encontrados al mirar las capturas
+
+Los tres salieron de mirar la app corriendo, no de leer el código.
+
+1. **La tarjeta de "¿Cómo dormiste anoche?" se le mostraba a un
+   desconocido en su primera visita** — justo lo que el código tiene
+   prohibido y lo que los tests verifican. La lógica estaba bien; el CSS
+   la traicionaba. El atributo `hidden` aplica `display: none` desde la
+   hoja del navegador, pero `.tarjeta-anoche { display: flex }` le gana
+   por especificidad. Se agregó `[hidden] { display: none !important }`.
+2. **Las opciones de horas salían desordenadas y con "7h 30m".** Venían
+   de multiplicar el ciclo configurado, que es más exacto y peor: a la
+   noche siguiente nadie recuerda haber dormido siete horas y media.
+   Pasaron a horas enteras.
+3. **Los botones de texto medían 23px de alto.** Es el mismo defecto que
+   la Fase 9 ya había corregido en el link de la v1, reaparecido en los
+   botones nuevos. Ahora 40px mínimo.
+
 ## Registro de decisiones y desvíos
 
 - 2026-09-17 — **Plan reescrito de cero.** El anterior optimizaba por
@@ -419,6 +445,19 @@ clave `openSleep`, modo brasa, y las reglas de voz del repo.
   crítica para el plan.
 - 2026-09-17 — Siesta vs. noche se clasifica por duración (< 3h) y no por
   horario.
+- 2026-09-17 — El fogón pasó de divs con CSS a SVG en línea. En CSS puro
+  la llama se leía como una gota de agua, y es la única ilustración de la
+  app: no podía quedar a medias. El SVG viaja dentro del HTML, sin un
+  pedido de red más, y deja animar cada lengua por separado.
+- 2026-09-17 — En modo brasa el botón principal deja de ser un relleno de
+  ámbar encendido y pasa a fondo apagado con texto en brasa. Es el área
+  de color más grande de la pantalla, o sea la principal fuente de luz a
+  la cara justo cuando uno quiere menos luz.
+- 2026-09-17 — `storage.js` dejó de importar vistas. Antes llamaba a mano
+  a `renderHistory()`, `renderChart()` y `renderStatsPanels()` después de
+  cada cambio, con la capa de datos dependiendo de la de pantalla. Ahora
+  solo avisa que algo cambió y cada vista decide. Pedir confirmación y
+  mostrar avisos también se fue a las vistas.
 - 2026-09-17 — **La captura se muda de la mañana a la noche**, por
   pedido del usuario y respaldada por el backup real: el único registro
   existente se creó el día en que se construyó la función, o sea cero
