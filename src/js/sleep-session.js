@@ -76,11 +76,16 @@ export function nightDateFor(moment) {
  * @param {Date} [now=new Date()]
  * @returns {{date: string, bedtimeActual: string, startedAt: string}}
  */
-export function openSleepFrom(now = new Date()) {
+export function openSleepFrom(now = new Date(), { intendedWaketime = null } = {}) {
     return {
         date: nightDateFor(now),
         bedtimeActual: formatTime(now),
         startedAt: now.toISOString(),
+        // Si al calcular elegiste una de las filas ("despertarme 07:40"),
+        // queda guardada la intención. Sirve para que al día siguiente la
+        // app pueda preguntar "¿fue así?" en vez de pedirte el dato de
+        // cero: confirmar cuesta un toque, recordar cuesta pensar.
+        intendedWaketime,
     };
 }
 
@@ -149,5 +154,107 @@ export function closeSleepSession({ open, waketimeActual, cycleMinutes = 90 }) {
             cyclesCompleted: duracion.cyclesCompleted,
             kind: classifyKind(duracion.durationMinutes),
         },
+    };
+}
+
+// --- PREGUNTAR POR ANOCHE (v2) ---
+//
+// Por qué existe esto. El diseño anterior daba por hecho que uno cierra
+// la noche a la mañana siguiente, apenas se levanta. En la práctica eso
+// no pasa: la app se abre de noche, para consultar a qué hora conviene
+// despertarse, y a la mañana nadie la abre por iniciativa propia.
+//
+// Así que la captura se mueve al único momento en que la app se abre de
+// verdad. Al entrar, si quedó una noche sin anotar, aparece una tarjeta
+// que pregunta por ella. Se aprovecha una visita que ya iba a ocurrir en
+// vez de pedir una nueva.
+
+/**
+ * Qué noche corresponde preguntar en este momento: la última que ya
+ * terminó. No es la de `nightDateFor(now)` — esa es la que está por
+ * empezar, incluso a las 00:30, cuando uno ya se está por acostar.
+ *
+ * La resta de un día sobre nightDateFor funciona igual a cualquier hora:
+ * a las 23:00 del 17, a las 00:30 del 18 y a las 14:00 del 17, las tres
+ * veces la última noche terminada es la del 16.
+ */
+export function nightToAskAbout(now = new Date()) {
+    const [y, m, d] = nightDateFor(now).split('-').map(Number);
+    const anoche = new Date(y, m - 1, d);
+    anoche.setDate(anoche.getDate() - 1);
+    return formatDateKey(anoche);
+}
+
+// Un registro sin horas de reloj es uno respondido de memoria ("dormí
+// como siete horas"): sabemos cuánto, no cuándo. Se guarda así, con las
+// horas en null, en vez de inventar un horario plausible — inventarlo
+// contaminaría con ficción cualquier métrica de regularidad de horarios.
+export function hasClockTimes(record) {
+    return Boolean(record && record.bedtimeActual && record.waketimeActual);
+}
+
+/**
+ * ¿Hay que preguntar por anoche?
+ *
+ * Tres condiciones. Que no esté ya anotada; que no se haya salteado
+ * antes (preguntar dos veces por la misma noche es hinchar); y que la
+ * app tenga algún rastro previo de uso.
+ *
+ * Lo último importa para el desconocido que abre el link por primera
+ * vez: sin historial, sin noche abierta y sin nada salteado, no hay
+ * ninguna "anoche" sobre la que preguntar, y recibir un formulario de
+ * entrada sería la peor primera impresión posible.
+ */
+export function shouldAskAboutNight({
+    records = [],
+    openSleep = null,
+    skipped = [],
+    now = new Date(),
+}) {
+    const noche = nightToAskAbout(now);
+
+    if (skipped.includes(noche)) return false;
+    if (records.some((r) => r.date === noche && recordKind(r) === 'noche')) return false;
+
+    const hayRastroDeUso = records.length > 0 || openSleep !== null || skipped.length > 0;
+    return hayRastroDeUso;
+}
+
+/**
+ * Con qué forma se pregunta. Si anoche quedó una noche abierta, la app ya
+ * sabe a qué hora te acostaste y —si elegiste una fila del cálculo— a qué
+ * hora pensabas despertarte: alcanza con confirmar. Si no hay nada, se
+ * pregunta lo único que una persona recuerda sin esfuerzo a la noche
+ * siguiente: cuántas horas durmió.
+ *
+ * @returns {{mode: 'confirm', night: string, open: Object} | {mode: 'recall', night: string}}
+ */
+export function askShapeFor({ openSleep = null, now = new Date() }) {
+    const night = nightToAskAbout(now);
+
+    if (isValidOpenSleep(openSleep) && openSleep.date === night) {
+        return { mode: 'confirm', night, open: openSleep };
+    }
+    return { mode: 'recall', night };
+}
+
+/**
+ * Registro armado a partir de horas recordadas, sin horario. Es el
+ * resultado de responder "dormí como siete horas".
+ *
+ * @param {Object} params
+ * @param {string} params.night - Fecha de la noche, "YYYY-MM-DD".
+ * @param {number} params.hours - Horas dormidas, tal como las recuerda.
+ * @param {number} [params.cycleMinutes=90]
+ */
+export function recalledRecord({ night, hours, cycleMinutes = 90 }) {
+    const durationMinutes = Math.round(hours * 60);
+    return {
+        date: night,
+        bedtimeActual: null,
+        waketimeActual: null,
+        durationMinutes,
+        cyclesCompleted: Math.round(durationMinutes / cycleMinutes),
+        kind: classifyKind(durationMinutes),
     };
 }

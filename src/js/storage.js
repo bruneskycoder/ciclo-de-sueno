@@ -21,7 +21,14 @@ import { renderHistory } from './ui/history-view.js';
 import { renderChart, renderStatsPanels } from './ui/stats-view.js';
 import { confirmModal } from './ui/modal.js';
 import { clampCycleLength, clampLatency, formatTime } from './calc.js';
-import { closeSleepSession, isValidOpenSleep, openSleepFrom, recordKind } from './sleep-session.js';
+import {
+    closeSleepSession,
+    isValidOpenSleep,
+    nightToAskAbout,
+    openSleepFrom,
+    recalledRecord,
+    recordKind,
+} from './sleep-session.js';
 
 const CYCLE_LENGTH_KEY = 'cycleLengthPref';
 
@@ -161,8 +168,8 @@ export function getOpenSleep() {
     }
 }
 
-export function startOpenSleep(now = new Date()) {
-    const abierta = openSleepFrom(now);
+export function startOpenSleep(now = new Date(), opciones = {}) {
+    const abierta = openSleepFrom(now, opciones);
     localStorage.setItem(OPEN_SLEEP_KEY, JSON.stringify(abierta));
     return abierta;
 }
@@ -194,6 +201,49 @@ export function finishOpenSleep({ waketimeActual, now = new Date() } = {}) {
     return { ok: true, record: registro };
 }
 
+// Noches que el usuario decidió no anotar. Se recuerdan para no volver a
+// preguntar por la misma: insistir con una noche que ya salteó es
+// exactamente el tipo de fricción que hizo que la v1 no se usara. Se
+// guardan las últimas 60, que alcanzan de sobra y evitan que la clave
+// crezca para siempre.
+const SKIPPED_NIGHTS_KEY = 'skippedNights';
+const MAX_SKIPPED = 60;
+
+export function getSkippedNights() {
+    try {
+        const data = JSON.parse(localStorage.getItem(SKIPPED_NIGHTS_KEY));
+        return Array.isArray(data) ? data.filter((d) => typeof d === 'string') : [];
+    } catch {
+        return [];
+    }
+}
+
+export function skipNight(night) {
+    const actuales = getSkippedNights();
+    if (actuales.includes(night)) return actuales;
+
+    const nuevas = [...actuales, night].slice(-MAX_SKIPPED);
+    localStorage.setItem(SKIPPED_NIGHTS_KEY, JSON.stringify(nuevas));
+    return nuevas;
+}
+
+/**
+ * Guarda una noche respondida de memoria ("dormí como siete horas") y
+ * cierra cualquier noche abierta que hubiera quedado de esa misma fecha:
+ * ya quedó contestada, no tiene sentido seguir arrastrándola.
+ */
+export function saveRecalledNight({ hours, night = nightToAskAbout(), notes = '' }) {
+    const registro = saveSleepLog({
+        ...recalledRecord({ night, hours, cycleMinutes: getCycleLength() }),
+        notes,
+    });
+
+    const abierta = getOpenSleep();
+    if (abierta && abierta.date === night) clearOpenSleep();
+
+    return registro;
+}
+
 export function deleteSleepLog(id) {
     const logs = getSleepLogs().filter((record) => record.id !== id);
     saveSleepLogs(logs);
@@ -214,6 +264,7 @@ export async function limpiarBaseDeDatos() {
         // Si queda una noche abierta, borrar el historial y dejarla viva
         // sería incoherente: "borrar todo" tiene que borrar todo.
         clearOpenSleep();
+        localStorage.removeItem(SKIPPED_NIGHTS_KEY);
         renderHistory();
         renderChart();
         renderStatsPanels();
@@ -230,6 +281,19 @@ export async function limpiarBaseDeDatos() {
 // un navegador entero.
 
 const EXPORT_VERSION = 1;
+
+// Desde la v2 un registro puede no tener horario. Pasa cuando la noche se
+// responde de memoria ("dormí como siete horas"): se sabe cuánto se
+// durmió, no entre qué horas. Ahí las horas van en null, que es la
+// verdad, en vez de inventar un horario plausible — inventarlo ensuciaría
+// con ficción cualquier métrica de regularidad.
+//
+// Null o ausente se acepta; cualquier otra cosa que no sea "HH:MM" se
+// sigue rechazando igual que antes. Un string vacío o un texto suelto son
+// un archivo roto, no un dato desconocido.
+function horaValidaOAusente(valor) {
+    return valor === null || valor === undefined || TIME_RE.test(valor);
+}
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{1,2}:\d{2}$/;
 
@@ -268,8 +332,8 @@ export function validateImportPayload(data) {
             r &&
             typeof r === 'object' &&
             DATE_RE.test(r.date) &&
-            TIME_RE.test(r.bedtimeActual) &&
-            TIME_RE.test(r.waketimeActual) &&
+            horaValidaOAusente(r.bedtimeActual) &&
+            horaValidaOAusente(r.waketimeActual) &&
             typeof r.durationMinutes === 'number' &&
             r.durationMinutes >= 0,
     );
@@ -283,8 +347,8 @@ function normalizeImportedRecord(r, index) {
     return {
         id: typeof r.id === 'string' && r.id ? r.id : `import-${Date.now()}-${index}`,
         date: r.date,
-        bedtimeActual: r.bedtimeActual,
-        waketimeActual: r.waketimeActual,
+        bedtimeActual: TIME_RE.test(r.bedtimeActual) ? r.bedtimeActual : null,
+        waketimeActual: TIME_RE.test(r.waketimeActual) ? r.waketimeActual : null,
         durationMinutes: r.durationMinutes,
         cyclesCompleted: typeof r.cyclesCompleted === 'number' ? r.cyclesCompleted : 0,
         kind: recordKind(r),

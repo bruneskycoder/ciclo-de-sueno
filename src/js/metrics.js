@@ -75,12 +75,20 @@ export function summarize(records) {
 
     const qualities = records.map((r) => r.quality).filter((q) => q !== null && q !== undefined);
 
+    // Desde la v2 hay registros sin horario: los que se responden de
+    // memoria ("dormí como siete horas") saben cuánto se durmió pero no
+    // entre qué horas. Se filtran igual que las calificaciones ausentes —
+    // aportan a las horas promedio, pero no pueden aportar nada a la
+    // regularidad de horarios.
+    const bedtimes = records.map((r) => r.bedtimeActual).filter(Boolean);
+    const waketimes = records.map((r) => r.waketimeActual).filter(Boolean);
+
     return {
         count: records.length,
         avgDurationMinutes: average(records.map((r) => r.durationMinutes)),
         avgQuality: average(qualities),
-        bedtimeConsistencyMinutes: stdDev(records.map((r) => normalizeClockMinutes(r.bedtimeActual))),
-        waketimeConsistencyMinutes: stdDev(records.map((r) => normalizeClockMinutes(r.waketimeActual))),
+        bedtimeConsistencyMinutes: stdDev(bedtimes.map(normalizeClockMinutes)),
+        waketimeConsistencyMinutes: stdDev(waketimes.map(normalizeClockMinutes)),
     };
 }
 

@@ -195,20 +195,56 @@ Esto resuelve tres cosas de una:
    calculaba *y* anotaba, y chocaba con el botón de registrar. Ahora el
    cálculo ya ocurrió: el botón solo anota, y quiere decir una sola cosa.
 
-### El botón principal tiene estado
+### La captura ocurre a la noche, no a la mañana
 
-| Estado | Dice | Hace |
+**Corrección de diseño (17/09), a partir de los datos reales.** El
+backup del usuario tiene un solo registro, creado el mismo día en que se
+terminó de construir la función: es una prueba de la feature, no una
+noche anotada. O sea, cero usos fuera de la sesión en que se construyó.
+
+La causa no era solo la cantidad de campos. Era **el momento**: el
+diseño anterior apoyaba el segundo toque a la mañana siguiente, y a la
+mañana la app no se abre. La app se abre de noche, a consultar.
+
+Así que la captura se muda a ese momento. Al entrar, si quedó una noche
+sin anotar, aparece una tarjeta que pregunta por ella. Se aprovecha una
+visita que ya iba a ocurrir en vez de pedir una nueva.
+
+**Qué noche se pregunta:** la última ya terminada, que es
+`nightDateFor(ahora)` menos un día. A las 23:00 del 17, a las 00:30 del
+18 y a las 14:00 del 17, las tres veces es la noche del 16 — nunca la
+que estás por empezar.
+
+**Dos formas, según lo que la app ya sepa:**
+
+| Situación | La tarjeta dice | Costo |
 |---|---|---|
-| Despierto | **Me voy a dormir** | Abre la noche en el cuaderno |
-| Durmiendo | **Ya me levanté** | La cierra, muestra cuánto dormiste, ofrece calificarla |
+| Anoche tocaste "Me voy a dormir" | *Te acostaste 00:30 y calculabas despertarte 07:40. ¿Fue así?* | Un toque |
+| No tocaste nada | *¿Cuántas horas dormiste anoche?* | Un toque sobre una opción |
 
-Nunca hay dos acciones compitiendo: en cada momento hay una sola cosa
-que tiene sentido hacer. Además es lo más demostrable de la app en una
-charla — se abre y *sabe* si estás durmiendo.
+Después de cualquiera de las dos, una sola invitación opcional y
+salteable: una línea sobre cómo dormiste. Las horas las pone la app; lo
+único que aporta una persona es esa frase.
 
-Si te olvidás de cerrarla, la noche queda abierta y el cuaderno la
-muestra con un botón para completar la hora a mano. No se descarta ni se
-inventa un valor.
+**Reglas para que no se vuelva un fastidio:** se pregunta una sola vez
+por noche; si la salteás, esa noche no se vuelve a preguntar nunca; y a
+un desconocido en su primera visita **no se le pregunta nada** — sin
+historial ni noche abierta no hay ninguna "anoche" sobre la que
+preguntar, y recibir un formulario de entrada sería la peor primera
+impresión posible.
+
+El botón principal sigue teniendo estado (**Me voy a dormir** / **Ya me
+levanté**), pero ahora es opcional: sirve para dejar registrada la
+intención, y si te olvidás, la tarjeta te alcanza igual a la noche
+siguiente. Es además lo más demostrable en una charla — la app se abre y
+*sabe* si estás durmiendo.
+
+**Consecuencia en los datos, declarada:** una noche respondida de
+memoria sabe cuánto se durmió pero no entre qué horas. Se guarda con las
+horas en `null`, que es la verdad, en vez de inventar un horario
+plausible — inventarlo ensuciaría con ficción cualquier métrica de
+regularidad. Esas noches suman a las horas promedio y no aportan a la
+regularidad de horarios.
 
 ### Tres capas, ninguna barra de navegación
 
@@ -341,8 +377,10 @@ clave `openSleep`, modo brasa, y las reglas de voz del repo.
    siestas.
 2. Tocá **Me voy a dormir**, cerrá la app y volvé a abrirla. Esperado: el
    botón ahora dice **Ya me levanté** y avisa que hay una noche abierta.
-3. Tocá **Ya me levanté**. Esperado: te dice cuánto dormiste y te ofrece
-   calificar. Podés saltearlo.
+3. Al día siguiente, a la noche, abrí la app. Esperado: una tarjeta
+   pregunta por anoche — confirmando lo que calculaste, si lo marcaste, o
+   preguntando cuántas horas dormiste si no. Podés saltearla, y no vuelve
+   a preguntar por esa noche.
 4. Abrí **El cuaderno**. Esperado: la noche cerrada está en la lista, con
    el promedio arriba.
 5. Escribí una hora en **quiero levantarme a las**. Esperado: te da las
@@ -381,6 +419,18 @@ clave `openSleep`, modo brasa, y las reglas de voz del repo.
   crítica para el plan.
 - 2026-09-17 — Siesta vs. noche se clasifica por duración (< 3h) y no por
   horario.
+- 2026-09-17 — **La captura se muda de la mañana a la noche**, por
+  pedido del usuario y respaldada por el backup real: el único registro
+  existente se creó el día en que se construyó la función, o sea cero
+  usos reales. El error no era solo cuántos campos pedía, sino el
+  momento: a la mañana la app no se abre. Ahora pregunta por anoche al
+  entrar, aprovechando una visita que ya iba a ocurrir.
+- 2026-09-17 — Un registro puede no tener horario (`bedtimeActual` y
+  `waketimeActual` en `null`) cuando la noche se responde de memoria. Se
+  eligió eso antes que derivar horarios plausibles: inventarlos
+  ensuciaría con ficción cualquier métrica de regularidad. `summarize`
+  filtra esos registros para la consistencia, igual que ya filtraba las
+  calificaciones ausentes.
 - 2026-09-17 — Prioridad de la investigación externa revisada a la baja:
   los prompts 1 y 2 (adherencia y competencia) casi no mueven decisiones
   ahora. El 3 (qué métrica vale mostrar, interfaces de bajo brillo) sigue

@@ -14,6 +14,11 @@ import {
     onlyNights,
     openSleepFrom,
     recordKind,
+    nightToAskAbout,
+    hasClockTimes,
+    shouldAskAboutNight,
+    askShapeFor,
+    recalledRecord,
 } from './sleep-session.js';
 
 function openSleep(overrides = {}) {
@@ -181,5 +186,114 @@ describe('closeSleepSession', () => {
         const res = closeSleepSession({ open: openSleep(), waketimeActual: '' });
         expect(res.ok).toBe(false);
         expect(res.error).toBe('missing-waketime');
+    });
+});
+
+// --- v2: preguntar por anoche ---
+
+describe('nightToAskAbout', () => {
+    it('a cualquier hora del día apunta a la última noche ya terminada', () => {
+        // Las tres son "el mismo momento de la vida": la noche del 16 ya
+        // pasó, la del 17 está por empezar o empezando.
+        expect(nightToAskAbout(new Date(2026, 8, 17, 14, 0))).toBe('2026-09-16');
+        expect(nightToAskAbout(new Date(2026, 8, 17, 23, 0))).toBe('2026-09-16');
+        expect(nightToAskAbout(new Date(2026, 8, 18, 0, 30))).toBe('2026-09-16');
+    });
+
+    it('nunca pregunta por la noche que estás por empezar', () => {
+        const ahora = new Date(2026, 8, 18, 0, 30);
+        expect(nightToAskAbout(ahora)).not.toBe(nightDateFor(ahora));
+    });
+
+    it('cruza bien el fin de mes', () => {
+        expect(nightToAskAbout(new Date(2026, 9, 1, 23, 0))).toBe('2026-09-30');
+        expect(nightToAskAbout(new Date(2026, 9, 1, 2, 0))).toBe('2026-09-29');
+    });
+});
+
+describe('hasClockTimes', () => {
+    it('distingue una noche con horario de una respondida de memoria', () => {
+        expect(hasClockTimes({ bedtimeActual: '23:00', waketimeActual: '07:00' })).toBe(true);
+        expect(hasClockTimes({ bedtimeActual: null, waketimeActual: null })).toBe(false);
+        expect(hasClockTimes(null)).toBe(false);
+    });
+});
+
+describe('shouldAskAboutNight', () => {
+    const now = new Date(2026, 8, 17, 23, 0); // pregunta por 2026-09-16
+    const noche = '2026-09-16';
+
+    it('a un desconocido en su primera visita no le pregunta nada', () => {
+        expect(shouldAskAboutNight({ records: [], openSleep: null, skipped: [], now })).toBe(false);
+    });
+
+    it('pregunta si ya hay historial', () => {
+        const records = [{ date: '2026-09-10', kind: 'noche' }];
+        expect(shouldAskAboutNight({ records, now })).toBe(true);
+    });
+
+    it('pregunta si quedó una noche abierta, aunque no haya historial', () => {
+        const openSleep = openSleepFrom(new Date(2026, 8, 16, 23, 30));
+        expect(shouldAskAboutNight({ records: [], openSleep, now })).toBe(true);
+    });
+
+    it('no pregunta por una noche que ya está anotada', () => {
+        const records = [{ date: noche, kind: 'noche' }];
+        expect(shouldAskAboutNight({ records, now })).toBe(false);
+    });
+
+    it('una siesta de esa fecha no cuenta como la noche anotada', () => {
+        const records = [{ date: noche, kind: 'siesta' }];
+        expect(shouldAskAboutNight({ records, now })).toBe(true);
+    });
+
+    it('no vuelve a preguntar por una noche que ya salteaste', () => {
+        const records = [{ date: '2026-09-10', kind: 'noche' }];
+        expect(shouldAskAboutNight({ records, skipped: [noche], now })).toBe(false);
+    });
+});
+
+describe('askShapeFor', () => {
+    const now = new Date(2026, 8, 17, 23, 0); // pregunta por 2026-09-16
+
+    it('si anoche marcaste, alcanza con confirmar', () => {
+        const openSleep = openSleepFrom(new Date(2026, 8, 16, 23, 30), {
+            intendedWaketime: '07:00',
+        });
+        const forma = askShapeFor({ openSleep, now });
+        expect(forma.mode).toBe('confirm');
+        expect(forma.night).toBe('2026-09-16');
+        expect(forma.open.intendedWaketime).toBe('07:00');
+    });
+
+    it('si no marcaste nada, pregunta cuántas horas dormiste', () => {
+        expect(askShapeFor({ openSleep: null, now }).mode).toBe('recall');
+    });
+
+    it('una noche abierta de OTRA fecha no sirve para confirmar', () => {
+        const openSleep = openSleepFrom(new Date(2026, 8, 12, 23, 30));
+        expect(askShapeFor({ openSleep, now }).mode).toBe('recall');
+    });
+});
+
+describe('recalledRecord', () => {
+    it('arma el registro sin horario, que es la verdad de lo que se sabe', () => {
+        const r = recalledRecord({ night: '2026-09-16', hours: 7, cycleMinutes: 90 });
+        expect(r).toEqual({
+            date: '2026-09-16',
+            bedtimeActual: null,
+            waketimeActual: null,
+            durationMinutes: 420,
+            cyclesCompleted: 5,
+            kind: 'noche',
+        });
+    });
+
+    it('acepta medias horas', () => {
+        expect(recalledRecord({ night: '2026-09-16', hours: 6.5 }).durationMinutes).toBe(390);
+    });
+
+    it('una respuesta muy corta queda clasificada como siesta', () => {
+        expect(recalledRecord({ night: '2026-09-16', hours: 2 }).kind).toBe('siesta');
     });
 });

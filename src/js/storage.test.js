@@ -190,3 +190,51 @@ describe('normalizeImportedRecords — tipo de descanso', () => {
         expect(normalizeImportedRecords([sinKind])[0].kind).toBe('noche');
     });
 });
+
+// --- v2: noches respondidas de memoria (sin horario) ---
+
+describe('validateImportPayload — horas ausentes', () => {
+    it('acepta un registro sin horario si trae la duración', () => {
+        const recordado = {
+            date: '2026-09-16',
+            bedtimeActual: null,
+            waketimeActual: null,
+            durationMinutes: 420,
+        };
+        expect(validateImportPayload({ records: [recordado] })).toBe(true);
+    });
+
+    it('acepta también que los campos de hora ni vengan', () => {
+        expect(
+            validateImportPayload({ records: [{ date: '2026-09-16', durationMinutes: 420 }] }),
+        ).toBe(true);
+    });
+
+    it('sigue rechazando una hora rota: eso es un archivo corrupto, no un dato desconocido', () => {
+        expect(validateImportPayload({ records: [record({ bedtimeActual: '' })] })).toBe(false);
+        expect(validateImportPayload({ records: [record({ waketimeActual: 'tarde' })] })).toBe(
+            false,
+        );
+    });
+
+    it('sigue exigiendo la duración, que es lo único imprescindible', () => {
+        expect(
+            validateImportPayload({ records: [{ date: '2026-09-16', durationMinutes: null }] }),
+        ).toBe(false);
+    });
+});
+
+describe('normalizeImportedRecords — horas ausentes', () => {
+    it('deja las horas en null cuando no vienen', () => {
+        const normalizado = normalizeImportedRecords([
+            { date: '2026-09-16', durationMinutes: 420 },
+        ])[0];
+        expect(normalizado.bedtimeActual).toBe(null);
+        expect(normalizado.waketimeActual).toBe(null);
+        expect(normalizado.durationMinutes).toBe(420);
+    });
+
+    it('no toca las horas cuando sí vienen', () => {
+        expect(normalizeImportedRecords([record()])[0].bedtimeActual).toBe('23:00');
+    });
+});
