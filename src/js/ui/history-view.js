@@ -46,12 +46,18 @@ function submitSleepLog() {
         return;
     }
 
-    const result = calcularDuracionReal({ bedtimeActual, waketimeActual, cycleMinutes: getCycleLength() });
+    const result = calcularDuracionReal({
+        bedtimeActual,
+        waketimeActual,
+        cycleMinutes: getCycleLength(),
+    });
     if (!result.ok) {
         showToast('¡Faltan las horas de acostarse y despertar!');
         return;
     }
 
+    // El aviso lo da la vista: storage.js persiste, la UI comunica.
+    showToast('Quedó anotado en el cuaderno.');
     saveSleepLog({
         date,
         bedtimeActual,
@@ -81,20 +87,25 @@ export function renderHistory() {
         .sort((a, b) => (a.date < b.date ? 1 : -1));
 
     if (recientes.length === 0) {
-        container.innerHTML = '<div class="empty-state">Todavía no marcaste nada esta semana. ¡Arrimate al fogón!</div>';
+        container.innerHTML =
+            '<div class="empty-state">Todavía no marcaste nada esta semana. ¡Arrimate al fogón!</div>';
         return;
     }
 
     recientes.forEach((record) => {
         const fecha = new Date(`${record.date}T00:00:00`).toLocaleDateString('es-ES', {
-            weekday: 'short', day: 'numeric', month: 'short',
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
         });
         const h = Math.floor(record.durationMinutes / 60);
         const m = record.durationMinutes % 60;
         const quality = record.quality
             ? `<div class="history-quality" aria-label="Calidad ${record.quality} de 5">${'★'.repeat(record.quality)}${'☆'.repeat(5 - record.quality)}</div>`
             : '';
-        const notes = record.notes ? `<div class="history-notes">"${escapeHtml(record.notes)}"</div>` : '';
+        const notes = record.notes
+            ? `<div class="history-notes">"${escapeHtml(record.notes)}"</div>`
+            : '';
 
         container.innerHTML += `
             <div class="history-card">

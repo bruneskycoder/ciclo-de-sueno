@@ -3,7 +3,7 @@
 **Nivel:** profundo — toca todos los módulos, hay datos del usuario en
 juego, y el proyecto tiene tres objetivos simultáneos que tiran en
 direcciones distintas.
-**Estado:** borrador — esperando aprobación
+**Estado:** aprobado — en ejecución
 **Última actualización:** 2026-09-17
 
 > **Este plan reemplaza una versión anterior que apuntaba al lugar
@@ -259,17 +259,23 @@ clave `openSleep`, modo brasa, y las reglas de voz del repo.
 
 ## Pasos
 
-- [ ] 0. `npm install` y correr los 64 tests — **verificación:** los 64
-      pasan antes de tocar nada (línea de base).
-- [ ] 1. Exportar los datos actuales a un JSON y guardarlo fuera del
-      repo — **verificación:** el archivo se puede reimportar en la app
-      actual.
-- [ ] 2. `storage.js`: `openSleep`, campo `kind`, persistencia de la
-      latencia y del tema — **verificación:** tests nuevos de
-      abrir/cerrar/completar noche y clasificación siesta/noche; los 64
-      anteriores siguen verdes.
-- [ ] 3. `calc.js`: cálculo de "falta Xh Ym" — **verificación:** tests de
-      caso normal, cruce de medianoche y tiempo ya pasado.
+- [x] 0. `npm install` y correr los 64 tests — **hecho:** los 64 pasan.
+      Línea de base establecida.
+- [ ] 1. **Le toca a Bruno, no a mí.** Los datos viven en el
+      `localStorage` de su navegador, no en este contenedor: no tengo
+      forma de alcanzarlos. Abrir la app actual → Recuento → Exportar
+      datos, y guardar ese JSON. No bloquea la construcción; bloquea el
+      deploy a `main`.
+- [x] 2. `storage.js`: `openSleep`, campo `kind`, persistencia de la
+      latencia y del tema — **hecho.** La lógica pura quedó en
+      `sleep-session.js` (mismo criterio que `calc.js` y `metrics.js`).
+      **Verificado:** 102 tests en verde; las 64 pruebas originales
+      intactas palabra por palabra (solo las tocó el formateo de
+      Prettier). Se adelantó acá el defecto 3 del paso 9, porque el campo
+      `kind` lo volvía urgente.
+- [x] 3. `calc.js`: cálculo de "falta Xh Ym" (`minutesUntilClock` y
+      `formatDuration`) — **hecho y testeado**, incluido el cruce de
+      medianoche y la hora que ya pasó.
 - [ ] 4. Reescribir `index.html`: una pantalla + tres capas, sin nav —
       **verificación:** capturas de las 4 superficies a 360px sin
       desbordes.

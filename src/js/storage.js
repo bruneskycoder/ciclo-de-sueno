@@ -20,7 +20,8 @@ import { showToast } from './ui/toast.js';
 import { renderHistory } from './ui/history-view.js';
 import { renderChart, renderStatsPanels } from './ui/stats-view.js';
 import { confirmModal } from './ui/modal.js';
-import { clampCycleLength } from './calc.js';
+import { clampCycleLength, clampLatency, formatTime } from './calc.js';
+import { closeSleepSession, isValidOpenSleep, openSleepFrom, recordKind } from './sleep-session.js';
 
 const CYCLE_LENGTH_KEY = 'cycleLengthPref';
 
@@ -36,6 +37,41 @@ export function saveCycleLength(minutes) {
     const clamped = clampCycleLength(minutes);
     localStorage.setItem(CYCLE_LENGTH_KEY, String(clamped));
     return clamped;
+}
+
+// Latencia (minutos hasta dormirse). En la v1 estaba como campo del
+// formulario principal y NO se persistía: volvía a 20 en cada visita, así
+// que quien tardaba 35 minutos lo retipeaba siempre. Es configuración, no
+// una pregunta diaria, así que se guarda y se saca de la pantalla.
+const LATENCY_KEY = 'latencyPref';
+export const DEFAULT_LATENCY = 20;
+
+export function getLatency() {
+    return clampLatency(localStorage.getItem(LATENCY_KEY), { fallback: DEFAULT_LATENCY });
+}
+
+export function saveLatency(minutes) {
+    const clamped = clampLatency(minutes, { fallback: DEFAULT_LATENCY });
+    localStorage.setItem(LATENCY_KEY, String(clamped));
+    return clamped;
+}
+
+// Tema. 'brasa' baja la luminancia y frena las animaciones, para usar la
+// app a oscuras sin comerse la pantalla en la cara. Es un interruptor
+// manual y no automático por horario: adivinar por hora del día acierta
+// poco y sorprende al usuario cuando la app cambia sola.
+const THEME_KEY = 'themePref';
+const TEMAS = ['fogon', 'brasa'];
+
+export function getTheme() {
+    const guardado = localStorage.getItem(THEME_KEY);
+    return TEMAS.includes(guardado) ? guardado : 'fogon';
+}
+
+export function saveTheme(theme) {
+    const valido = TEMAS.includes(theme) ? theme : 'fogon';
+    localStorage.setItem(THEME_KEY, valido);
+    return valido;
 }
 
 const SLEEP_LOG_KEY = 'sleepLogReal';
@@ -59,21 +95,111 @@ function saveSleepLogs(data) {
  * waketimeActual: "HH:MM", durationMinutes, cyclesCompleted,
  * quality: 1-5|null, notes: string}
  */
-export function saveSleepLog({ date, bedtimeActual, waketimeActual, durationMinutes, cyclesCompleted, quality, notes }) {
+export function saveSleepLog({
+    date,
+    bedtimeActual,
+    waketimeActual,
+    durationMinutes,
+    cyclesCompleted,
+    kind,
+    quality,
+    notes,
+}) {
     const logs = getSleepLogs();
-    logs.push({
+    const registro = {
         id: Date.now().toString(),
-        date, bedtimeActual, waketimeActual, durationMinutes, cyclesCompleted,
+        date,
+        bedtimeActual,
+        waketimeActual,
+        durationMinutes,
+        cyclesCompleted,
+        kind: recordKind({ kind }),
         quality: quality ?? null,
         notes: notes || '',
-    });
+    };
+    logs.push(registro);
     saveSleepLogs(logs);
-    showToast('¡Quedó marcado en el cuaderno!');
+    // Devuelve el registro (con su id) para que quien llama pueda ofrecer
+    // calificarlo después. El aviso en pantalla lo da la vista: persistir
+    // y comunicar son dos responsabilidades distintas.
+    return registro;
+}
+
+/**
+ * Modifica campos de un registro ya guardado. Lo usa el cierre de una
+ * noche para agregar la calificación o una nota DESPUÉS, sobre la tarjeta
+ * ya creada — así cerrar la noche no obliga a completar nada.
+ */
+export function updateSleepLog(id, patch) {
+    const logs = getSleepLogs();
+    const registro = logs.find((r) => r.id === id);
+    if (!registro) return null;
+
+    Object.assign(registro, patch);
+    saveSleepLogs(logs);
+    return registro;
+}
+
+// --- LA NOCHE EN CURSO (v2) ---
+//
+// Vive en su propia clave, fuera del historial: ver la explicación larga
+// en sleep-session.js. Acá solo se lee y se escribe en localStorage; toda
+// la lógica (a qué noche pertenece, cómo se clasifica, cuándo se
+// considera olvidada) es pura y está allá.
+const OPEN_SLEEP_KEY = 'openSleep';
+
+export function getOpenSleep() {
+    const raw = localStorage.getItem(OPEN_SLEEP_KEY);
+    if (!raw) return null;
+    try {
+        const data = JSON.parse(raw);
+        // Una noche abierta corrupta se descarta en vez de arrastrarse:
+        // un estado roto acá bloquearía el botón principal de la app.
+        return isValidOpenSleep(data) ? data : null;
+    } catch {
+        return null;
+    }
+}
+
+export function startOpenSleep(now = new Date()) {
+    const abierta = openSleepFrom(now);
+    localStorage.setItem(OPEN_SLEEP_KEY, JSON.stringify(abierta));
+    return abierta;
+}
+
+export function clearOpenSleep() {
+    localStorage.removeItem(OPEN_SLEEP_KEY);
+}
+
+/**
+ * Cierra la noche en curso y la guarda en el historial.
+ *
+ * @param {Object} [params]
+ * @param {string} [params.waketimeActual] - Hora de despertar. Por
+ *   defecto, la del reloj: el caso normal es tocar "Ya me levanté" recién
+ *   levantado. Se pasa explícita cuando se completa a mano una noche que
+ *   quedó olvidada.
+ * @returns {{ok: true, record: Object} | {ok: false, error: string}}
+ */
+export function finishOpenSleep({ waketimeActual, now = new Date() } = {}) {
+    const resultado = closeSleepSession({
+        open: getOpenSleep(),
+        waketimeActual: waketimeActual || formatTime(now),
+        cycleMinutes: getCycleLength(),
+    });
+    if (!resultado.ok) return resultado;
+
+    const registro = saveSleepLog(resultado.record);
+    clearOpenSleep();
+    return { ok: true, record: registro };
 }
 
 export function deleteSleepLog(id) {
     const logs = getSleepLogs().filter((record) => record.id !== id);
-    saveSleepLogs(logs); renderHistory(); renderChart(); renderStatsPanels();
+    saveSleepLogs(logs);
+    renderHistory();
+    renderChart();
+    renderStatsPanels();
     showToast('Borrado del cuaderno.');
 }
 
@@ -84,8 +210,14 @@ export async function limpiarBaseDeDatos() {
         cancelLabel: 'Cancelar',
     });
     if (confirmado) {
-        localStorage.removeItem(SLEEP_LOG_KEY); renderHistory(); renderChart(); renderStatsPanels();
-        showToast("Rastro borrado.");
+        localStorage.removeItem(SLEEP_LOG_KEY);
+        // Si queda una noche abierta, borrar el historial y dejarla viva
+        // sería incoherente: "borrar todo" tiene que borrar todo.
+        clearOpenSleep();
+        renderHistory();
+        renderChart();
+        renderStatsPanels();
+        showToast('Rastro borrado.');
     }
 }
 
@@ -114,6 +246,7 @@ export function exportData() {
         version: EXPORT_VERSION,
         exportedAt: new Date().toISOString(),
         cycleLength: getCycleLength(),
+        latency: getLatency(),
         records: getSleepLogs(),
     };
 }
@@ -132,11 +265,13 @@ export function validateImportPayload(data) {
     }
     return data.records.every(
         (r) =>
-            r && typeof r === 'object' &&
+            r &&
+            typeof r === 'object' &&
             DATE_RE.test(r.date) &&
             TIME_RE.test(r.bedtimeActual) &&
             TIME_RE.test(r.waketimeActual) &&
-            typeof r.durationMinutes === 'number' && r.durationMinutes >= 0
+            typeof r.durationMinutes === 'number' &&
+            r.durationMinutes >= 0,
     );
 }
 
@@ -152,6 +287,7 @@ function normalizeImportedRecord(r, index) {
         waketimeActual: r.waketimeActual,
         durationMinutes: r.durationMinutes,
         cyclesCompleted: typeof r.cyclesCompleted === 'number' ? r.cyclesCompleted : 0,
+        kind: recordKind(r),
         quality: typeof r.quality === 'number' ? r.quality : null,
         notes: typeof r.notes === 'string' ? r.notes : '',
     };
@@ -161,19 +297,29 @@ export function normalizeImportedRecords(records) {
     return records.map(normalizeImportedRecord);
 }
 
+// Huella de un descanso, para reconocer el mismo dos veces. Dos
+// dispositivos que anotan la misma noche generan ids distintos, así que
+// el id solo no alcanza; pero la fecha sola tampoco, porque desde la v2
+// un mismo día puede tener legítimamente una siesta Y una noche. La
+// combinación fecha + tipo + hora de acostarse identifica un descanso sin
+// confundir dos distintos del mismo día.
+function sleepFingerprint(record) {
+    return `${record.date}|${recordKind(record)}|${record.bedtimeActual}`;
+}
+
 /**
  * Fusiona registros importados con los que ya existen, sin duplicar. Un
- * registro entrante se considera "ya existente" si coincide su id O su
- * fecha con alguno actual: dos dispositivos logueando la misma noche van
- * a generar ids distintos, pero siguen siendo la misma noche, y una
- * fecha no se duerme dos veces. "Fusionar" nunca pisa un registro
- * existente — solo agrega lo que genuinamente falta.
+ * registro entrante se considera "ya existente" si coincide su id o su
+ * huella (ver sleepFingerprint) con alguno actual. "Fusionar" nunca pisa
+ * un registro existente — solo agrega lo que genuinamente falta.
  */
 export function mergeSleepLogs(current, incomingRaw) {
     const incoming = normalizeImportedRecords(incomingRaw);
     const existingIds = new Set(current.map((r) => r.id));
-    const existingDates = new Set(current.map((r) => r.date));
-    const nuevos = incoming.filter((r) => !existingIds.has(r.id) && !existingDates.has(r.date));
+    const existingFingerprints = new Set(current.map(sleepFingerprint));
+    const nuevos = incoming.filter(
+        (r) => !existingIds.has(r.id) && !existingFingerprints.has(sleepFingerprint(r)),
+    );
     return [...current, ...nuevos];
 }
 
@@ -192,11 +338,16 @@ export function importData(data, { mode }) {
     if (mode === 'replace') {
         saveSleepLogs(normalizeImportedRecords(data.records));
         if (typeof data.cycleLength === 'number') saveCycleLength(data.cycleLength);
+        // Los backups anteriores a la v2 no traen latencia: se ignora el
+        // campo ausente en vez de pisar la preferencia actual con un default.
+        if (typeof data.latency === 'number') saveLatency(data.latency);
     } else {
         saveSleepLogs(mergeSleepLogs(getSleepLogs(), data.records));
     }
 
-    renderHistory(); renderChart(); renderStatsPanels();
+    renderHistory();
+    renderChart();
+    renderStatsPanels();
     showToast(mode === 'replace' ? 'Datos reemplazados.' : 'Datos fusionados.');
     return { ok: true };
 }
