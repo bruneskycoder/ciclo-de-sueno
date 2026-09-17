@@ -18,6 +18,7 @@ import {
 } from '../storage.js';
 import { chooseModal, confirmModal } from './modal.js';
 import { showToast } from './toast.js';
+import { renderEscena } from './escena.js';
 
 export function initAjustes() {
     const latencia = document.getElementById('ajuste-latencia');
@@ -37,6 +38,7 @@ export function initAjustes() {
         document.documentElement.dataset.tema = tema;
         const btn = document.getElementById('btn-tema');
         btn.setAttribute('aria-pressed', String(tema === 'brasa'));
+        renderEscena();
     });
 
     document.getElementById('btn-exportar').addEventListener('click', exportar);

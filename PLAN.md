@@ -422,6 +422,27 @@ Los tres salieron de mirar la app corriendo, no de leer el código.
 
 ## Registro de decisiones y desvíos
 
+- 2026-09-17 — **La lista de resultados pasó a ser una sola escalera
+  ordenada por cuánto se duerme**, de menos a más, con la siesta corta
+  como primer escalón. Antes los ciclos iban arriba y las dos siestas
+  pegadas abajo como apéndice, y la escalera saltaba de un ciclo a tres.
+  Pedido de Bruno, y de paso tapa ese hueco.
+- 2026-09-17 — Con hora de despertar fija la lista arranca en 3 ciclos.
+  Ahí "1 ciclo" significa acostarse 05:10 para levantarse 07:00: no es
+  una opción, es una fila absurda, y con el orden ascendente quedaba
+  arriba de todo empujando las útiles al fondo.
+- 2026-09-17 — **La cabecera pasó de una llama en SVG a una escena de
+  pixel art animada**: un gaucho sentado junto al fogón, de día o de
+  noche según la hora. Pedido de Bruno. Los sprites están escritos como
+  texto en `escena.js` —cada carácter un píxel, cada letra un color— en
+  vez de ser un PNG: se leen y se editan en el código, pesan unos cientos
+  de bytes y no agregan un pedido de red. En modo brasa usa siempre la
+  paleta nocturna aunque sea de día, porque quien pidió bajar el brillo
+  no quiere una escena diurna luminosa.
+- 2026-09-17 — Los botones de luna y ajustes llevan fondo propio. Se
+  apoyan sobre la escena, que de día es clara: sin él quedaban invisibles
+  contra el cielo diurno.
+
 - 2026-09-17 — **Plan reescrito de cero.** El anterior optimizaba por
   eficiencia de interacción y proponía podar identidad y lenguaje. Se
   invalidó al aparecer dos hechos: la app se usa a diario, y tiene un

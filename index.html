@@ -60,79 +60,11 @@
                     </button>
                 </div>
 
-                <!-- El fogón. SVG en línea y no un archivo aparte: son
-                     cuatro trazos, viaja con el HTML sin un pedido más, y
-                     se le puede animar cada llama por separado desde el
-                     CSS. Es la única ilustración de la app. -->
-                <svg class="fogon" viewBox="0 0 120 96" role="img" aria-label="Un fogón encendido">
-                    <defs>
-                        <radialGradient id="resplandor" cx="50%" cy="82%" r="55%">
-                            <stop offset="0%" stop-color="var(--brasa-viva)" stop-opacity="0.75" />
-                            <stop
-                                offset="55%"
-                                stop-color="var(--brasa-honda)"
-                                stop-opacity="0.28"
-                            />
-                            <stop offset="100%" stop-color="var(--brasa-honda)" stop-opacity="0" />
-                        </radialGradient>
-                        <linearGradient id="llama-fria" x1="0" y1="1" x2="0" y2="0">
-                            <stop offset="0%" stop-color="var(--brasa-honda)" />
-                            <stop offset="100%" stop-color="var(--brasa)" />
-                        </linearGradient>
-                        <linearGradient id="llama-caliente" x1="0" y1="1" x2="0" y2="0">
-                            <stop offset="0%" stop-color="var(--brasa)" />
-                            <stop offset="100%" stop-color="var(--brasa-viva)" />
-                        </linearGradient>
-                    </defs>
-
-                    <ellipse
-                        class="resplandor"
-                        cx="60"
-                        cy="74"
-                        rx="52"
-                        ry="22"
-                        fill="url(#resplandor)"
-                    />
-
-                    <!-- Las tres lenguas: la de afuera es la más grande y
-                         la más fría; hacia adentro se achican y se
-                         calientan. Cada una respira a su tiempo, que es lo
-                         que hace que parezca fuego y no un dibujo quieto. -->
-                    <path
-                        class="llama fria"
-                        d="M57 16c4 10 6 14 12 19 8 6 13 13 13 22a22 22 0 0 1-44 0c0-11 6-17 11-23 5-6 7-10 8-18z"
-                        fill="url(#llama-fria)"
-                    />
-                    <path
-                        class="llama media"
-                        d="M58 32c3 8 6 11 10 15 4 4 6 8 6 12a14 14 0 0 1-28 0c0-6 3-10 7-14 3-4 5-7 5-13z"
-                        fill="url(#llama-caliente)"
-                    />
-                    <path
-                        class="llama centro"
-                        d="M60 48c3 6 7 8 7 13a7 7 0 0 1-14 0c0-5 4-7 7-13z"
-                        fill="var(--brasa-viva)"
-                    />
-
-                    <g class="lenas">
-                        <rect
-                            x="16"
-                            y="74"
-                            width="72"
-                            height="8"
-                            rx="4"
-                            transform="rotate(-8 52 78)"
-                        />
-                        <rect
-                            x="32"
-                            y="74"
-                            width="72"
-                            height="8"
-                            rx="4"
-                            transform="rotate(8 68 78)"
-                        />
-                    </g>
-                </svg>
+                <!-- La escena. Los sprites están escritos como texto en
+                     escena.js: cada carácter es un píxel. Se dibujan acá
+                     con rectángulos de lado fijo, sin interpolación de
+                     ninguna clase. -->
+                <canvas class="escena" id="escena" role="img" width="480" height="208"></canvas>
 
                 <h1 tabindex="-1">A la Luz del Fogón</h1>
                 <p class="bajada">

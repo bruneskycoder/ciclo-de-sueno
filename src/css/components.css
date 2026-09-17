@@ -1,83 +1,36 @@
 /* components.css — las piezas. */
 
-/* ============ EL FOGÓN ============
-   La única ilustración de la app. En la v1 competía con estrellas
-   titilando, una luna y un gaucho durmiendo: cuatro cosas moviéndose en
-   la pantalla que uno mira a la una de la madrugada. Quedó una sola,
-   mejor hecha, y es la que le da la luz a toda la página. */
-.fogon {
-    width: 128px;
-    height: 102px;
-    overflow: visible;
-}
-
-.fogon .lenas rect {
-    fill: var(--cuero);
-    stroke: var(--cuero-claro);
-    stroke-width: 1;
-}
-
-/* Cada lengua respira a destiempo: eso es lo que hace que parezca fuego y
-   no un dibujo quieto. El origen abajo y al medio hace que crezca desde
-   la base, como una llama, en vez de inflarse desde el centro. */
-.fogon .llama {
-    transform-origin: 60px 78px;
-    animation: arder var(--fuego-anim) ease-in-out infinite alternate;
-}
-.fogon .llama.media {
-    animation-delay: 0.45s;
-}
-.fogon .llama.centro {
-    animation-delay: 0.9s;
-}
-.fogon .resplandor {
-    animation: latir calc(var(--fuego-anim) * 1.7) ease-in-out infinite alternate;
-}
-
-@keyframes arder {
-    from {
-        transform: scaleY(1) scaleX(1);
-    }
-    to {
-        transform: scaleY(1.09) scaleX(0.96);
-    }
-}
-
-@keyframes latir {
-    from {
-        opacity: 0.85;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-/* Dos razones distintas para que el fuego se quede quieto: el sistema lo
-   pide, o el modo brasa está puesto (a oscuras, lo único que mira el ojo
-   es lo que se mueve). */
-@media (prefers-reduced-motion: reduce) {
-    .fogon .llama,
-    .fogon .resplandor,
-    .hoja[open] {
-        animation: none;
-    }
-}
-:root[data-tema='brasa'] .fogon .llama,
-:root[data-tema='brasa'] .fogon .resplandor {
-    animation: none;
+/* ============ LA ESCENA ============
+   Pixel art: el canvas se estira al ancho disponible, y `pixelated` es lo
+   que impide que el navegador suavice los píxeles al agrandarlos — sin
+   eso, todo el trabajo de dibujar cuadrados exactos se pierde en un
+   borroneado. Los bordes redondeados y el marco la encuadran como lo que
+   es: una ventana al campo, no un banner. */
+.escena {
+    width: 100%;
+    max-width: 380px;
+    height: auto;
+    image-rendering: pixelated;
+    border: 1px solid var(--noche-borde);
+    border-radius: var(--radio);
 }
 
 /* ============ BOTONES ============ */
+/* Los dos iconos se apoyan sobre la escena, que de día es clara y de
+   noche oscura. Sin un fondo propio quedaban invisibles contra el cielo
+   diurno: un control que no se ve no existe. La chapita oscura los hace
+   legibles sobre cualquiera de las dos. */
 .btn-icono {
     width: 40px;
     height: 40px;
     display: grid;
     place-items: center;
     font-size: 18px;
-    color: var(--hueso-tenue);
-    background: none;
-    border: 1px solid transparent;
+    color: var(--hueso);
+    background: rgba(8, 12, 15, 0.62);
+    border: 1px solid rgba(232, 220, 196, 0.16);
     border-radius: var(--radio);
+    backdrop-filter: blur(2px);
 }
 .btn-icono:hover {
     color: var(--brasa);

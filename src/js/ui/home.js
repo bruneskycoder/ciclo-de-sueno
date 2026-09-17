@@ -36,12 +36,23 @@ import {
 } from '../storage.js';
 import { askShapeFor, shouldAskAboutNight } from '../sleep-session.js';
 import { showToast } from './toast.js';
+import { renderEscena } from './escena.js';
 
-// Menos de tres ciclos no es una noche, es una siesta larga — y para eso
-// están las dos filas de siesta. Arrancar en 3 saca ruido de la lista sin
-// esconder ninguna opción real.
-const CICLOS_MIN = 3;
+// La lista es UNA escalera ordenada por cuánto se duerme, de menos a
+// más: la siesta corta primero, después uno, dos, tres… ciclos. En la
+// primera versión los ciclos iban arriba y las dos siestas pegadas
+// abajo, como un apéndice — y saltaba de un ciclo a tres, dejando un
+// hueco visible. La siesta no es otra sección: son los escalones más
+// cortos de la misma escalera.
+const CICLOS_MIN = 1;
 const CICLOS_MAX = 6;
+
+// Con hora de despertar fija la cosa cambia: "1 ciclo" ahí significa
+// acostarte 05:10 para levantarte a las 07:00. No es una opción, es una
+// fila absurda, y con el orden ascendente queda arriba de todo empujando
+// las útiles al fondo. Pidiendo una hora puntual uno está planificando
+// una noche, no eligiendo cuánto dormir.
+const CICLOS_MIN_HORA_FIJA = 3;
 
 // Hora elegida de la lista, si se eligió alguna. Queda como intención de
 // la noche: al día siguiente la app puede preguntar "¿fue así?" en vez de
@@ -93,6 +104,9 @@ function aplicarTema(tema) {
 
 function alternarTema() {
     aplicarTema(saveTheme(getTheme() === 'brasa' ? 'fogon' : 'brasa'));
+    // La escena cambia con el tema: en modo brasa se queda quieta y usa
+    // la paleta nocturna aunque sea de día.
+    renderEscena();
 }
 
 // --- RESULTADO ---
@@ -111,7 +125,7 @@ function renderResultado({ modo = 'ahora', hora = null } = {}) {
         timeStr: esAhora ? formatTime(ahora) : hora,
         latencyMinutes,
         cycleMinutes,
-        minCycles: CICLOS_MIN,
+        minCycles: esAhora ? CICLOS_MIN : CICLOS_MIN_HORA_FIJA,
         maxCycles: CICLOS_MAX,
         referenceDate: ahora,
     });
@@ -121,66 +135,67 @@ function renderResultado({ modo = 'ahora', hora = null } = {}) {
         ? 'Si te dormís ahora, poné el despertador a las:'
         : `Para levantarte a las ${hora}, acostate a las:`;
 
-    lista.innerHTML = '';
-    resultado.results.forEach((r) => {
-        lista.appendChild(filaResultado(r, ahora, esAhora));
-    });
+    const opciones = resultado.results.map((r) => ({
+        hora: r.resultTimeStr,
+        dormido: r.cycles * resultado.cycleLength,
+        detalle: r.cycles === 1 ? '1 ciclo' : `${r.cycles} ciclos`,
+        recomendada: r.isOptimal,
+        seleccionable: esAhora,
+    }));
 
+    // La siesta corta no es una fracción de ciclo: es cortar antes de
+    // entrar en sueño profundo, que tiene su propia lógica. Pero ocupa su
+    // lugar en la misma escalera, como el escalón más corto. Solo aparece
+    // cuando se calcula desde ahora: si estás pidiendo a qué hora
+    // acostarte para levantarte a una hora fija, una siesta no aplica.
     if (esAhora) {
         const siesta = calcularSiesta({ timeStr: formatTime(ahora), latencyMinutes, cycleMinutes });
         if (siesta.ok) {
-            lista.appendChild(
-                filaSiesta(
-                    'Siesta corta',
-                    `${SIESTA_CORTA_MINUTOS} min`,
-                    siesta.corta.resultTimeStr,
-                ),
-            );
-            lista.appendChild(
-                filaSiesta('Siesta larga', 'un ciclo', siesta.completa.resultTimeStr),
-            );
+            opciones.push({
+                hora: siesta.corta.resultTimeStr,
+                dormido: SIESTA_CORTA_MINUTOS,
+                detalle: 'siesta corta',
+                recomendada: false,
+                seleccionable: false,
+            });
         }
-        pie.textContent =
-            'En el medio de esas dos no conviene: te agarra en lo más hondo del sueño y te levantás peor que antes.';
-    } else {
-        pie.textContent = `Ya está contado que tardás ${latencyMinutes} minutos en dormirte.`;
     }
+
+    // Ordenada por lo que se duerme, no por la hora del reloj: en modo
+    // "quiero levantarme a las X" más ciclos significa acostarse más
+    // temprano, así que ordenar por hora daría la escalera al revés.
+    opciones.sort((a, b) => a.dormido - b.dormido);
+
+    lista.innerHTML = '';
+    const fragmento = document.createDocumentFragment();
+    opciones.forEach((o) => fragmento.appendChild(filaResultado(o, ahora)));
+    lista.appendChild(fragmento);
+
+    pie.textContent = esAhora
+        ? 'Entre la siesta corta y un ciclo entero no conviene: te agarra en lo más hondo del sueño y te levantás peor que antes.'
+        : `Ya está contado que tardás ${latencyMinutes} minutos en dormirte.`;
 }
 
-function filaResultado(r, ahora, seleccionable) {
-    const fila = document.createElement(seleccionable ? 'button' : 'li');
-    fila.className = 'fila' + (r.isOptimal ? ' recomendada' : '');
-    if (seleccionable) {
+function filaResultado(opcion, ahora) {
+    const fila = document.createElement(opcion.seleccionable ? 'button' : 'li');
+    fila.className = 'fila' + (opcion.recomendada ? ' recomendada' : '');
+    if (opcion.seleccionable) {
         fila.type = 'button';
-        fila.dataset.hora = r.resultTimeStr;
-        if (r.resultTimeStr === horaElegida) fila.classList.add('elegida');
+        fila.dataset.hora = opcion.hora;
+        if (opcion.hora === horaElegida) fila.classList.add('elegida');
     }
 
-    const faltan = minutesUntilClock(r.resultTimeStr, ahora);
+    const faltan = minutesUntilClock(opcion.hora, ahora);
     fila.innerHTML = `
-        <span class="hora">${r.resultTimeStr}</span>
+        <span class="hora">${opcion.hora}</span>
         <span class="falta">en ${formatDuration(faltan)}</span>
-        <span class="ciclos">${r.cycles} ciclos</span>
+        <span class="ciclos">${opcion.detalle}</span>
     `;
-
-    // Un <li> no es interactivo, así que la lista entera necesita decirle
-    // al lector de pantalla qué significa cada fila.
     fila.setAttribute(
         'aria-label',
-        `${r.resultTimeStr}, en ${formatDuration(faltan)}, ${r.cycles} ciclos${r.isOptimal ? ', recomendado' : ''}`,
+        `${opcion.hora}, en ${formatDuration(faltan)}, ${opcion.detalle}${opcion.recomendada ? ', recomendado' : ''}`,
     );
     return fila;
-}
-
-function filaSiesta(etiqueta, detalle, hora) {
-    const li = document.createElement('li');
-    li.className = 'fila-siesta';
-    li.innerHTML = `
-        <span class="etiqueta">${etiqueta}</span>
-        <span class="etiqueta">${detalle}</span>
-        <span class="hora">${hora}</span>
-    `;
-    return li;
 }
 
 function elegirHora(hora) {

@@ -13,6 +13,7 @@ import { initHome, renderHome } from './js/ui/home.js';
 import { initCuaderno, renderCuaderno } from './js/ui/cuaderno.js';
 import { initAjustes, renderAjustes } from './js/ui/ajustes.js';
 import { openSheet, registerSheet } from './js/ui/sheets.js';
+import { renderEscena } from './js/ui/escena.js';
 import { registerServiceWorker } from './sw-register.js';
 
 function init() {
@@ -40,6 +41,7 @@ function init() {
     });
 
     renderHome();
+    renderEscena();
 }
 
 document.addEventListener('DOMContentLoaded', init);
