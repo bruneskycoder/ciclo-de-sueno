@@ -3,15 +3,19 @@
 // calc.test.js) sin levantar un navegador.
 
 export function formatTime(date) {
-    return date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+    return (
+        date.getHours().toString().padStart(2, '0') +
+        ':' +
+        date.getMinutes().toString().padStart(2, '0')
+    );
 }
 
 // Latencia: minutos hasta quedarse dormido. Se acota a [0, 120] acá adentro
 // (no solo vía el atributo min/max del <input>, que un valor tipeado a mano
 // puede saltarse).
-export function clampLatency(value, { min = 0, max = 120 } = {}) {
+export function clampLatency(value, { min = 0, max = 120, fallback = 0 } = {}) {
     const n = parseInt(value, 10);
-    if (Number.isNaN(n)) return 0;
+    if (Number.isNaN(n)) return fallback;
     return Math.min(max, Math.max(min, n));
 }
 
@@ -184,7 +188,12 @@ export function calcularDuracionReal({ bedtimeActual, waketimeActual, cycleMinut
     return { ok: true, durationMinutes, cyclesCompleted, cycleLength };
 }
 
-export function calcularSiesta({ timeStr, latencyMinutes, cycleMinutes = 90, referenceDate = new Date() }) {
+export function calcularSiesta({
+    timeStr,
+    latencyMinutes,
+    cycleMinutes = 90,
+    referenceDate = new Date(),
+}) {
     if (!timeStr || !/^\d{1,2}:\d{2}$/.test(timeStr)) {
         return { ok: false, error: 'missing-time' };
     }
@@ -197,7 +206,11 @@ export function calcularSiesta({ timeStr, latencyMinutes, cycleMinutes = 90, ref
 
     const corta = {
         tipo: 'corta',
-        ...computeTimePoint({ mode: 'sleep', baseDate, totalMinutes: SIESTA_CORTA_MINUTOS + latency }),
+        ...computeTimePoint({
+            mode: 'sleep',
+            baseDate,
+            totalMinutes: SIESTA_CORTA_MINUTOS + latency,
+        }),
     };
     const completa = {
         tipo: 'completa',
@@ -205,4 +218,74 @@ export function calcularSiesta({ timeStr, latencyMinutes, cycleMinutes = 90, ref
     };
 
     return { ok: true, latency, cycleLength, corta, completa };
+}
+
+// --- TIEMPO RESTANTE (v2) ---
+//
+// La pantalla no muestra solo "06:10", sino "06:10, en 5h 10m". A la una
+// de la madrugada lo que importa es cuánto falta, no la hora exacta: el
+// "en 5h 10m" ahorra una cuenta mental que hoy hace el usuario.
+//
+// Ojo, no es lo mismo que la columna de horas dormidas. En modo "me
+// duermo ahora" coinciden, pero en modo "quiero levantarme a las X" el
+// resultado es una hora de ACOSTARSE, y lo que falta hasta ahí no tiene
+// nada que ver con cuánto vas a dormir.
+
+/**
+ * Minutos desde ahora hasta la próxima vez que el reloj marque timeStr.
+ * Si la hora ya pasó hoy, se asume mañana — que es lo que uno quiere
+ * decir al pedir "las 6:30" a la una de la madrugada. Si es exactamente
+ * ahora devuelve 0, no 1440: "ahora" es más útil que "en 24 horas".
+ *
+ * @param {string} timeStr - Hora objetivo, "HH:MM".
+ * @param {Date} [now=new Date()] - Momento de referencia (fijable en tests).
+ * @returns {number|null} Minutos hasta esa hora, o null si timeStr no es válida.
+ */
+export function minutesUntilClock(timeStr, now = new Date()) {
+    if (!timeStr || !/^\d{1,2}:\d{2}$/.test(timeStr)) return null;
+
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    let targetMinutes = hours * 60 + minutes;
+    if (targetMinutes < nowMinutes) targetMinutes += 24 * 60;
+
+    return targetMinutes - nowMinutes;
+}
+
+/**
+ * Formatea una cantidad de minutos como duración legible: "5h 10m",
+ * "45m", "6h". Se omite la parte que vale cero para no escribir "6h 0m",
+ * que se lee peor y ocupa más en una fila angosta.
+ *
+ * @param {number} totalMinutes
+ * @returns {string}
+ */
+export function formatDuration(totalMinutes) {
+    if (typeof totalMinutes !== 'number' || Number.isNaN(totalMinutes)) return '';
+
+    const hours = Math.floor(Math.abs(totalMinutes) / 60);
+    const minutes = Math.abs(totalMinutes) % 60;
+
+    if (hours === 0) return `${minutes}m`;
+    if (minutes === 0) return `${hours}h`;
+    return `${hours}h ${minutes}m`;
+}
+
+/**
+ * Suma minutos a una hora de reloj, dando la vuelta a la medianoche.
+ * Se usa para deducir la hora de despertar cuando se conoce la de
+ * acostarse y la persona dice cuánto durmió: acostarse 00:30 y dormir 7
+ * horas da 07:30. Eso no es inventar un dato, es aritmética sobre dos
+ * datos reales.
+ *
+ * @param {string} timeStr - Hora de partida, "HH:MM".
+ * @param {number} minutes - Minutos a sumar (puede ser negativo).
+ * @returns {string|null} La hora resultante, o null si timeStr no sirve.
+ */
+export function addMinutesToClock(timeStr, minutes) {
+    if (!timeStr || !/^\d{1,2}:\d{2}$/.test(timeStr)) return null;
+
+    const [h, m] = timeStr.split(':').map(Number);
+    const total = (((h * 60 + m + Math.round(minutes)) % 1440) + 1440) % 1440;
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }

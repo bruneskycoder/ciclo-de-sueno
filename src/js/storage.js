@@ -15,12 +15,34 @@
 // de cumplir "no los rompas ni los corrompas silenciosamente" sin migrar
 // datos que significan otra cosa (una sugerencia calculada no es lo
 // mismo que sueño real: convertirlos mezclaría ficción con dato real en
-// las métricas nuevas). "Borrar el Rastro" solo borra `sleepLogReal`.
-import { showToast } from './ui/toast.js';
-import { renderHistory } from './ui/history-view.js';
-import { renderChart, renderStatsPanels } from './ui/stats-view.js';
-import { confirmModal } from './ui/modal.js';
-import { clampCycleLength } from './calc.js';
+// las métricas nuevas). "Borrar todo" borra solo los datos de la v2;
+// los de la v1 se ofrecen aparte en Ajustes (ver contarRegistrosV1).
+import { clampCycleLength, clampLatency, formatTime } from './calc.js';
+import {
+    closeSleepSession,
+    isValidOpenSleep,
+    nightToAskAbout,
+    openSleepFrom,
+    recalledRecord,
+    recordKind,
+} from './sleep-session.js';
+
+// storage.js NO importa ninguna vista. Antes sí: llamaba a mano a
+// renderHistory(), renderChart() y renderStatsPanels() después de cada
+// cambio, con lo cual la capa de datos dependía de la de pantalla — al
+// revés de como corresponde, y una trampa para cualquiera que quisiera
+// reusar estas funciones. Ahora solo avisa que algo cambió, y cada vista
+// decide qué hacer con ese aviso.
+const suscriptores = new Set();
+
+export function onChange(fn) {
+    suscriptores.add(fn);
+    return () => suscriptores.delete(fn);
+}
+
+function avisar() {
+    suscriptores.forEach((fn) => fn());
+}
 
 const CYCLE_LENGTH_KEY = 'cycleLengthPref';
 
@@ -35,7 +57,44 @@ export function getCycleLength() {
 export function saveCycleLength(minutes) {
     const clamped = clampCycleLength(minutes);
     localStorage.setItem(CYCLE_LENGTH_KEY, String(clamped));
+    avisar();
     return clamped;
+}
+
+// Latencia (minutos hasta dormirse). En la v1 estaba como campo del
+// formulario principal y NO se persistía: volvía a 20 en cada visita, así
+// que quien tardaba 35 minutos lo retipeaba siempre. Es configuración, no
+// una pregunta diaria, así que se guarda y se saca de la pantalla.
+const LATENCY_KEY = 'latencyPref';
+export const DEFAULT_LATENCY = 20;
+
+export function getLatency() {
+    return clampLatency(localStorage.getItem(LATENCY_KEY), { fallback: DEFAULT_LATENCY });
+}
+
+export function saveLatency(minutes) {
+    const clamped = clampLatency(minutes, { fallback: DEFAULT_LATENCY });
+    localStorage.setItem(LATENCY_KEY, String(clamped));
+    avisar();
+    return clamped;
+}
+
+// Tema. 'brasa' baja la luminancia y frena las animaciones, para usar la
+// app a oscuras sin comerse la pantalla en la cara. Es un interruptor
+// manual y no automático por horario: adivinar por hora del día acierta
+// poco y sorprende al usuario cuando la app cambia sola.
+const THEME_KEY = 'themePref';
+const TEMAS = ['fogon', 'brasa'];
+
+export function getTheme() {
+    const guardado = localStorage.getItem(THEME_KEY);
+    return TEMAS.includes(guardado) ? guardado : 'fogon';
+}
+
+export function saveTheme(theme) {
+    const valido = TEMAS.includes(theme) ? theme : 'fogon';
+    localStorage.setItem(THEME_KEY, valido);
+    return valido;
 }
 
 const SLEEP_LOG_KEY = 'sleepLogReal';
@@ -59,34 +118,196 @@ function saveSleepLogs(data) {
  * waketimeActual: "HH:MM", durationMinutes, cyclesCompleted,
  * quality: 1-5|null, notes: string}
  */
-export function saveSleepLog({ date, bedtimeActual, waketimeActual, durationMinutes, cyclesCompleted, quality, notes }) {
+export function saveSleepLog({
+    date,
+    bedtimeActual,
+    waketimeActual,
+    durationMinutes,
+    cyclesCompleted,
+    kind,
+    quality,
+    notes,
+}) {
     const logs = getSleepLogs();
-    logs.push({
+    const registro = {
         id: Date.now().toString(),
-        date, bedtimeActual, waketimeActual, durationMinutes, cyclesCompleted,
+        date,
+        bedtimeActual,
+        waketimeActual,
+        durationMinutes,
+        cyclesCompleted,
+        kind: recordKind({ kind }),
         quality: quality ?? null,
         notes: notes || '',
-    });
+    };
+    logs.push(registro);
     saveSleepLogs(logs);
-    showToast('¡Quedó marcado en el cuaderno!');
+    avisar();
+    // Devuelve el registro (con su id) para que quien llama pueda ofrecer
+    // calificarlo después. El aviso en pantalla lo da la vista: persistir
+    // y comunicar son dos responsabilidades distintas.
+    return registro;
+}
+
+/**
+ * Modifica campos de un registro ya guardado. Lo usa el cierre de una
+ * noche para agregar la calificación o una nota DESPUÉS, sobre la tarjeta
+ * ya creada — así cerrar la noche no obliga a completar nada.
+ */
+export function updateSleepLog(id, patch) {
+    const logs = getSleepLogs();
+    const registro = logs.find((r) => r.id === id);
+    if (!registro) return null;
+
+    Object.assign(registro, patch);
+    saveSleepLogs(logs);
+    avisar();
+    return registro;
+}
+
+// --- LA NOCHE EN CURSO (v2) ---
+//
+// Vive en su propia clave, fuera del historial: ver la explicación larga
+// en sleep-session.js. Acá solo se lee y se escribe en localStorage; toda
+// la lógica (a qué noche pertenece, cómo se clasifica, cuándo se
+// considera olvidada) es pura y está allá.
+const OPEN_SLEEP_KEY = 'openSleep';
+
+export function getOpenSleep() {
+    const raw = localStorage.getItem(OPEN_SLEEP_KEY);
+    if (!raw) return null;
+    try {
+        const data = JSON.parse(raw);
+        // Una noche abierta corrupta se descarta en vez de arrastrarse:
+        // un estado roto acá bloquearía el botón principal de la app.
+        return isValidOpenSleep(data) ? data : null;
+    } catch {
+        return null;
+    }
+}
+
+export function startOpenSleep(now = new Date(), opciones = {}) {
+    const abierta = openSleepFrom(now, opciones);
+    localStorage.setItem(OPEN_SLEEP_KEY, JSON.stringify(abierta));
+    avisar();
+    return abierta;
+}
+
+export function clearOpenSleep() {
+    localStorage.removeItem(OPEN_SLEEP_KEY);
+    avisar();
+}
+
+/**
+ * Cierra la noche en curso y la guarda en el historial.
+ *
+ * @param {Object} [params]
+ * @param {string} [params.waketimeActual] - Hora de despertar. Por
+ *   defecto, la del reloj: el caso normal es tocar "Ya me levanté" recién
+ *   levantado. Se pasa explícita cuando se completa a mano una noche que
+ *   quedó olvidada.
+ * @returns {{ok: true, record: Object} | {ok: false, error: string}}
+ */
+export function finishOpenSleep({ waketimeActual, now = new Date() } = {}) {
+    const resultado = closeSleepSession({
+        open: getOpenSleep(),
+        waketimeActual: waketimeActual || formatTime(now),
+        cycleMinutes: getCycleLength(),
+    });
+    if (!resultado.ok) return resultado;
+
+    const registro = saveSleepLog(resultado.record);
+    clearOpenSleep();
+    return { ok: true, record: registro };
+}
+
+// Noches que el usuario decidió no anotar. Se recuerdan para no volver a
+// preguntar por la misma: insistir con una noche que ya salteó es
+// exactamente el tipo de fricción que hizo que la v1 no se usara. Se
+// guardan las últimas 60, que alcanzan de sobra y evitan que la clave
+// crezca para siempre.
+const SKIPPED_NIGHTS_KEY = 'skippedNights';
+const MAX_SKIPPED = 60;
+
+export function getSkippedNights() {
+    try {
+        const data = JSON.parse(localStorage.getItem(SKIPPED_NIGHTS_KEY));
+        return Array.isArray(data) ? data.filter((d) => typeof d === 'string') : [];
+    } catch {
+        return [];
+    }
+}
+
+export function skipNight(night) {
+    const actuales = getSkippedNights();
+    if (actuales.includes(night)) return actuales;
+
+    const nuevas = [...actuales, night].slice(-MAX_SKIPPED);
+    localStorage.setItem(SKIPPED_NIGHTS_KEY, JSON.stringify(nuevas));
+    avisar();
+    return nuevas;
+}
+
+/**
+ * Guarda una noche respondida de memoria ("dormí como siete horas") y
+ * cierra cualquier noche abierta que hubiera quedado de esa misma fecha:
+ * ya quedó contestada, no tiene sentido seguir arrastrándola.
+ */
+export function saveRecalledNight({ hours, night = nightToAskAbout(), notes = '' }) {
+    const registro = saveSleepLog({
+        ...recalledRecord({ night, hours, cycleMinutes: getCycleLength() }),
+        notes,
+    });
+
+    const abierta = getOpenSleep();
+    if (abierta && abierta.date === night) clearOpenSleep();
+
+    return registro;
 }
 
 export function deleteSleepLog(id) {
     const logs = getSleepLogs().filter((record) => record.id !== id);
-    saveSleepLogs(logs); renderHistory(); renderChart(); renderStatsPanels();
-    showToast('Borrado del cuaderno.');
+    saveSleepLogs(logs);
+    avisar();
+    avisar();
 }
 
-export async function limpiarBaseDeDatos() {
-    const confirmado = await confirmModal({
-        message: '¿Borrar el rastro? Esta acción es irreversible.',
-        confirmLabel: 'Borrar',
-        cancelLabel: 'Cancelar',
-    });
-    if (confirmado) {
-        localStorage.removeItem(SLEEP_LOG_KEY); renderHistory(); renderChart(); renderStatsPanels();
-        showToast("Rastro borrado.");
+// Sin confirmación ni aviso acá: pedir permiso y avisar en pantalla es
+// trabajo de la vista (ver ajustes.js). Esta función solo borra.
+export function clearAllData() {
+    localStorage.removeItem(SLEEP_LOG_KEY);
+    localStorage.removeItem(SKIPPED_NIGHTS_KEY);
+    // Si queda una noche abierta, borrar el historial y dejarla viva sería
+    // incoherente: "borrar todo" tiene que borrar todo.
+    localStorage.removeItem(OPEN_SLEEP_KEY);
+    avisar();
+}
+
+// --- LOS DATOS DE LA v1 ---
+//
+// Hasta la Fase 4 la app guardaba bajo la clave `sleepLoreDB` el cálculo
+// SUGERIDO (a qué hora convendría acostarse), no lo que realmente pasó.
+// Cuando el registro pasó a ser de sueño real, esos datos quedaron
+// huérfanos: no se leen, no se escriben y no se borran, así que siguen
+// ocupando lugar en el navegador de cualquiera que haya usado una
+// versión vieja, sin que nada los muestre ni los explique.
+//
+// No se borran solos. Son datos de la persona: que decida ella. Ajustes
+// ofrece hacerlo, y solo aparece la opción si efectivamente hay algo.
+const CLAVE_V1 = 'sleepLoreDB';
+
+export function contarRegistrosV1() {
+    try {
+        const data = JSON.parse(localStorage.getItem(CLAVE_V1));
+        return Array.isArray(data) ? data.length : 0;
+    } catch {
+        return 0;
     }
+}
+
+export function borrarDatosV1() {
+    localStorage.removeItem(CLAVE_V1);
+    avisar();
 }
 
 // --- FASE 6: EXPORT/IMPORT (backup manual — no hay backend) ---
@@ -98,6 +319,19 @@ export async function limpiarBaseDeDatos() {
 // un navegador entero.
 
 const EXPORT_VERSION = 1;
+
+// Desde la v2 un registro puede no tener horario. Pasa cuando la noche se
+// responde de memoria ("dormí como siete horas"): se sabe cuánto se
+// durmió, no entre qué horas. Ahí las horas van en null, que es la
+// verdad, en vez de inventar un horario plausible — inventarlo ensuciaría
+// con ficción cualquier métrica de regularidad.
+//
+// Null o ausente se acepta; cualquier otra cosa que no sea "HH:MM" se
+// sigue rechazando igual que antes. Un string vacío o un texto suelto son
+// un archivo roto, no un dato desconocido.
+function horaValidaOAusente(valor) {
+    return valor === null || valor === undefined || TIME_RE.test(valor);
+}
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{1,2}:\d{2}$/;
 
@@ -114,6 +348,7 @@ export function exportData() {
         version: EXPORT_VERSION,
         exportedAt: new Date().toISOString(),
         cycleLength: getCycleLength(),
+        latency: getLatency(),
         records: getSleepLogs(),
     };
 }
@@ -132,11 +367,13 @@ export function validateImportPayload(data) {
     }
     return data.records.every(
         (r) =>
-            r && typeof r === 'object' &&
+            r &&
+            typeof r === 'object' &&
             DATE_RE.test(r.date) &&
-            TIME_RE.test(r.bedtimeActual) &&
-            TIME_RE.test(r.waketimeActual) &&
-            typeof r.durationMinutes === 'number' && r.durationMinutes >= 0
+            horaValidaOAusente(r.bedtimeActual) &&
+            horaValidaOAusente(r.waketimeActual) &&
+            typeof r.durationMinutes === 'number' &&
+            r.durationMinutes >= 0,
     );
 }
 
@@ -148,10 +385,11 @@ function normalizeImportedRecord(r, index) {
     return {
         id: typeof r.id === 'string' && r.id ? r.id : `import-${Date.now()}-${index}`,
         date: r.date,
-        bedtimeActual: r.bedtimeActual,
-        waketimeActual: r.waketimeActual,
+        bedtimeActual: TIME_RE.test(r.bedtimeActual) ? r.bedtimeActual : null,
+        waketimeActual: TIME_RE.test(r.waketimeActual) ? r.waketimeActual : null,
         durationMinutes: r.durationMinutes,
         cyclesCompleted: typeof r.cyclesCompleted === 'number' ? r.cyclesCompleted : 0,
+        kind: recordKind(r),
         quality: typeof r.quality === 'number' ? r.quality : null,
         notes: typeof r.notes === 'string' ? r.notes : '',
     };
@@ -161,19 +399,29 @@ export function normalizeImportedRecords(records) {
     return records.map(normalizeImportedRecord);
 }
 
+// Huella de un descanso, para reconocer el mismo dos veces. Dos
+// dispositivos que anotan la misma noche generan ids distintos, así que
+// el id solo no alcanza; pero la fecha sola tampoco, porque desde la v2
+// un mismo día puede tener legítimamente una siesta Y una noche. La
+// combinación fecha + tipo + hora de acostarse identifica un descanso sin
+// confundir dos distintos del mismo día.
+function sleepFingerprint(record) {
+    return `${record.date}|${recordKind(record)}|${record.bedtimeActual}`;
+}
+
 /**
  * Fusiona registros importados con los que ya existen, sin duplicar. Un
- * registro entrante se considera "ya existente" si coincide su id O su
- * fecha con alguno actual: dos dispositivos logueando la misma noche van
- * a generar ids distintos, pero siguen siendo la misma noche, y una
- * fecha no se duerme dos veces. "Fusionar" nunca pisa un registro
- * existente — solo agrega lo que genuinamente falta.
+ * registro entrante se considera "ya existente" si coincide su id o su
+ * huella (ver sleepFingerprint) con alguno actual. "Fusionar" nunca pisa
+ * un registro existente — solo agrega lo que genuinamente falta.
  */
 export function mergeSleepLogs(current, incomingRaw) {
     const incoming = normalizeImportedRecords(incomingRaw);
     const existingIds = new Set(current.map((r) => r.id));
-    const existingDates = new Set(current.map((r) => r.date));
-    const nuevos = incoming.filter((r) => !existingIds.has(r.id) && !existingDates.has(r.date));
+    const existingFingerprints = new Set(current.map(sleepFingerprint));
+    const nuevos = incoming.filter(
+        (r) => !existingIds.has(r.id) && !existingFingerprints.has(sleepFingerprint(r)),
+    );
     return [...current, ...nuevos];
 }
 
@@ -192,11 +440,13 @@ export function importData(data, { mode }) {
     if (mode === 'replace') {
         saveSleepLogs(normalizeImportedRecords(data.records));
         if (typeof data.cycleLength === 'number') saveCycleLength(data.cycleLength);
+        // Los backups anteriores a la v2 no traen latencia: se ignora el
+        // campo ausente en vez de pisar la preferencia actual con un default.
+        if (typeof data.latency === 'number') saveLatency(data.latency);
     } else {
         saveSleepLogs(mergeSleepLogs(getSleepLogs(), data.records));
     }
 
-    renderHistory(); renderChart(); renderStatsPanels();
-    showToast(mode === 'replace' ? 'Datos reemplazados.' : 'Datos fusionados.');
+    avisar();
     return { ok: true };
 }

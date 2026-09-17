@@ -1,32 +1,47 @@
-// main.js — punto de entrada. Monta la app: importa CSS y arranca cada
-// módulo de UI. Ya no expone nada en window ni depende de onclick="" en el
-// HTML — toda la interacción se cablea acá con addEventListener (Fase 2).
+// main.js — punto de entrada. Monta la pantalla, registra las tres capas
+// y deja todo suscrito a los cambios de datos.
+//
+// storage.js ya no llama a ninguna vista: solo avisa que algo cambió.
+// Quién se entera y qué repinta se decide acá, de una sola vez.
 import './css/tokens.css';
 import './css/base.css';
 import './css/layout.css';
 import './css/components.css';
 
-import { formatTime } from './js/calc.js';
-import { initNav } from './js/ui/nav.js';
-import { initCalculatorView } from './js/ui/calculator-view.js';
-import { initSiestaView } from './js/ui/siesta-view.js';
-import { initHistoryView } from './js/ui/history-view.js';
-import { initStatsView, renderStatsPanels } from './js/ui/stats-view.js';
-import { initBackupView } from './js/ui/backup-view.js';
-import { initInfoView } from './js/ui/info-view.js';
+import { onChange } from './js/storage.js';
+import { initHome, renderHome } from './js/ui/home.js';
+import { initCuaderno, renderCuaderno } from './js/ui/cuaderno.js';
+import { initAjustes, renderAjustes } from './js/ui/ajustes.js';
+import { openSheet, registerSheet } from './js/ui/sheets.js';
+import { renderEscena } from './js/ui/escena.js';
 import { registerServiceWorker } from './sw-register.js';
 
 function init() {
-    initNav();
-    initCalculatorView();
-    initSiestaView();
-    initHistoryView();
-    initStatsView();
-    initBackupView();
-    initInfoView();
+    initHome();
+    initCuaderno();
+    initAjustes();
 
-    document.getElementById('time-input').value = formatTime(new Date());
-    renderStatsPanels();
+    // Cada capa se repinta al abrirse, no en cada cambio: si está cerrada,
+    // repintarla es trabajo que nadie ve.
+    registerSheet('hoja-cuaderno', renderCuaderno);
+    registerSheet('hoja-ajustes', renderAjustes);
+    registerSheet('hoja-info');
+
+    document
+        .getElementById('abrir-cuaderno')
+        .addEventListener('click', () => openSheet('hoja-cuaderno'));
+    document.getElementById('abrir-info').addEventListener('click', () => openSheet('hoja-info'));
+    document
+        .getElementById('btn-ajustes')
+        .addEventListener('click', () => openSheet('hoja-ajustes'));
+
+    onChange(() => {
+        renderHome();
+        if (document.getElementById('hoja-cuaderno').open) renderCuaderno();
+    });
+
+    renderHome();
+    renderEscena();
 }
 
 document.addEventListener('DOMContentLoaded', init);

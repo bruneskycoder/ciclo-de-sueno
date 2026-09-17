@@ -8,8 +8,14 @@ import { validateImportPayload, normalizeImportedRecords, mergeSleepLogs } from 
 
 function record(overrides = {}) {
     return {
-        id: 'r1', date: '2024-01-14', bedtimeActual: '23:00', waketimeActual: '07:00',
-        durationMinutes: 480, cyclesCompleted: 5, quality: 4, notes: 'bien',
+        id: 'r1',
+        date: '2024-01-14',
+        bedtimeActual: '23:00',
+        waketimeActual: '07:00',
+        durationMinutes: 480,
+        cyclesCompleted: 5,
+        quality: 4,
+        notes: 'bien',
         ...overrides,
     };
 }
@@ -45,16 +51,25 @@ describe('validateImportPayload', () => {
         // la app (ahí tampoco se valida que la hora sea <24 ni el minuto
         // <60) — acá solo se chequea que tenga pinta de "HH:MM".
         expect(validateImportPayload({ records: [record({ bedtimeActual: '' })] })).toBe(false);
-        expect(validateImportPayload({ records: [record({ waketimeActual: 'no-es-una-hora' })] })).toBe(false);
+        expect(
+            validateImportPayload({ records: [record({ waketimeActual: 'no-es-una-hora' })] }),
+        ).toBe(false);
     });
 
     it('rechaza si durationMinutes no es un número válido', () => {
-        expect(validateImportPayload({ records: [record({ durationMinutes: '480' })] })).toBe(false);
+        expect(validateImportPayload({ records: [record({ durationMinutes: '480' })] })).toBe(
+            false,
+        );
         expect(validateImportPayload({ records: [record({ durationMinutes: -10 })] })).toBe(false);
     });
 
     it('no exige que vengan quality/notes/cyclesCompleted (son opcionales)', () => {
-        const minimo = { date: '2024-01-14', bedtimeActual: '23:00', waketimeActual: '07:00', durationMinutes: 480 };
+        const minimo = {
+            date: '2024-01-14',
+            bedtimeActual: '23:00',
+            waketimeActual: '07:00',
+            durationMinutes: 480,
+        };
         expect(validateImportPayload({ records: [minimo] })).toBe(true);
     });
 });
@@ -62,7 +77,12 @@ describe('validateImportPayload', () => {
 describe('normalizeImportedRecords', () => {
     it('completa campos opcionales faltantes con sus defaults', () => {
         const [r] = normalizeImportedRecords([
-            { date: '2024-01-14', bedtimeActual: '23:00', waketimeActual: '07:00', durationMinutes: 480 },
+            {
+                date: '2024-01-14',
+                bedtimeActual: '23:00',
+                waketimeActual: '07:00',
+                durationMinutes: 480,
+            },
         ]);
         expect(r.cyclesCompleted).toBe(0);
         expect(r.quality).toBeNull();
@@ -109,7 +129,112 @@ describe('mergeSleepLogs — sin duplicar', () => {
     });
 
     it('con un historial vacío, fusionar equivale a importar todo', () => {
-        const merged = mergeSleepLogs([], [record({ id: 'r1' }), record({ id: 'r2', date: '2024-01-15' })]);
+        const merged = mergeSleepLogs(
+            [],
+            [record({ id: 'r1' }), record({ id: 'r2', date: '2024-01-15' })],
+        );
         expect(merged).toHaveLength(2);
+    });
+});
+
+// --- v2: siesta y noche pueden convivir el mismo día ---
+//
+// Defecto de la v1: mergeSleepLogs deduplicaba por fecha sola, así que
+// importar un backup con una siesta y una noche del mismo día se comía
+// una de las dos en silencio.
+
+describe('mergeSleepLogs — siesta y noche el mismo día (defecto de la v1)', () => {
+    it('conserva las dos: son descansos distintos, no un duplicado', () => {
+        const current = [
+            record({ id: 'noche', date: '2024-01-14', kind: 'noche', bedtimeActual: '23:00' }),
+        ];
+        const merged = mergeSleepLogs(current, [
+            record({ id: 'siesta', date: '2024-01-14', kind: 'siesta', bedtimeActual: '14:00' }),
+        ]);
+        expect(merged).toHaveLength(2);
+    });
+
+    it('sigue sin duplicar la misma siesta importada dos veces', () => {
+        const current = [
+            record({
+                id: 'del-celular',
+                date: '2024-01-14',
+                kind: 'siesta',
+                bedtimeActual: '14:00',
+            }),
+        ];
+        const merged = mergeSleepLogs(current, [
+            record({ id: 'de-la-pc', date: '2024-01-14', kind: 'siesta', bedtimeActual: '14:00' }),
+        ]);
+        expect(merged).toHaveLength(1);
+        expect(merged[0].id).toBe('del-celular');
+    });
+
+    it('un registro viejo sin kind se trata como noche y no colisiona con una siesta', () => {
+        const current = [record({ id: 'viejo', date: '2024-01-14', bedtimeActual: '23:00' })];
+        const merged = mergeSleepLogs(current, [
+            record({ id: 'nueva', date: '2024-01-14', kind: 'siesta', bedtimeActual: '15:00' }),
+        ]);
+        expect(merged).toHaveLength(2);
+    });
+});
+
+describe('normalizeImportedRecords — tipo de descanso', () => {
+    it('conserva el tipo cuando viene en el archivo', () => {
+        expect(normalizeImportedRecords([record({ kind: 'siesta' })])[0].kind).toBe('siesta');
+    });
+
+    it('a un backup viejo sin tipo lo trata como noche', () => {
+        const sinKind = record();
+        delete sinKind.kind;
+        expect(normalizeImportedRecords([sinKind])[0].kind).toBe('noche');
+    });
+});
+
+// --- v2: noches respondidas de memoria (sin horario) ---
+
+describe('validateImportPayload — horas ausentes', () => {
+    it('acepta un registro sin horario si trae la duración', () => {
+        const recordado = {
+            date: '2026-09-16',
+            bedtimeActual: null,
+            waketimeActual: null,
+            durationMinutes: 420,
+        };
+        expect(validateImportPayload({ records: [recordado] })).toBe(true);
+    });
+
+    it('acepta también que los campos de hora ni vengan', () => {
+        expect(
+            validateImportPayload({ records: [{ date: '2026-09-16', durationMinutes: 420 }] }),
+        ).toBe(true);
+    });
+
+    it('sigue rechazando una hora rota: eso es un archivo corrupto, no un dato desconocido', () => {
+        expect(validateImportPayload({ records: [record({ bedtimeActual: '' })] })).toBe(false);
+        expect(validateImportPayload({ records: [record({ waketimeActual: 'tarde' })] })).toBe(
+            false,
+        );
+    });
+
+    it('sigue exigiendo la duración, que es lo único imprescindible', () => {
+        expect(
+            validateImportPayload({ records: [{ date: '2026-09-16', durationMinutes: null }] }),
+        ).toBe(false);
+    });
+});
+
+describe('normalizeImportedRecords — horas ausentes', () => {
+    it('deja las horas en null cuando no vienen', () => {
+        const normalizado = normalizeImportedRecords([
+            { date: '2026-09-16', durationMinutes: 420 },
+        ])[0];
+        expect(normalizado.bedtimeActual).toBe(null);
+        expect(normalizado.waketimeActual).toBe(null);
+        expect(normalizado.durationMinutes).toBe(420);
+    });
+
+    it('no toca las horas cuando sí vienen', () => {
+        expect(normalizeImportedRecords([record()])[0].bedtimeActual).toBe('23:00');
     });
 });

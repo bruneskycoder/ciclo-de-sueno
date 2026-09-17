@@ -4,6 +4,9 @@ import {
     calcularSiesta,
     calcularDuracionReal,
     clampLatency,
+    minutesUntilClock,
+    formatDuration,
+    addMinutesToClock,
     clampCycleLength,
     formatTime,
     SIESTA_CORTA_MINUTOS,
@@ -16,14 +19,24 @@ const REF = new Date(2024, 0, 15);
 
 describe('calcularCiclos — modo despertar', () => {
     it('calcula las 6 horas de acostarse hacia atrás desde la hora de despertar', () => {
-        const { ok, results } = calcularCiclos({ mode: 'wake', timeStr: '07:00', latencyMinutes: 20, referenceDate: REF });
+        const { ok, results } = calcularCiclos({
+            mode: 'wake',
+            timeStr: '07:00',
+            latencyMinutes: 20,
+            referenceDate: REF,
+        });
         expect(ok).toBe(true);
         expect(results).toHaveLength(6);
         expect(results.map((r) => r.cycles)).toEqual([1, 2, 3, 4, 5, 6]);
     });
 
     it('4 ciclos (óptimo) con latencia 20 da 00:40 y queda marcado como óptimo', () => {
-        const { results } = calcularCiclos({ mode: 'wake', timeStr: '07:00', latencyMinutes: 20, referenceDate: REF });
+        const { results } = calcularCiclos({
+            mode: 'wake',
+            timeStr: '07:00',
+            latencyMinutes: 20,
+            referenceDate: REF,
+        });
         const r4 = results.find((r) => r.cycles === 4);
         expect(r4.resultTimeStr).toBe('00:40');
         expect(r4.totalMinutes).toBe(380); // 4*90 + 20
@@ -32,13 +45,23 @@ describe('calcularCiclos — modo despertar', () => {
     });
 
     it('1 ciclo (fuera del rango óptimo) no se marca como óptimo', () => {
-        const { results } = calcularCiclos({ mode: 'wake', timeStr: '07:00', latencyMinutes: 20, referenceDate: REF });
+        const { results } = calcularCiclos({
+            mode: 'wake',
+            timeStr: '07:00',
+            latencyMinutes: 20,
+            referenceDate: REF,
+        });
         const r1 = results.find((r) => r.cycles === 1);
         expect(r1.isOptimal).toBe(false);
     });
 
     it('cruce de medianoche hacia el día anterior (6 ciclos, latencia 20 → 21:40 de ayer)', () => {
-        const { results } = calcularCiclos({ mode: 'wake', timeStr: '07:00', latencyMinutes: 20, referenceDate: REF });
+        const { results } = calcularCiclos({
+            mode: 'wake',
+            timeStr: '07:00',
+            latencyMinutes: 20,
+            referenceDate: REF,
+        });
         const r6 = results.find((r) => r.cycles === 6);
         expect(r6.resultTimeStr).toBe('21:40');
         expect(r6.dayOffset).toBe(-1);
@@ -47,26 +70,46 @@ describe('calcularCiclos — modo despertar', () => {
 
 describe('calcularCiclos — modo dormir', () => {
     it('calcula las horas de despertar hacia adelante desde la hora de acostarse', () => {
-        const { results } = calcularCiclos({ mode: 'sleep', timeStr: '23:00', latencyMinutes: 20, referenceDate: REF });
+        const { results } = calcularCiclos({
+            mode: 'sleep',
+            timeStr: '23:00',
+            latencyMinutes: 20,
+            referenceDate: REF,
+        });
         const r4 = results.find((r) => r.cycles === 4);
         expect(r4.resultTimeStr).toBe('05:20');
     });
 
     it('cruce de medianoche hacia el día siguiente', () => {
-        const { results } = calcularCiclos({ mode: 'sleep', timeStr: '23:00', latencyMinutes: 20, referenceDate: REF });
+        const { results } = calcularCiclos({
+            mode: 'sleep',
+            timeStr: '23:00',
+            latencyMinutes: 20,
+            referenceDate: REF,
+        });
         const r4 = results.find((r) => r.cycles === 4);
         expect(r4.dayOffset).toBe(1);
     });
 
     it('bedtimeTimeStr siempre es la hora de acostarse ingresada', () => {
-        const { results } = calcularCiclos({ mode: 'sleep', timeStr: '23:00', latencyMinutes: 20, referenceDate: REF });
+        const { results } = calcularCiclos({
+            mode: 'sleep',
+            timeStr: '23:00',
+            latencyMinutes: 20,
+            referenceDate: REF,
+        });
         results.forEach((r) => expect(r.bedtimeTimeStr).toBe('23:00'));
     });
 });
 
 describe('calcularCiclos — latencia', () => {
     it('latencia 0 no suma minutos extra', () => {
-        const { results, latency } = calcularCiclos({ mode: 'wake', timeStr: '07:00', latencyMinutes: 0, referenceDate: REF });
+        const { results, latency } = calcularCiclos({
+            mode: 'wake',
+            timeStr: '07:00',
+            latencyMinutes: 0,
+            referenceDate: REF,
+        });
         expect(latency).toBe(0);
         const r1 = results.find((r) => r.cycles === 1);
         expect(r1.totalMinutes).toBe(90);
@@ -74,14 +117,24 @@ describe('calcularCiclos — latencia', () => {
     });
 
     it('latencia grande (dentro del máximo permitido) se suma correctamente', () => {
-        const { results } = calcularCiclos({ mode: 'wake', timeStr: '07:00', latencyMinutes: 120, referenceDate: REF });
+        const { results } = calcularCiclos({
+            mode: 'wake',
+            timeStr: '07:00',
+            latencyMinutes: 120,
+            referenceDate: REF,
+        });
         const r1 = results.find((r) => r.cycles === 1);
         expect(r1.totalMinutes).toBe(210); // 90 + 120
         expect(r1.resultTimeStr).toBe('03:30');
     });
 
     it('una latencia negativa se acota a 0 antes de calcular', () => {
-        const { latency, results } = calcularCiclos({ mode: 'wake', timeStr: '07:00', latencyMinutes: -15, referenceDate: REF });
+        const { latency, results } = calcularCiclos({
+            mode: 'wake',
+            timeStr: '07:00',
+            latencyMinutes: -15,
+            referenceDate: REF,
+        });
         expect(latency).toBe(0);
         expect(results.find((r) => r.cycles === 1).totalMinutes).toBe(90);
     });
@@ -89,7 +142,12 @@ describe('calcularCiclos — latencia', () => {
 
 describe('calcularCiclos — entrada inválida', () => {
     it('devuelve ok:false si falta la hora', () => {
-        const result = calcularCiclos({ mode: 'wake', timeStr: '', latencyMinutes: 20, referenceDate: REF });
+        const result = calcularCiclos({
+            mode: 'wake',
+            timeStr: '',
+            latencyMinutes: 20,
+            referenceDate: REF,
+        });
         expect(result.ok).toBe(false);
         expect(result.error).toBe('missing-time');
     });
@@ -97,14 +155,23 @@ describe('calcularCiclos — entrada inválida', () => {
 
 describe('calcularCiclos — duración de ciclo configurable (Fase 3)', () => {
     it('usa 90 min por defecto si no se pasa cycleMinutes', () => {
-        const { cycleLength, results } = calcularCiclos({ mode: 'wake', timeStr: '07:00', latencyMinutes: 0, referenceDate: REF });
+        const { cycleLength, results } = calcularCiclos({
+            mode: 'wake',
+            timeStr: '07:00',
+            latencyMinutes: 0,
+            referenceDate: REF,
+        });
         expect(cycleLength).toBe(90);
         expect(results.find((r) => r.cycles === 1).totalMinutes).toBe(90);
     });
 
     it('recalcula todo con una duración de ciclo distinta (ej. 100 min)', () => {
         const { cycleLength, results } = calcularCiclos({
-            mode: 'wake', timeStr: '07:00', latencyMinutes: 0, cycleMinutes: 100, referenceDate: REF,
+            mode: 'wake',
+            timeStr: '07:00',
+            latencyMinutes: 0,
+            cycleMinutes: 100,
+            referenceDate: REF,
         });
         expect(cycleLength).toBe(100);
         const r4 = results.find((r) => r.cycles === 4);
@@ -114,7 +181,11 @@ describe('calcularCiclos — duración de ciclo configurable (Fase 3)', () => {
 
     it('una duración de ciclo fuera de rango se acota antes de calcular', () => {
         const { cycleLength } = calcularCiclos({
-            mode: 'wake', timeStr: '07:00', latencyMinutes: 0, cycleMinutes: 300, referenceDate: REF,
+            mode: 'wake',
+            timeStr: '07:00',
+            latencyMinutes: 0,
+            cycleMinutes: 300,
+            referenceDate: REF,
         });
         expect(cycleLength).toBe(120);
     });
@@ -139,33 +210,57 @@ describe('clampLatency', () => {
 
 describe('calcularSiesta — modo siesta (Fase 4)', () => {
     it('la siesta corta usa SIESTA_CORTA_MINUTOS, no la duración de ciclo', () => {
-        const { corta } = calcularSiesta({ timeStr: '14:00', latencyMinutes: 0, cycleMinutes: 90, referenceDate: REF });
+        const { corta } = calcularSiesta({
+            timeStr: '14:00',
+            latencyMinutes: 0,
+            cycleMinutes: 90,
+            referenceDate: REF,
+        });
         expect(corta.totalMinutes).toBe(SIESTA_CORTA_MINUTOS);
         expect(corta.resultTimeStr).toBe('14:20');
         expect(corta.tipo).toBe('corta');
     });
 
     it('la siesta completa usa la duración de ciclo del usuario', () => {
-        const { completa } = calcularSiesta({ timeStr: '14:00', latencyMinutes: 0, cycleMinutes: 90, referenceDate: REF });
+        const { completa } = calcularSiesta({
+            timeStr: '14:00',
+            latencyMinutes: 0,
+            cycleMinutes: 90,
+            referenceDate: REF,
+        });
         expect(completa.totalMinutes).toBe(90);
         expect(completa.resultTimeStr).toBe('15:30');
         expect(completa.tipo).toBe('completa');
     });
 
     it('respeta una duración de ciclo distinta a 90 en la siesta completa', () => {
-        const { completa } = calcularSiesta({ timeStr: '14:00', latencyMinutes: 0, cycleMinutes: 100, referenceDate: REF });
+        const { completa } = calcularSiesta({
+            timeStr: '14:00',
+            latencyMinutes: 0,
+            cycleMinutes: 100,
+            referenceDate: REF,
+        });
         expect(completa.totalMinutes).toBe(100);
         expect(completa.resultTimeStr).toBe('15:40');
     });
 
     it('suma la latencia a ambas recomendaciones', () => {
-        const { corta, completa } = calcularSiesta({ timeStr: '14:00', latencyMinutes: 10, cycleMinutes: 90, referenceDate: REF });
+        const { corta, completa } = calcularSiesta({
+            timeStr: '14:00',
+            latencyMinutes: 10,
+            cycleMinutes: 90,
+            referenceDate: REF,
+        });
         expect(corta.totalMinutes).toBe(30);
         expect(completa.totalMinutes).toBe(100);
     });
 
     it('bedtimeTimeStr de ambas es la hora de acostarse ingresada', () => {
-        const { corta, completa } = calcularSiesta({ timeStr: '14:00', latencyMinutes: 10, referenceDate: REF });
+        const { corta, completa } = calcularSiesta({
+            timeStr: '14:00',
+            latencyMinutes: 10,
+            referenceDate: REF,
+        });
         expect(corta.bedtimeTimeStr).toBe('14:00');
         expect(completa.bedtimeTimeStr).toBe('14:00');
     });
@@ -200,7 +295,9 @@ describe('clampCycleLength', () => {
 describe('calcularDuracionReal — logueo real de sueño (Fase 5)', () => {
     it('calcula duración normal cruzando medianoche', () => {
         const { ok, durationMinutes, cyclesCompleted } = calcularDuracionReal({
-            bedtimeActual: '23:30', waketimeActual: '07:00', cycleMinutes: 90,
+            bedtimeActual: '23:30',
+            waketimeActual: '07:00',
+            cycleMinutes: 90,
         });
         expect(ok).toBe(true);
         expect(durationMinutes).toBe(450); // 23:30 -> 07:00 = 7h30 = 450min
@@ -208,25 +305,35 @@ describe('calcularDuracionReal — logueo real de sueño (Fase 5)', () => {
     });
 
     it('no cruza medianoche si la hora de despertar es mayor (ej. siesta larga anotada a mano)', () => {
-        const { durationMinutes } = calcularDuracionReal({ bedtimeActual: '14:00', waketimeActual: '16:00' });
+        const { durationMinutes } = calcularDuracionReal({
+            bedtimeActual: '14:00',
+            waketimeActual: '16:00',
+        });
         expect(durationMinutes).toBe(120);
     });
 
     it('hora de despertar igual a la de acostarse se interpreta como 24h', () => {
-        const { durationMinutes } = calcularDuracionReal({ bedtimeActual: '08:00', waketimeActual: '08:00' });
+        const { durationMinutes } = calcularDuracionReal({
+            bedtimeActual: '08:00',
+            waketimeActual: '08:00',
+        });
         expect(durationMinutes).toBe(24 * 60);
     });
 
     it('redondea ciclos completados al entero más cercano', () => {
         const { cyclesCompleted } = calcularDuracionReal({
-            bedtimeActual: '23:00', waketimeActual: '06:50', cycleMinutes: 90, // 470 min / 90 = 5.22
+            bedtimeActual: '23:00',
+            waketimeActual: '06:50',
+            cycleMinutes: 90, // 470 min / 90 = 5.22
         });
         expect(cyclesCompleted).toBe(5);
     });
 
     it('respeta una duración de ciclo distinta a 90', () => {
         const { cyclesCompleted, cycleLength } = calcularDuracionReal({
-            bedtimeActual: '23:00', waketimeActual: '07:00', cycleMinutes: 100, // 480 min / 100 = 4.8
+            bedtimeActual: '23:00',
+            waketimeActual: '07:00',
+            cycleMinutes: 100, // 480 min / 100 = 4.8
         });
         expect(cycleLength).toBe(100);
         expect(cyclesCompleted).toBe(5);
@@ -249,5 +356,81 @@ describe('formatTime', () => {
     it('rellena con cero a la izquierda', () => {
         const d = new Date(2024, 0, 1, 5, 3);
         expect(formatTime(d)).toBe('05:03');
+    });
+});
+
+// --- v2: tiempo restante ---
+
+describe('minutesUntilClock', () => {
+    const ahora = new Date(2024, 0, 15, 23, 30);
+
+    it('cuenta hasta una hora que todavía no llegó hoy', () => {
+        expect(minutesUntilClock('23:50', ahora)).toBe(20);
+    });
+
+    it('si la hora ya pasó, se entiende que es mañana', () => {
+        expect(minutesUntilClock('06:30', ahora)).toBe(7 * 60);
+    });
+
+    it('la hora exacta de ahora es 0, no 24 horas', () => {
+        expect(minutesUntilClock('23:30', ahora)).toBe(0);
+    });
+
+    it('devuelve null si la hora no sirve', () => {
+        expect(minutesUntilClock('', ahora)).toBe(null);
+        expect(minutesUntilClock('tarde', ahora)).toBe(null);
+    });
+});
+
+describe('formatDuration', () => {
+    it('muestra horas y minutos', () => {
+        expect(formatDuration(310)).toBe('5h 10m');
+    });
+
+    it('omite la parte que vale cero', () => {
+        expect(formatDuration(45)).toBe('45m');
+        expect(formatDuration(360)).toBe('6h');
+        expect(formatDuration(0)).toBe('0m');
+    });
+
+    it('no rompe con lo que no es un número', () => {
+        expect(formatDuration(undefined)).toBe('');
+        expect(formatDuration(NaN)).toBe('');
+    });
+});
+
+describe('clampLatency con fallback (v2)', () => {
+    it('sin fallback explícito sigue cayendo a 0, como antes', () => {
+        expect(clampLatency(null)).toBe(0);
+    });
+
+    it('con fallback, un valor ausente cae al default de la app', () => {
+        expect(clampLatency(null, { fallback: 20 })).toBe(20);
+        expect(clampLatency('', { fallback: 20 })).toBe(20);
+    });
+
+    it('el fallback no pisa un valor válido', () => {
+        expect(clampLatency('35', { fallback: 20 })).toBe(35);
+    });
+});
+
+describe('addMinutesToClock', () => {
+    it('suma dentro del mismo día', () => {
+        expect(addMinutesToClock('23:00', 30)).toBe('23:30');
+        expect(addMinutesToClock('00:30', 420)).toBe('07:30');
+    });
+
+    it('da la vuelta a la medianoche', () => {
+        expect(addMinutesToClock('23:30', 60)).toBe('00:30');
+        expect(addMinutesToClock('22:00', 600)).toBe('08:00');
+    });
+
+    it('acepta minutos negativos y también da la vuelta', () => {
+        expect(addMinutesToClock('00:30', -60)).toBe('23:30');
+    });
+
+    it('devuelve null si la hora no sirve', () => {
+        expect(addMinutesToClock('', 60)).toBe(null);
+        expect(addMinutesToClock('tarde', 60)).toBe(null);
     });
 });

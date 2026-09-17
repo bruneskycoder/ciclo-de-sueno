@@ -1,785 +1,688 @@
-/* components.css — botones, cards, tabs, escena ilustrada, toast, tablas, gráfico */
+/* components.css — las piezas. */
 
-/* --- ESCENA: FOGÓN CRIOLLO BAJO EL CIELO DE LA PAMPA (CSS puro) --- */
-.scene {
-    position: relative;
-    height: 130px;
-    margin-bottom: 10px;
-    border-radius: 6px;
-    overflow: hidden;
-    background:
-        radial-gradient(circle at 50% 120%, rgba(201, 120, 47, 0.18) 0%, transparent 55%),
-        linear-gradient(180deg, var(--bg-night-2) 0%, var(--bg-night) 100%);
-}
-
-.star {
-    position: absolute;
-    width: 2px;
-    height: 2px;
-    background: var(--hide);
-    border-radius: 50%;
-    opacity: 0.85;
-    animation: twinkle 3s ease-in-out infinite;
-}
-@keyframes twinkle {
-    0%,
-    100% {
-        opacity: 0.25;
-    }
-    50% {
-        opacity: 0.9;
-    }
+/* ============ LA ESCENA ============
+   Pixel art: el canvas se estira al ancho disponible, y `pixelated` es lo
+   que impide que el navegador suavice los píxeles al agrandarlos — sin
+   eso, todo el trabajo de dibujar cuadrados exactos se pierde en un
+   borroneado. Los bordes redondeados y el marco la encuadran como lo que
+   es: una ventana al campo, no un banner. */
+.escena {
+    width: 100%;
+    max-width: 380px;
+    height: auto;
+    image-rendering: pixelated;
+    border: 1px solid var(--noche-borde);
+    border-radius: var(--radio);
 }
 
-.moon {
-    position: absolute;
-    top: 14px;
-    right: 16%;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--hide);
+/* ============ BOTONES ============ */
+/* Los dos iconos se apoyan sobre la escena, que de día es clara y de
+   noche oscura. Sin un fondo propio quedaban invisibles contra el cielo
+   diurno: un control que no se ve no existe. La chapita oscura los hace
+   legibles sobre cualquiera de las dos. */
+.btn-icono {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    color: var(--hueso);
+    background: rgba(8, 12, 15, 0.62);
+    border: 1px solid rgba(232, 220, 196, 0.16);
+    border-radius: var(--radio);
+    backdrop-filter: blur(2px);
 }
-.moon::after {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -7px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--bg-night-2);
+.btn-icono:hover {
+    color: var(--brasa);
+    border-color: var(--noche-borde);
 }
-
-.fogon-group {
-    position: absolute;
-    bottom: 14px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: flex-end;
+.btn-icono[aria-pressed='true'] {
+    color: var(--brasa);
+    border-color: var(--cuero-claro);
 }
 
-.fire-container {
-    position: relative;
-    width: 56px;
-    height: 56px;
-    animation: flickerLight 2s infinite alternate;
+.btn-principal {
+    width: 100%;
+    padding: 18px var(--esp-3);
+    font-family: var(--tipo-titulo);
+    font-size: 19px;
+    color: var(--noche);
+    background: linear-gradient(180deg, var(--brasa-viva) 0%, var(--brasa) 100%);
+    border: none;
+    border-radius: var(--radio);
+    transition: filter 0.15s;
+}
+.btn-principal:hover {
+    filter: brightness(1.08);
+}
+.btn-principal:active {
+    filter: brightness(0.94);
 }
 
-.log {
-    position: absolute;
-    bottom: 4px;
+.btn-secundario {
+    padding: 12px var(--esp-3);
+    color: var(--hueso);
+    background: transparent;
+    border: 1px solid var(--cuero-claro);
+    border-radius: var(--radio);
+}
+.btn-secundario:hover {
+    border-color: var(--brasa);
+    color: var(--brasa);
+}
+
+.btn-chip {
+    padding: 10px var(--esp-3);
+    font-size: 15px;
+    color: var(--hueso);
+    background: var(--noche);
+    border: 1px solid var(--noche-borde);
+    border-radius: 999px;
+}
+.btn-chip:hover {
+    border-color: var(--brasa);
+    color: var(--brasa);
+}
+
+/* Parece un link, pero se toca con el dedo: 40px de alto mínimo. La v1
+   ya había tenido este problema con el link de la página informativa, que
+   medía 23px; volvió a aparecer con los botones de texto nuevos. Un área
+   táctil chica es un error de accesibilidad, no un detalle estético. */
+.btn-saltear {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: var(--esp-1) 0;
+    font-size: 13px;
+    color: var(--hueso-tenue);
+    background: none;
+    border: none;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.btn-saltear:hover {
+    color: var(--hueso);
+}
+
+/* Relleno sólido, nunca texto rojo suelto: sobre fondo oscuro ese rojo
+   no llega al contraste mínimo de AA. */
+.btn-peligro {
+    width: 100%;
+    margin-top: var(--esp-2);
+    padding: 12px var(--esp-3);
+    color: #fff;
+    background: var(--peligro);
+    border: none;
+    border-radius: var(--radio);
+}
+
+.btn-cerrar {
     width: 36px;
-    height: 10px;
-    background-color: var(--leather-dark);
-    border: 2px solid #1a110c;
-    border-radius: 4px;
-}
-.log.left {
-    left: -2px;
-    transform: rotate(15deg);
-}
-.log.right {
-    right: -2px;
-    transform: rotate(-15deg);
-}
-
-.flame {
-    position: absolute;
-    bottom: 13px;
-    left: 13px;
-    width: 28px;
-    height: 28px;
-    background-color: var(--ember-edge);
-    border-radius: 50% 0 50% 50%;
-    transform: rotate(-45deg);
-    animation: burn 0.5s infinite alternate;
-}
-.flame.inner {
-    left: 21px;
-    width: 18px;
-    height: 18px;
-    background-color: var(--ember-mid);
-    animation-delay: 0.2s;
-}
-.flame.core {
-    left: 26px;
-    width: 9px;
-    height: 9px;
-    background-color: var(--ember-core);
-    animation-delay: 0.4s;
-}
-
-.gaucho {
-    position: relative;
-    width: 50px;
-    height: 58px;
-    margin-left: 14px;
-}
-.gaucho .poncho {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 50px;
     height: 36px;
-    background: var(--leather-dark);
-    clip-path: polygon(22% 0%, 78% 0%, 100% 100%, 0% 100%);
-    box-shadow: -5px 0 14px rgba(201, 120, 47, 0.3); /* luz del fogón sobre el poncho */
-}
-.gaucho .hat-brim {
-    position: absolute;
-    top: 10px;
-    left: -9px;
-    width: 68px;
-    height: 9px;
-    background: var(--leather-dark);
-    border-radius: 50%;
-}
-.gaucho .hat-crown {
-    position: absolute;
-    top: -3px;
-    left: 13px;
-    width: 24px;
-    height: 15px;
-    background: var(--leather-dark);
-    border-radius: 50% 50% 35% 35%;
-}
-.z-sleep {
-    position: absolute;
-    top: -18px;
-    right: -6px;
+    display: grid;
+    place-items: center;
     font-size: 16px;
-    color: var(--text-muted);
-    animation: floatZ 2.4s infinite linear;
+    color: var(--hueso-tenue);
+    background: none;
+    border: none;
+}
+.btn-cerrar:hover {
+    color: var(--hueso);
 }
 
-@keyframes burn {
-    0% {
-        transform: rotate(-45deg) scale(0.9);
-    }
-    100% {
-        transform: rotate(-45deg) scale(1.1) translateY(-2px);
-    }
-}
-@keyframes flickerLight {
-    0% {
-        filter: drop-shadow(0 0 12px var(--ember-edge));
-    }
-    100% {
-        filter: drop-shadow(0 0 20px var(--ember-mid));
-    }
-}
-@keyframes floatZ {
-    0% {
-        opacity: 0;
-        transform: translateY(0) scale(0.8);
-    }
-    50% {
-        opacity: 1;
-        transform: translateY(-10px) scale(1);
-    }
-    100% {
-        opacity: 0;
-        transform: translateY(-20px) scale(1.2);
-    }
+/* ============ RESULTADO ============
+   El contenido con el que se abre la app. La hora es lo único que se lee
+   de un vistazo a la madrugada, así que es lo más grande de la pantalla
+   después del título. */
+.resultado-titulo {
+    margin-bottom: var(--esp-2);
+    font-family: var(--tipo);
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--hueso-tenue);
+    text-align: center;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .fire-container,
-    .flame,
-    .z-sleep,
-    .star {
-        animation: none;
-    }
-}
-
-/* --- TARJETA DE ESTADÍSTICAS --- */
-.metrics-grid {
+.resultado-filas {
+    list-style: none;
+    margin: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    margin-bottom: 4px;
-}
-.stats-card {
-    background-color: var(--leather-dark);
-    border: 4px solid var(--leather-light);
-    border-radius: 4px;
-    padding: 16px;
-    text-align: center;
-    margin-bottom: 24px;
-    box-shadow:
-        inset 0 0 10px #000,
-        0 4px 6px rgba(0, 0, 0, 0.5);
-}
-.metrics-grid .stats-card {
-    margin-bottom: 0;
-}
-.stats-card h2 {
-    margin: 0;
-    font-size: 15px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-.stats-card .hours {
-    font-size: 38px;
-    color: var(--ember-mid);
-    margin: 8px 0;
-    text-shadow: 2px 2px #000;
-    font-variant-numeric: tabular-nums;
-}
-.stats-card button {
-    background: transparent;
-    border: 2px solid var(--text-muted);
-    color: var(--text-muted);
-    font-family: var(--font-body);
-    font-size: 13px;
-    cursor: pointer;
-    text-transform: uppercase;
+    gap: 1px;
+    background: var(--noche-borde);
+    border: 1px solid var(--noche-borde);
+    border-radius: var(--radio);
+    overflow: hidden;
 }
 
-/* Fila label/valor dentro de una stats-card (Fase 5: calidad promedio,
-   consistencia de horario, noches marcadas). */
-.metric-row {
+/* El <li> es el elemento de la grilla; la fila de adentro lo llena. */
+.resultado-filas > li {
     display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-top: 8px;
+}
+
+.fila {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: baseline;
+    gap: var(--esp-2);
+    width: 100%;
+    padding: 13px var(--esp-3);
     text-align: left;
+    background: var(--noche-alta);
+    border: none;
+    border-left: 3px solid transparent;
 }
-.metric-row strong {
-    color: var(--text-main);
+
+.fila .hora {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--hueso);
+    font-variant-numeric: tabular-nums;
+}
+.fila .falta {
+    font-size: 13px;
+    color: var(--hueso-tenue);
+}
+.fila .ciclos {
+    font-size: 12px;
+    color: var(--hueso-tenue);
+    white-space: nowrap;
+}
+
+/* Las recomendadas: el fuego las marca, no un color de semáforo. */
+.fila.recomendada {
+    border-left-color: var(--brasa);
+    background: linear-gradient(90deg, rgba(221, 159, 69, 0.09) 0%, var(--noche-alta) 55%);
+}
+.fila.recomendada .hora {
+    color: var(--brasa-viva);
+}
+
+.fila-vacia {
+    padding: var(--esp-3);
+    text-align: center;
+    font-size: 14px;
+    color: var(--hueso-tenue);
+    background: var(--noche-alta);
+}
+
+.fila-siesta {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: baseline;
+    gap: var(--esp-2);
+    padding: 11px var(--esp-3);
+    background: var(--noche-alta);
+    border-left: 3px solid var(--cuero-claro);
+}
+.fila-siesta .etiqueta {
+    font-size: 13px;
+    color: var(--hueso-tenue);
+}
+.fila-siesta .hora {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--hueso);
     font-variant-numeric: tabular-nums;
 }
 
-.section-label {
-    margin: 24px 0 10px;
+.resultado-pie {
+    margin-top: var(--esp-2);
     font-size: 13px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    line-height: 1.5;
+    color: var(--hueso-tenue);
+    text-align: center;
+    text-wrap: balance;
 }
 
-/* --- TABS --- */
-.tabs {
+/* ============ ACCIÓN ============ */
+.accion {
     display: flex;
-    gap: 8px;
-    margin-bottom: 24px;
-}
-.tab-btn {
-    flex: 1;
-    padding: 12px;
-    background: var(--leather-dark);
-    border: 3px solid var(--leather-light);
-    border-radius: 4px;
-    color: var(--text-muted);
-    font-family: var(--font-display);
-    font-size: 18px;
-    cursor: pointer;
-}
-.tab-btn.active {
-    background: var(--leather-light);
-    border-color: var(--ember-edge);
-    color: var(--text-main);
+    flex-direction: column;
+    gap: var(--esp-3);
 }
 
-/* --- FORMULARIO --- */
-.input-group {
-    margin-bottom: 16px;
-}
-label {
-    display: block;
-    margin-bottom: 5px;
+.accion-detalle {
+    margin-top: calc(var(--esp-2) * -1);
     font-size: 13px;
-    color: var(--hide);
-    letter-spacing: 0.02em;
-}
-.field-hint {
-    margin: 6px 2px 0;
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.4;
+    color: var(--hueso-tenue);
+    text-align: center;
 }
 
-/* Fase 5: dos inputs de hora lado a lado (acostarse/despertar) en el
-   logueo real, apilados en pantallas angostas. */
-.log-time-row {
+.form-despertar {
     display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: var(--esp-2);
 }
-.log-time-row .input-group {
-    flex: 1;
-    min-width: 130px;
+.form-despertar label {
+    font-size: 14px;
+    color: var(--hueso-tenue);
 }
 
-/* CORRECCIÓN iOS: font-size 18px (mayor a 16px) evita zoom. */
+.fila-hora {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-2);
+}
+
 input[type='time'],
 input[type='number'],
-input[type='date'] {
-    -webkit-appearance: none;
-    width: 100%;
-    padding: 12px;
-    background: #05070a;
-    border: 2px solid var(--leather-light);
-    color: var(--ember-mid);
-    font-family: var(--font-body);
-    font-weight: 700;
-    font-size: 20px;
-    box-sizing: border-box;
-    text-align: center;
-    border-radius: 4px;
-    font-variant-numeric: tabular-nums;
-}
-input[type='time']::-webkit-calendar-picker-indicator,
-input[type='date']::-webkit-calendar-picker-indicator {
-    filter: sepia(1) saturate(4) hue-rotate(350deg);
-}
-
-input[type='text'],
-select {
-    -webkit-appearance: none;
-    width: 100%;
-    padding: 12px;
-    background: #05070a;
-    border: 2px solid var(--leather-light);
-    color: var(--hide);
-    font-family: var(--font-body);
-    font-weight: 700;
-    font-size: 16px;
-    box-sizing: border-box;
-    border-radius: 4px;
-}
-
-.calc-btn {
-    width: 100%;
-    padding: 16px;
-    margin-top: 8px;
-    background: var(--ember-edge);
-    border: none;
-    border-radius: 4px;
-    color: #1a0f06;
-    font-family: var(--font-display);
-    font-size: 22px;
-    cursor: pointer;
-    letter-spacing: 0.02em;
-    transition: transform 0.1s;
-}
-.calc-btn:active {
-    transform: scale(0.98);
-}
-
-/* --- RESULTADOS --- */
-.results-box {
-    margin-top: 24px;
-    padding: 16px;
-    background: var(--hide);
-    border: 4px solid #8b7355;
-    border-radius: 2px;
-    color: #3e2723;
-    box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.5);
-}
-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: center;
-    font-family: var(--font-body);
-}
-th {
-    color: #5d4037;
-    font-size: 12px;
-    letter-spacing: 0.05em;
-    border-bottom: 2px dashed #8b7355;
-    padding-bottom: 8px;
-    text-transform: uppercase;
-}
-td {
-    padding: 10px 2px;
-    font-size: 17px;
-    border-bottom: 1px dotted #a1887f;
-    font-variant-numeric: tabular-nums;
-}
-tr:last-child td {
-    border-bottom: none;
-}
-
-.optimal {
-    background-color: rgba(56, 102, 65, 0.2);
-    font-weight: bold;
-    font-size: 19px;
-}
-
-/* --- SIESTA (dos recomendaciones lado a lado, ver Fase 4) --- */
-.siesta-results {
-    margin-top: 24px;
-}
-.siesta-card {
-    background: var(--hide);
-    border: 4px solid #8b7355;
-    border-radius: 2px;
-    color: #3e2723;
-    box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.5);
-    padding: 16px;
-    text-align: center;
-    margin-bottom: 16px;
-}
-.siesta-card h2 {
-    margin: 0 0 8px;
-    font-size: 14px;
-    color: #5d4037;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-.siesta-time {
-    font-family: var(--font-display);
-    font-size: 34px;
-    color: #5d4037;
-    font-variant-numeric: tabular-nums;
-}
-.siesta-detail {
-    margin: 8px 0 0;
-    font-size: 13px;
-    color: #6d4c41;
-    line-height: 1.4;
-}
-
-/* --- BOTÓN DE ACCIÓN DESTRUCTIVA (relleno sólido: --danger sólo como
-   fondo, nunca como texto plano sobre --bg-night — ver tokens.css) --- */
-.btn-danger {
-    width: 100%;
-    margin-top: 20px;
-    padding: 12px;
-    background: var(--danger);
-    border: none;
-    border-radius: 4px;
-    color: var(--hide);
-    font-family: var(--font-body);
-    font-size: 15px;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-
-/* --- BACKUP (Fase 6): exportar/importar, acción neutra (ni "calc-btn"
-   de acento fuerte ni "btn-danger" — es una acción de mantenimiento) --- */
-.backup-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 10px;
-}
-.backup-actions .btn-secondary {
+input[type='text'] {
     flex: 1;
-    min-width: 140px;
+    min-width: 0;
+    padding: 12px var(--esp-3);
+    /* 18px: por debajo de 16px, iOS hace zoom solo al enfocar un campo. */
+    font-family: var(--tipo);
+    font-size: 18px;
+    color: var(--hueso);
+    background: var(--noche-alta);
+    border: 1px solid var(--noche-borde);
+    border-radius: var(--radio);
 }
-.btn-secondary {
-    padding: 12px;
-    background: transparent;
-    border: 2px solid var(--leather-light);
-    border-radius: 4px;
-    color: var(--text-main);
-    font-family: var(--font-body);
+input[type='number'] {
+    max-width: 120px;
+}
+input::placeholder {
+    color: var(--hueso-tenue);
+    opacity: 0.6;
+}
+
+.unidad {
     font-size: 14px;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+    color: var(--hueso-tenue);
 }
 
-/* --- TOAST --- */
-.toast {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-20px);
-    background: var(--leather-dark);
-    border: 2px solid var(--ember-mid);
-    color: var(--ember-mid);
-    padding: 12px 24px;
+/* ============ ENLACES A LAS CAPAS ============ */
+.enlace {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 15px var(--esp-3);
     font-size: 15px;
-    font-family: var(--font-body);
-    z-index: 1000;
-    box-shadow: 0 4px 12px #000;
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.3s ease;
+    color: var(--hueso);
+    background: var(--noche-alta);
+    border: none;
+    text-align: left;
 }
-.toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
+.enlace:hover {
+    color: var(--brasa);
+    background: var(--noche);
 }
-.empty-state {
+.enlace span:last-child {
+    color: var(--hueso-tenue);
+}
+
+/* ============ LA TARJETA DE ANOCHE ============
+   Aparece solo si quedó una noche sin anotar, y aprovecha una visita que
+   ya iba a ocurrir. Se distingue del resto con el borde de brasa porque
+   es lo único de la pantalla que pide algo. */
+.tarjeta-anoche {
+    padding: var(--esp-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+    background: var(--noche-alta);
+    border: 1px solid var(--cuero-claro);
+    border-left: 3px solid var(--brasa);
+    border-radius: var(--radio);
+}
+
+.anoche-titulo {
+    font-family: var(--tipo);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--hueso);
+}
+
+.anoche-detalle {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--hueso-tenue);
+}
+
+.anoche-opciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+}
+
+.anoche-nota {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+}
+.anoche-nota label {
+    font-size: 14px;
+    color: var(--hueso-tenue);
+}
+
+/* ============ EL CUADERNO ============ */
+.resumen {
+    display: flex;
+    gap: var(--esp-3);
+    padding: var(--esp-3);
+    background: var(--noche);
+    border: 1px solid var(--noche-borde);
+    border-radius: var(--radio);
+}
+.resumen-dato {
+    flex: 1;
+}
+.resumen-dato .valor {
+    display: block;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--brasa-viva);
+    font-variant-numeric: tabular-nums;
+}
+.resumen-dato .etiqueta {
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--hueso-tenue);
+}
+
+.noches {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+}
+
+.noche {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--esp-2) var(--esp-3);
+    padding: var(--esp-3);
+    background: var(--noche);
+    border: 1px solid var(--noche-borde);
+    border-radius: var(--radio);
+}
+.noche .fecha {
+    font-size: 13px;
+    color: var(--hueso-tenue);
+    text-transform: lowercase;
+}
+.noche .duracion {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--hueso);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+.noche .horario {
+    font-size: 12px;
+    color: var(--hueso-tenue);
+}
+/* La frase es lo único que escribe una persona: el resto lo calcula la
+   app. Por eso se lee como una cita y no como un campo más. */
+.noche .frase {
+    grid-column: 1 / -1;
+    padding-left: var(--esp-2);
+    border-left: 2px solid var(--cuero-claro);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--hueso);
+    font-style: italic;
+}
+.noche .acciones {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: var(--esp-2);
+}
+.noche .sin-horario {
+    font-size: 12px;
+    color: var(--hueso-tenue);
+    opacity: 0.8;
+}
+
+.vacio {
+    padding: var(--esp-4) var(--esp-3);
     text-align: center;
-    color: var(--text-muted);
-    padding: 40px 20px;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.6;
+    color: var(--hueso-tenue);
+    background: var(--noche);
+    border: 1px dashed var(--noche-borde);
+    border-radius: var(--radio);
+    text-wrap: balance;
 }
 
-/* --- GRÁFICO DE BARRAS --- */
+.detalle-grafico summary {
+    padding: var(--esp-2) 0;
+    font-size: 14px;
+    color: var(--hueso-tenue);
+    cursor: pointer;
+}
+.detalle-grafico summary:hover {
+    color: var(--hueso);
+}
+
+/* ============ AJUSTES ============ */
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+}
+.campo > label,
+.etiqueta-grupo {
+    font-size: 15px;
+    color: var(--hueso);
+}
+
+.ayuda {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--hueso-tenue);
+}
+
+.interruptor {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-2);
+    font-size: 14px;
+    color: var(--hueso);
+    cursor: pointer;
+}
+.interruptor input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--brasa);
+}
+
+.subtitulo-ajustes {
+    margin-top: var(--esp-2);
+    padding-top: var(--esp-3);
+    border-top: 1px solid var(--noche-borde);
+    font-family: var(--tipo);
+    font-size: 15px;
+    color: var(--hueso);
+}
+
+.botonera {
+    display: flex;
+    gap: var(--esp-2);
+}
+.botonera .btn-secundario {
+    flex: 1;
+}
+
+/* ============ PÁGINA INFORMATIVA ============ */
+.info-seccion {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+}
+.info-seccion h3 {
+    font-family: var(--tipo);
+    font-size: 16px;
+    color: var(--brasa);
+}
+.info-seccion p {
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+.info-aviso {
+    padding: var(--esp-3);
+    font-size: 14px;
+    line-height: 1.6;
+    background: var(--noche);
+    border-left: 3px solid var(--brasa-honda);
+    border-radius: 0 var(--radio) var(--radio) 0;
+}
+
+.info-descargo {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--hueso-tenue);
+}
+
+.info-fuentes {
+    padding-top: var(--esp-3);
+    border-top: 1px solid var(--noche-borde);
+    font-size: 13px;
+    color: var(--hueso-tenue);
+}
+.info-fuentes ul {
+    margin: var(--esp-2) 0 0;
+    padding-left: var(--esp-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+}
+
+/* ============ GRÁFICO ============ */
 .chart-wrapper {
-    background: var(--leather-dark);
-    padding: 20px;
-    border: 4px solid var(--leather-light);
-    margin-top: 20px;
+    margin-top: var(--esp-2);
+    padding: var(--esp-3) var(--esp-2);
+    background: var(--noche);
+    border: 1px solid var(--noche-borde);
+    border-radius: var(--radio);
 }
 .chart-container {
     display: flex;
     align-items: flex-end;
-    height: 200px;
-    gap: 8px;
+    gap: 5px;
+    height: 120px;
     overflow-x: auto;
-    padding-bottom: 10px;
 }
 .bar-group {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
+    gap: var(--esp-1);
     height: 100%;
-    min-width: 32px;
+    min-width: 22px;
 }
 .bar {
-    width: 24px;
-    transition: height 0.5s ease;
-    border: 2px solid #000;
+    width: 100%;
+    min-height: 3px;
+    border-radius: 3px 3px 0 0;
+    background: linear-gradient(180deg, var(--brasa) 0%, var(--brasa-honda) 100%);
 }
-.bar.good {
-    background-color: var(--success);
-}
-.bar.ok {
-    background-color: var(--ember-mid);
-}
-.bar.bad {
-    background-color: var(--danger);
+.bar.corta {
+    background: var(--cuero-claro);
 }
 .bar-label {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 8px;
+    font-size: 10px;
+    color: var(--hueso-tenue);
 }
 
-/* --- MODAL (reemplaza confirm() nativo) --- */
-dialog.modal {
-    background: var(--leather-dark);
-    color: var(--text-main);
-    border: 3px solid var(--leather-light);
-    border-radius: 6px;
-    padding: 0;
-    max-width: 340px;
-    width: calc(100% - 48px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+/* ============ AVISO FLOTANTE ============ */
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: var(--esp-4);
+    z-index: 200;
+    transform: translate(-50%, 12px);
+    max-width: calc(100vw - 2 * var(--esp-3));
+    padding: 12px var(--esp-3);
+    font-size: 14px;
+    color: var(--noche);
+    background: var(--brasa-viva);
+    border-radius: var(--radio);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity 0.2s,
+        transform 0.2s;
 }
-dialog.modal::backdrop {
-    background: rgba(0, 0, 0, 0.6);
+.toast.visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+/* ============ MODAL DE CONFIRMACIÓN ============ */
+.modal {
+    max-width: 380px;
+    padding: 0;
+    border: 1px solid var(--cuero-claro);
+    border-radius: var(--radio);
+    background: var(--noche-alta);
+    color: var(--hueso);
+}
+.modal::backdrop {
+    background: rgba(5, 8, 10, 0.72);
 }
 .modal-content {
-    padding: 20px;
+    padding: var(--esp-4) var(--esp-3) var(--esp-3);
     display: flex;
     flex-direction: column;
-    gap: 18px;
-    margin: 0;
+    gap: var(--esp-3);
 }
 .modal-message {
-    margin: 0;
-    font-family: var(--font-body);
     font-size: 15px;
-    line-height: 1.5;
-    color: var(--hide);
+    line-height: 1.6;
+    text-align: center;
 }
 .modal-actions {
     display: flex;
-    gap: 10px;
-    justify-content: flex-end;
     flex-wrap: wrap;
+    gap: var(--esp-2);
 }
-.modal-btn {
-    font-family: var(--font-body);
+.modal-actions button {
+    flex: 1;
+    min-width: 110px;
+    padding: 12px var(--esp-2);
     font-size: 14px;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    border: 2px solid var(--leather-light);
+    color: var(--hueso);
     background: transparent;
-    color: var(--text-muted);
+    border: 1px solid var(--cuero-claro);
+    border-radius: var(--radio);
 }
-.modal-btn-confirm {
-    background: var(--danger);
-    border-color: var(--danger);
-    color: var(--hide);
-}
-.modal-btn-primary {
-    background: var(--success);
-    border-color: var(--success);
-    color: var(--hide);
-}
-.modal-btn:focus-visible {
-    outline: 2px solid var(--ember-mid);
-    outline-offset: 2px;
+.modal-actions button.primario {
+    color: var(--noche);
+    background: var(--brasa);
+    border-color: var(--brasa);
 }
 
-/* --- PÁGINA INFORMATIVA (Fase 8): "Por Qué Dormimos en Tranco" ---
-   Texto de lectura, no controles — se apoya en el mismo font-body
-   monoespaciado que ya usa el resto de la app para "contenido de
-   lectura/datos" (ver comentario en tokens.css), pero los subtítulos de
-   sección usan el font-display para que lea como una cartilla impresa,
-   distinto de los .section-label chiquitos en mayúscula que ya se usan
-   para separadores funcionales (Cuaderno/Recuento). */
-.info-link {
-    display: block;
-    width: 100%;
-    margin: -4px 0 20px;
-    /* Fase 9 (QA): 12px verticales para que el área tocable ronde los
-       40px de alto (recomendación de tamaño de tap target), sin que el
-       link deje de leerse como algo secundario frente a .calc-btn. */
-    padding: 12px 4px;
-    background: none;
-    border: none;
-    text-align: center;
-    color: var(--ember-mid);
-    font-family: var(--font-body);
-    font-size: 13px;
-    text-decoration: underline;
-    cursor: pointer;
+.modal-actions button.peligro {
+    color: #fff;
+    background: var(--peligro);
+    border-color: var(--peligro);
 }
 
-.info-section {
-    margin-bottom: 26px;
-}
-.info-section h2 {
-    font-family: var(--font-display);
-    font-size: 21px;
-    color: var(--ember-mid);
-    margin: 0 0 10px;
-    letter-spacing: 0.02em;
-}
-.info-section p {
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--text-main);
-    margin: 0 0 12px;
-}
-.info-section p:last-child {
-    margin-bottom: 0;
+/* En modo brasa el botón principal deja de ser una losa de ámbar
+   encendido. Es el área de color más grande de la pantalla, así que era
+   la principal fuente de luz a la cara justo en el momento en que uno
+   quiere menos luz. Pasa a fondo apagado con el texto en brasa: sigue
+   siendo el elemento más destacado, sin alumbrar. */
+:root[data-tema='brasa'] .btn-principal {
+    color: var(--brasa-viva);
+    background: linear-gradient(180deg, #2b1d10 0%, #1b1209 100%);
+    border: 1px solid var(--brasa-honda);
 }
 
-.info-note {
-    background: var(--leather-dark);
-    border: 2px solid var(--ember-edge);
-    border-radius: 4px;
-    padding: 12px 14px;
-    margin-top: 12px;
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--hide);
-}
-.info-note strong {
-    color: var(--ember-mid);
-}
-
-.info-disclaimer {
-    font-size: 12px;
-    line-height: 1.5;
-    color: var(--text-muted);
-    border-top: 1px dashed var(--leather-light);
-    padding-top: 14px;
-    margin: 4px 0 20px;
-}
-
-.info-sources {
-    margin-top: 24px;
-    font-size: 11px;
-    line-height: 1.7;
-    color: var(--text-muted);
-}
-.info-sources p {
-    margin: 0;
-}
-.info-sources ul {
-    list-style: none;
-    margin: 6px 0 0;
-    padding: 0;
-}
-.info-sources li {
-    margin-bottom: 4px;
-}
-.info-sources a {
-    color: var(--text-muted);
-}
-.info-sources a:focus-visible {
-    outline: 2px solid var(--ember-mid);
-    outline-offset: 2px;
-}
-
-.history-card {
-    background: var(--hide);
-    border: 2px solid #8b7355;
-    padding: 12px 14px;
-    margin-bottom: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    color: #3e2723;
-}
-.history-date {
-    font-size: 18px;
-    font-weight: bold;
-}
-.history-detail {
-    font-size: 14px;
-    margin-top: 2px;
-}
-.history-notes {
-    font-size: 13px;
-    margin-top: 6px;
-    font-style: italic;
-    color: #5d4037;
-}
-.history-side {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-    flex-shrink: 0;
-}
-.history-duration {
-    font-size: 24px;
-    font-weight: bold;
-    color: var(--success);
-    font-variant-numeric: tabular-nums;
-}
-.history-quality {
-    font-size: 14px;
-    color: #a1750f;
-    letter-spacing: 1px;
-}
-.delete-btn {
-    background: var(--danger);
-    color: white;
-    border: none;
-    border-radius: 3px;
-    font-family: var(--font-body);
-    font-size: 13px;
-    padding: 4px 10px;
-    cursor: pointer;
-}
-
-/* --- FOCO VISIBLE (accesibilidad de teclado) --- */
-.calc-btn:focus-visible,
-.delete-btn:focus-visible,
-.btn-danger:focus-visible,
-.btn-secondary:focus-visible,
-.info-link:focus-visible,
-.stats-card button:focus-visible,
-input[type='time']:focus-visible,
-input[type='number']:focus-visible,
-input[type='date']:focus-visible,
-input[type='text']:focus-visible,
-select:focus-visible,
-h1:focus-visible {
-    outline: 2px solid var(--ember-mid);
-    outline-offset: 2px;
+/* El aviso flotante, por lo mismo. */
+:root[data-tema='brasa'] .toast {
+    color: var(--brasa-viva);
+    background: #2b1d10;
+    border: 1px solid var(--brasa-honda);
 }

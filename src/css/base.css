@@ -1,33 +1,103 @@
-/* base.css — reset + tipografía global */
+/* base.css — reset mínimo y tipografía global. */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 body {
-    font-family: var(--font-body);
-    background-color: var(--bg-night);
-    color: var(--text-main);
     margin: 0;
-    padding: 0;
-    padding-bottom: var(--nav-height);
+    padding: 0 0 var(--esp-5);
+    min-height: 100vh;
+
+    font-family: var(--tipo);
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--hueso);
+
+    background-color: var(--noche);
+    /* El resplandor del fogón: la página entera está iluminada desde
+       abajo del título, no desde arriba. Es lo que hace que la pantalla
+       se sienta un lugar y no un formulario. */
+    background-image:
+        radial-gradient(
+            120% 70% at 50% 8%,
+            rgba(221, 159, 69, var(--luz-fuego)) 0%,
+            transparent 60%
+        ),
+        linear-gradient(180deg, var(--noche-alta) 0%, var(--noche) 45%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+
     display: flex;
     flex-direction: column;
     align-items: center;
-    background-image:
-        radial-gradient(circle at 50% 10%, rgba(201, 120, 47, 0.15) 0%, transparent 50%),
-        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);
+    -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+    margin: 0;
+    line-height: 1.2;
 }
 
 h1 {
-    font-family: var(--font-display);
-    font-size: 32px; margin: 0; text-align: center; letter-spacing: 1px;
-    text-shadow: 2px 2px 0px #000;
+    font-family: var(--tipo-titulo);
+    font-size: clamp(26px, 7vw, 34px);
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    text-align: center;
 }
-p.subtitle { color: var(--text-muted); font-size: 15px; margin-top: 6px; margin-bottom: 24px; text-align: center; line-height: 1.5; }
 
-/* Oculta visualmente sin ocultar para lectores de pantalla. */
+p {
+    margin: 0;
+}
+
+button {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+a {
+    color: var(--brasa);
+}
+
+/* Foco visible en todo lo que se puede enfocar. Va acá y no repetido en
+   cada componente para que ningún control nuevo se quede sin él. */
+:where(button, input, select, textarea, a, [tabindex]):focus-visible {
+    outline: 2px solid var(--brasa);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+/* Un título que recibe el foco al abrirse una capa no debe mostrar el
+   recuadro: el usuario no navegó hasta ahí, lo llevamos nosotros. */
+h1:focus,
+h2:focus {
+    outline: none;
+}
+
 .visually-hidden {
     position: absolute;
-    width: 1px; height: 1px;
-    padding: 0; margin: -1px;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
     overflow: hidden;
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
+}
+
+/* El atributo `hidden` tiene que ganarle a cualquier `display` de autor.
+   La hoja del navegador trae `[hidden] { display: none }`, pero un
+   selector de clase le gana por especificidad: con `.tarjeta-anoche
+   { display: flex }`, poner hidden no ocultaba nada. Pasó de verdad — la
+   tarjeta que pregunta por anoche se le mostraba a un desconocido en su
+   primera visita, que es justo lo que el código tiene prohibido hacer. */
+[hidden] {
+    display: none !important;
 }
