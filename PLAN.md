@@ -440,6 +440,22 @@ Los tres salieron de mirar la app corriendo, no de leer el código.
   leños que se distinguen en dos tonos; los árboles con tronco y copa; el
   cardón con sus brazos; textura en el suelo; y el recado tirado en el
   pasto, que cuenta que el que está ahí venía a caballo.
+- 2026-09-17 — **Tres correcciones sobre la escena, todas por reportes
+  de Bruno de que no se entendía qué era cada cosa.** (a) El mate no se
+  leía —ni supo que había uno— y el brazo que lo sostenía salía como un
+  palo: se sacaron los dos, y el gaucho quedó encogido con las rodillas
+  levantadas bajo el poncho, que se lee solo. (b) El fogón parecía una
+  olla o una parrilla: se rearmó en pirámide, con los leños apoyados unos
+  contra otros y el círculo de piedras, que es como se arma y como se
+  reconoce uno. (c) Los leños se perdían porque estaban casi del tono del
+  suelo; ahora van en tono iluminado, que además es físicamente correcto
+  —un leño pegado al fuego está alumbrado por el fuego— y las piedras en
+  un gris frío que no se confunde con leña.
+- 2026-09-17 — La luz del fuego sobre el gaucho marca tres salientes
+  sueltos (cara, hombro, rodilla) y no un borde corrido. De la cabeza al
+  piso formaba una línea naranja continua que se leía como un bastón
+  apoyado contra el cuerpo: era, muy probablemente, el "palo" que Bruno
+  venía marcando.
 - 2026-09-17 — El matorral del claro lleva alturas y huecos irregulares
   fijos. Parejos se leía como un paredón de guiones detrás del gaucho.
 - 2026-09-17 — **Monte chaqueño, tormenta y viento en la escena**, a
