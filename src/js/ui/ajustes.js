@@ -6,7 +6,9 @@
 // visita. Peor: la latencia ni siquiera se guardaba, así que quien tarda
 // 35 minutos la retipeaba todas las veces.
 import {
+    borrarDatosV1,
     clearAllData,
+    contarRegistrosV1,
     exportData,
     getCycleLength,
     getLatency,
@@ -53,12 +55,35 @@ export function initAjustes() {
     });
 
     document.getElementById('btn-borrar-todo').addEventListener('click', borrarTodo);
+    document.getElementById('btn-borrar-viejos').addEventListener('click', borrarViejos);
 }
 
 export function renderAjustes() {
     document.getElementById('ajuste-latencia').value = getLatency();
     document.getElementById('ajuste-ciclo').value = getCycleLength();
     document.getElementById('ajuste-brasa').checked = getTheme() === 'brasa';
+
+    // La opción de borrar los datos viejos solo se muestra si hay algo
+    // que borrar. Ofrecerla siempre sería contarle a todo el mundo un
+    // problema que la mayoría no tiene.
+    const viejos = contarRegistrosV1();
+    document.getElementById('datos-viejos').hidden = viejos === 0;
+    if (viejos > 0) {
+        document.getElementById('datos-viejos-texto').textContent =
+            `Quedaron ${viejos} ${viejos === 1 ? 'registro' : 'registros'} de una versión anterior de la app, que guardaba la hora calculada y no la que dormiste. No se usan para nada y ocupan lugar en este navegador.`;
+    }
+}
+
+async function borrarViejos() {
+    const confirmado = await confirmModal({
+        message: 'Se borran los registros de la versión anterior. Los de ahora no se tocan.',
+        confirmLabel: 'Borrar',
+    });
+    if (!confirmado) return;
+
+    borrarDatosV1();
+    renderAjustes();
+    showToast('Listo, se liberó ese espacio.');
 }
 
 function exportar() {

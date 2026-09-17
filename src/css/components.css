@@ -157,6 +157,11 @@
     overflow: hidden;
 }
 
+/* El <li> es el elemento de la grilla; la fila de adentro lo llena. */
+.resultado-filas > li {
+    display: flex;
+}
+
 .fila {
     display: grid;
     grid-template-columns: auto 1fr auto;

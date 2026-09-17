@@ -3,7 +3,7 @@
 **Nivel:** profundo — toca todos los módulos, hay datos del usuario en
 juego, y el proyecto tiene tres objetivos simultáneos que tiran en
 direcciones distintas.
-**Estado:** aprobado — en ejecución
+**Estado:** terminado — pendiente el merge a `main`
 **Última actualización:** 2026-09-17
 
 > **Este plan reemplaza una versión anterior que apuntaba al lugar
@@ -331,21 +331,41 @@ clave `openSleep`, modo brasa, y las reglas de voz del repo.
       `<dialog>` nativos: foco atrapado, cierre con Escape y semántica
       correcta sin escribir nada de eso a mano. **Verificado:** las tres
       llegan hasta su último control scrolleando.
-- [ ] 8. Primera visita de un desconocido — **verificación:** abrir en
-      una ventana privada, sin datos, y confirmar que se entiende sin
-      contexto. Estados vacíos que explican en vez de solo avisar.
-- [ ] 9. Corregir los cuatro defectos del código actual (ver Riesgos) —
-      **verificación:** un test por cada uno.
-- [ ] 10. Reglas de voz del repo en `.claude/skills/` — **verificación:**
-      una sesión futura que escriba texto nuevo no vuelve al gauchesco.
-      Es también material concreto para la charla.
-- [ ] 11. README como pieza de portfolio: qué es, cómo se ve (capturas),
-      cómo se construyó — **verificación:** alguien que no conoce el
-      proyecto entiende los tres puntos sin abrir el código.
-- [ ] 12. `docs/proceso.md`: cómo se orquestó con IA, incluida la
-      corrección de rumbo de este mismo plan — **verificación:** se lee
-      solo y sirve de guion.
-- [ ] 13. QA final y deploy — **verificación:** ver abajo.
+- [x] 8. Primera visita de un desconocido — **hecho y verificado.** Sin
+      datos se ve el cálculo ya hecho, y la tarjeta que pregunta por
+      anoche no aparece (el script de capturas lo mide sobre el estilo
+      aplicado, no sobre el atributo). El cuaderno vacío explica para qué
+      sirve en vez de solo avisar que está vacío.
+- [x] 9. Los cuatro defectos del código de la v1 — **corregidos.** Los
+      tres primeros durante los pasos 2 y 6. El cuarto, los datos
+      huérfanos de `sleepLoreDB`, se ofrece borrar desde Ajustes, y la
+      opción solo aparece si efectivamente hay algo: **verificado de
+      punta a punta** con Playwright (oculto sin datos, visible con la
+      cuenta, y tras borrar desaparece y el `localStorage` queda limpio).
+- [x] 10. Reglas de voz del repo en `.claude/skills/voz/SKILL.md` —
+      **hecho.** Incluye la regla, la tabla de equivalencias ya
+      corregidas, cómo se escriben los errores y los números, y la
+      exigencia de honestidad sobre la evidencia. **Verificado:** un
+      barrido de las palabras del registro viejo no encuentra ninguna en
+      el código ni en el HTML, salvo en los comentarios que justamente
+      explican por qué se eliminaron.
+- [x] 11. README como pieza de portfolio — **hecho.** Arranca por qué
+      hace y para quién, con cinco capturas nuevas, y recién después
+      cuenta cómo está construida. Las capturas viejas de la v1 se
+      borraron.
+- [x] 12. `docs/proceso.md` — **hecho.** Cuenta el proceso y, sobre todo,
+      **las tres veces que el plan estaba mal** y qué lo destapó. Incluye
+      una sección con los errores del propio agente, porque también son
+      parte del ejemplo.
+- [x] 13. QA final — **hecho.** Lighthouse sobre el build de producción:
+      **100 performance / 100 accesibilidad / 96 best practices / 100
+      SEO**, contra la línea de base de la v1 de 98/96/96/100. La
+      accesibilidad subió de 96 a 100 al corregir un hallazgo real: el
+      `<ul>` de resultados tenía `<button>` como hijos directos, que es
+      HTML inválido y hace que un lector de pantalla deje de anunciar la
+      cantidad de elementos. El 96 de best practices es un error de
+      consola del proxy de este contenedor bloqueando Google Fonts, no de
+      la app. **Falta el deploy**, que es de Bruno: pisar `main`.
 
 ## Riesgos
 

@@ -15,7 +15,8 @@
 // de cumplir "no los rompas ni los corrompas silenciosamente" sin migrar
 // datos que significan otra cosa (una sugerencia calculada no es lo
 // mismo que sueño real: convertirlos mezclaría ficción con dato real en
-// las métricas nuevas). "Borrar el Rastro" solo borra `sleepLogReal`.
+// las métricas nuevas). "Borrar todo" borra solo los datos de la v2;
+// los de la v1 se ofrecen aparte en Ajustes (ver contarRegistrosV1).
 import { clampCycleLength, clampLatency, formatTime } from './calc.js';
 import {
     closeSleepSession,
@@ -279,6 +280,33 @@ export function clearAllData() {
     // Si queda una noche abierta, borrar el historial y dejarla viva sería
     // incoherente: "borrar todo" tiene que borrar todo.
     localStorage.removeItem(OPEN_SLEEP_KEY);
+    avisar();
+}
+
+// --- LOS DATOS DE LA v1 ---
+//
+// Hasta la Fase 4 la app guardaba bajo la clave `sleepLoreDB` el cálculo
+// SUGERIDO (a qué hora convendría acostarse), no lo que realmente pasó.
+// Cuando el registro pasó a ser de sueño real, esos datos quedaron
+// huérfanos: no se leen, no se escriben y no se borran, así que siguen
+// ocupando lugar en el navegador de cualquiera que haya usado una
+// versión vieja, sin que nada los muestre ni los explique.
+//
+// No se borran solos. Son datos de la persona: que decida ella. Ajustes
+// ofrece hacerlo, y solo aparece la opción si efectivamente hay algo.
+const CLAVE_V1 = 'sleepLoreDB';
+
+export function contarRegistrosV1() {
+    try {
+        const data = JSON.parse(localStorage.getItem(CLAVE_V1));
+        return Array.isArray(data) ? data.length : 0;
+    } catch {
+        return 0;
+    }
+}
+
+export function borrarDatosV1() {
+    localStorage.removeItem(CLAVE_V1);
     avisar();
 }
 

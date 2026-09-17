@@ -244,6 +244,16 @@
                 <input type="file" id="import-file-input" accept="application/json,.json" hidden />
 
                 <button type="button" class="btn-peligro" id="btn-borrar-todo">Borrar todo</button>
+
+                <!-- Solo aparece si quedaron datos de una versión vieja de
+                     la app. Ver contarRegistrosV1 en storage.js. -->
+                <div class="campo" id="datos-viejos" hidden>
+                    <span class="etiqueta-grupo">Datos de la versión anterior</span>
+                    <p class="ayuda" id="datos-viejos-texto"></p>
+                    <button type="button" class="btn-secundario" id="btn-borrar-viejos">
+                        Borrarlos
+                    </button>
+                </div>
             </div>
         </dialog>
 

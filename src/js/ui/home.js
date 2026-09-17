@@ -177,7 +177,11 @@ function renderResultado({ modo = 'ahora', hora = null } = {}) {
 }
 
 function filaResultado(opcion, ahora) {
-    const fila = document.createElement(opcion.seleccionable ? 'button' : 'li');
+    // Cada fila va envuelta en un <li>. Un <ul> con <button> como hijos
+    // directos es HTML inválido, y los lectores de pantalla dejan de
+    // anunciar la cantidad de elementos de la lista.
+    const li = document.createElement('li');
+    const fila = document.createElement(opcion.seleccionable ? 'button' : 'div');
     fila.className = 'fila' + (opcion.recomendada ? ' recomendada' : '');
     if (opcion.seleccionable) {
         fila.type = 'button';
@@ -195,7 +199,9 @@ function filaResultado(opcion, ahora) {
         'aria-label',
         `${opcion.hora}, en ${formatDuration(faltan)}, ${opcion.detalle}${opcion.recomendada ? ', recomendado' : ''}`,
     );
-    return fila;
+
+    li.appendChild(fila);
+    return li;
 }
 
 function elegirHora(hora) {
