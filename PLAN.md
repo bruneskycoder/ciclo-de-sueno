@@ -458,6 +458,11 @@ Los tres salieron de mirar la app corriendo, no de leer el código.
   venía marcando.
 - 2026-09-17 — El matorral del claro lleva alturas y huecos irregulares
   fijos. Parejos se leía como un paredón de guiones detrás del gaucho.
+- 2026-09-17 — **Revertido: la tormenta, los refusilos, el viento y el
+  recado se eliminaron** a pedido de Bruno. El recado nunca se leyó como
+  una montura (preguntó qué era "ese coso marrón claro"), y el clima
+  agregaba complejidad a un dibujo con el que ya se había peleado
+  bastante. Las entradas de abajo quedan como registro de qué se probó.
 - 2026-09-17 — **Monte chaqueño, tormenta y viento en la escena**, a
   pedido de Bruno. El monte no es decorado: es la masa oscura contra la
   que los refusilos se ven, que si no serían destellos en el vacío. Entre
