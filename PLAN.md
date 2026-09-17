@@ -431,6 +431,25 @@ Los tres salieron de mirar la app corriendo, no de leer el código.
   Ahí "1 ciclo" significa acostarse 05:10 para levantarse 07:00: no es
   una opción, es una fila absurda, y con el orden ascendente quedaba
   arriba de todo empujando las útiles al fondo.
+- 2026-09-17 — **Monte chaqueño, tormenta y viento en la escena**, a
+  pedido de Bruno. El monte no es decorado: es la masa oscura contra la
+  que los refusilos se ven, que si no serían destellos en el vacío. Entre
+  x=40 y x=84 el monte se abre en un claro, porque con copas ahí atrás la
+  silueta del gaucho se perdía (y un fuego no se prende en el medio del
+  monte cerrado).
+- 2026-09-17 — La tormenta se sortea **una vez al cargar la página** (25%
+  de probabilidad), no en cada repintado. La escena se redibuja cada
+  minuto y con cada cambio de tema: sorteando ahí, el clima parpadearía
+  entre tormenta y sereno mientras uno mira la pantalla.
+- 2026-09-17 — Los refusilos son la nube alumbrada por dentro, sin rayo
+  dibujado: es lo que efectivamente se ve de una tormenta lejana. La luz
+  sigue la silueta del frente, porque como rectángulo sobre el cielo se
+  leía como un panel encendido. El perfil de la nube quedó en una
+  constante que comparten el dibujo y el destello, para que no se
+  desincronicen.
+- 2026-09-17 — El viento se ve en tres cosas a la vez: la llama acostada
+  (juego de cuadros aparte), los pastos inclinados y polvo cruzando. Con
+  una sola de las tres se supone; con las tres se siente.
 - 2026-09-17 — **La cabecera pasó de una llama en SVG a una escena de
   pixel art animada**: un gaucho sentado junto al fogón, de día o de
   noche según la hora. Pedido de Bruno. Los sprites están escritos como
