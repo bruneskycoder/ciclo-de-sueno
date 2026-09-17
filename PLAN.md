@@ -1,340 +1,381 @@
-# Plan: versión 2 — rediseño minimalista
+# Plan: versión 2 — herramienta diaria y pieza de portfolio
 
-**Nivel:** profundo — toca varios módulos con interfaces entre sí, hay
-alternativas reales de enfoque, y hay datos del usuario ya guardados en
-el navegador.
+**Nivel:** profundo — toca todos los módulos, hay datos del usuario en
+juego, y el proyecto tiene tres objetivos simultáneos que tiran en
+direcciones distintas.
 **Estado:** borrador — esperando aprobación
 **Última actualización:** 2026-09-17
+
+> **Este plan reemplaza una versión anterior que apuntaba al lugar
+> equivocado.** El primer plan optimizaba por eficiencia de interacción
+> y proponía podar la identidad visual y el lenguaje. Dos hechos que
+> aparecieron después lo invalidaron: la app se usa una o dos veces por
+> día (no estaba abandonada, lo abandonado era el registro), y tiene un
+> segundo trabajo que no estaba contemplado — se muestra con orgullo,
+> va a un portfolio y puede ser ejemplo en una charla sobre IA. Una app
+> mínima y gris es eficiente y olvidable: sirve para el primer trabajo y
+> arruina el segundo.
 
 ---
 
 ## Objetivo
 
-Reducir la app de 4 pantallas y 10 campos de formulario a **una sola
-pantalla con un campo**, en la que la acción más frecuente (saber a qué
-hora poner el despertador si me acuesto ahora) se resuelve con **un
-toque**.
+La app tiene **tres trabajos** y ninguna decisión se toma sin saber a
+cuál sirve:
 
-Éxito observable:
-- Calcular la hora de despertar acostándose ahora: **1 toque** (hoy: 2-3).
-- Registrar una noche completa: **2 toques, sin escribir nada**
-  (hoy: 5 campos + recordar a qué hora te acostaste).
+| # | Trabajo | Usuario | Qué exige |
+|---|---|---|---|
+| 1 | Calcular a qué hora dormir o despertar | Bruno, 1-2 veces por día | Fricción cero |
+| 2 | Ser memorable cuando se la muestra | Quien la mira, en portfolio o charla | Identidad fuerte, primera impresión, algo que se recuerde |
+| 3 | Demostrar qué sale de orquestar IA | Bruno y su audiencia | Repo, README y proceso legibles por un tercero |
+
+**El principio que ordena todo:**
+
+> El recorte va sobre la **fricción**. La ambición va sobre la
+> **expresión**.
+
+Campos, pantallas y toques: se podan a fondo. Identidad, prosa y
+carácter: se invierte. Tratados como una sola variable, se contradicen;
+separados, no.
+
+**Éxito observable:**
+- La respuesta más frecuente ("me duermo ahora, ¿a qué hora me
+  despierto?") aparece en **cero toques**, con la app recién abierta.
+- Anotar una noche completa: **2 toques, sin escribir nada**.
+- Un desconocido abre el link sin datos ni contexto y entiende qué está
+  mirando en 5 segundos.
+- Nadie que lea el repo necesita preguntar qué es ni cómo se construyó.
 - Cero palabras en la interfaz que el propio autor no entienda.
-- Una sola pantalla; el resto se abre como capas encima.
 
 ## Fuera de alcance
 
-- Alarmas o notificaciones programadas. **Verificado, no es posible**: el
-  desarrollo de la Notification Triggers API fue discontinuado por Chrome
-  por no poder dar una experiencia consistente entre plataformas, y en
-  iOS no existe programación local de notificaciones sin un servidor
-  (no hay background sync; el push requiere backend y PWA instalada).
-  Se reemplaza por copiar la hora al portapapeles.
-- Detección automática de sueño, sensores, micrófono, acelerómetro.
-- Backend, cuentas de usuario, sincronización entre dispositivos.
-- Reescribir la lógica de cálculo: `calc.js` y `metrics.js` están
-  testeados y se conservan.
+- Alarmas o notificaciones programadas. **Verificado, no es posible:**
+  el desarrollo de la Notification Triggers API fue discontinuado por
+  Chrome, y en iOS no existe programación local de notificaciones sin un
+  servidor. Se reemplaza por copiar la hora al portapapeles.
+- Backend, cuentas, sincronización entre dispositivos.
+- Sensores, detección automática de sueño, micrófono.
+- Reescribir `calc.js` y `metrics.js`: están testeados y se conservan.
 - Cambiar el nombre del repositorio o la URL de GitHub Pages.
 
 ## Contexto y supuestos
 
-**Hechos (verificados leyendo el código):**
+**Hechos (verificados en el código o dichos por el autor):**
+- La app se usa 1-2 veces por día. El registro de sueño es lo que se
+  abandonó, no la app.
 - 4 vistas en el nav + 1 informativa; 10 campos de formulario; 10 métricas.
-- 64 tests en verde (`calc.test.js`, `metrics.test.js`, `storage.test.js`).
-- `calcularSiesta` y `calcularCiclos` ya comparten la misma aritmética
-  (`computeTimePoint`) y el mismo tranco configurado: fusionarlas no
-  requiere lógica nueva.
-- La duración de ciclo se persiste; **la latencia no** — vuelve a 20 en
+- 64 tests en verde; PWA con service worker; deploy automático a Pages.
+- `calcularSiesta` y `calcularCiclos` ya comparten aritmética
+  (`computeTimePoint`): fusionarlas no agrega lógica.
+- La duración del ciclo se persiste; **la latencia no** — vuelve a 20 en
   cada visita.
-- El campo de hora ya se precarga con la hora actual, pero igual hay que
-  apretar el botón para calcular.
 - La app ya respeta `prefers-reduced-motion` (`components.css:188`).
-- El branch `claude/stoic-bardeen-5e44g8` está idéntico a `main`.
-- Las dependencias no están instaladas en este contenedor (`npm install`
-  es el paso 0 de la ejecución).
+- Las dependencias no están instaladas en este contenedor.
 
-**Inferencias (explicación que mejor encaja, no certeza):**
-- El abandono del registro se explica por el costo de entrada (5 campos +
-  recordar la hora de acostarse a la mañana siguiente) más que por
-  desinterés en el dato. → **Se está poniendo a prueba** con la
-  investigación externa (prompt 1). Si vuelve refutada, el registro se
-  recorta del todo en vez de simplificarse.
+**Inferencia corregida:** el plan anterior decía que el registro se
+abandonó por el costo de carga (5 campos + recordar la hora de
+acostarse). Sigue siendo la explicación más probable, pero ya **no es
+una pieza crítica**: el registro pasa a ser opcional e invisible para
+quien no lo use, así que si la hipótesis falla, no arrastra al resto.
 
-**Supuestos declarados (no confirmados, avanzo con ellos):**
-- El modo brasa es un interruptor manual persistido, **no** automático
-  por horario: adivinar por hora del día sorprende al usuario y acierta
-  poco.
-- El historial sigue siendo de una sola persona en un solo navegador.
-
-## Reutilización
-
-| Pieza existente | Cómo se usa en la v2 |
-|---|---|
-| `calc.js` | Intacto. `calcularCiclos`, `calcularSiesta` y `calcularDuracionReal` cubren todo lo nuevo. |
-| `metrics.js` | Intacto. La pantalla pinta 3 de sus 5 números; el resto queda disponible sin costo. |
-| `storage.js` (export/import, validación, merge) | Se conserva entero. El esquema `sleepLogReal` no cambia. |
-| `modal.js`, `toast.js` | Se conservan; el `<dialog>` ya existente pasa a ser la base de las capas. |
-| Vista informativa | Se conserva como capa. Se reescribe el texto al registro nuevo. |
-| Tests (64) | Deben seguir pasando sin modificarse. Es el criterio de que no rompí la lógica. |
-| PWA, service worker, íconos, CI/CD | Sin cambios. |
-
-**Nuevo (y por qué no se pudo reutilizar):**
-- Máquina de estados "durmiendo / despierto" — no existe nada parecido.
-- Capa genérica de hoja (`sheet`) para cuaderno/ajustes/info — hoy son
-  vistas de pantalla completa con nav; el patrón cambia.
-- Clave `openSleep` en localStorage — ver más abajo.
+**Supuestos declarados:**
+- El modo brasa es un interruptor manual persistido, no automático por
+  horario: adivinar por hora del día sorprende y acierta poco.
+- El historial sigue siendo de una persona en un navegador.
 
 ---
 
-## Enfoque elegido
+## Identidad: campo y noche, con voz propia
 
-### El hallazgo: un solo botón que cambia según el estado
+El tema nunca estuvo mal elegido — el campo argentino es territorio real
+del autor (ganadería, PRV, análisis territorial), no una decoración. Lo
+que falló fue la **dicción prestada**: vocabulario de literatura
+gauchesca del siglo XIX que el propio autor no hablaba ni entendía.
 
-Al cruzar tus respuestas apareció un choque: "Me voy a dormir ahora"
-(calcular) y "Me acuesto" (registrar) son **dos botones que dicen lo
-mismo**. Poner los dos obliga a elegir entre dos cosas que en la vida
-real son un solo acto.
+**La regla que resuelve las dos cosas a la vez:**
 
-La solución es que sean uno. **La app tiene estado**, y el botón
-principal es siempre la única acción que corresponde en ese momento:
+> **Etiquetas planas. Prosa con voz.**
 
-| Estado | Botón principal | Qué hace |
-|---|---|---|
-| Despierto | **Me voy a dormir** | Calcula las horas de despertar **y** abre la noche en el cuaderno. |
-| Durmiendo | **Me levanté** | Cierra la noche, muestra "dormiste 7h 20m · 5 ciclos" y ofrece calificarla. |
+Todo lo que sea una acción o un dato se nombra con la palabra más común
+que exista: cero ambigüedad, cero diccionario. El carácter vive en los
+lugares donde no hay nada que interpretar — subtítulos, estados vacíos,
+el resumen de una noche cerrada, la página informativa, el README. Ahí
+la personalidad no cuesta comprensión, y es donde de verdad se recuerda.
 
-Cero decisiones por parte tuya, y el registro deja de ser una tarea
-aparte: se vuelve un subproducto de usar la calculadora. Esto resuelve
-también la objeción que yo mismo había marcado ("te exige abrir la app
-dos veces al día"): la primera vez ya la abrías para calcular.
+### Etiquetas (planas)
 
-El modo "quiero levantarme a las X" queda como acción secundaria, con un
-campo de hora, y **solo calcula** — no registra nada.
+| Antes | Ahora |
+|---|---|
+| Me voy a las pilchas a las | Me voy a dormir |
+| Quiero levantarme con el sol a las | O quiero levantarme a las |
+| Marcar el Rumbo | Poné el despertador a las |
+| Tu tranco de sueño | Cuánto dura tu ciclo |
+| Minutos hasta que se me cierren los ojos | Cuánto tardás en dormirte |
+| Cuaderno de Ruta / Recuento de 30 Lunas | El cuaderno |
+| Últimos 7 soles | Tus últimas noches |
+| A la Sombra del Ombú | Siesta corta / Siesta larga |
+| Borrar el Rastro | Borrar todo |
+| ¡Decime a qué hora, que si no ando a ciegas! | Falta la hora |
 
-### Forma de la pantalla
+### Prosa (con voz)
+
+Voseo, coloquial, sin solemnidad ni signos de exclamación. El campo
+entra como **imagen**, no como vocabulario:
+
+- Bajo el título: *Los ciclos duran noventa minutos. Conviene despertarse
+  cuando uno termina, no en el medio.*
+- Al cerrar una noche: *Dormiste 7h 20m. Cinco vueltas completas.*
+- Cuaderno vacío: *Acá se van a ir juntando las noches. Todavía no hay
+  ninguna.*
+- Entre las dos siestas: *En el medio de esas dos no conviene: te agarra
+  en lo más hondo y te levantás peor que antes.*
+
+Para que esto no se desarme con el tiempo ni vuelva al gauchesco en una
+sesión futura, la voz queda escrita como regla del repo (ver paso 10).
+
+### Nombre
+
+**Recomendación: dejarlo en "A la Luz del Fogón".** Cambió el criterio y
+con él la respuesta. Cuando el objetivo era minimalismo, propuse
+"Lucero"; ahora que el objetivo es ser memorable, el nombre actual gana
+solo. "Fogón" y "a la luz de" son palabras corrientes — nunca fueron el
+problema. El problema estaba en las etiquetas de la interfaz, no en el
+título. Y un nombre con imagen se recuerda mejor en una charla que uno
+descriptivo.
+
+Si igual querés cambiarlo: **Lucero**, **Sereno** o **Madrugada**, en
+ese orden.
+
+---
+
+## Forma de la app
 
 ```
 ┌──────────────────────────────────┐
-│  [fogón sobrio]        [☾] [⚙]  │  ← modo brasa · ajustes
-│  <Nombre>                        │
-│  Ciclos de sueño de 90 minutos   │
+│  [fogón]               [☾] [⚙]  │  ← modo brasa · ajustes
+│  A la Luz del Fogón              │
+│  Los ciclos duran noventa        │
+│  minutos. Conviene despertarse   │
+│  cuando uno termina.             │
 ├──────────────────────────────────┤
-│   ╔════════════════════════════╗ │
-│   ║     Me voy a dormir        ║ │  ← acción única, cambia con el estado
-│   ╚════════════════════════════╝ │
+│  Si te dormís ahora,             │  ← YA CALCULADO al abrir
+│  poné el despertador a las:      │     cero toques
 │                                  │
-│   ...o quiero levantarme a las   │
-│   [ 06:30 ]                      │  ← único campo de la app
-├──────────────────────────────────┤
-│  Pará el despertador a las:      │
-│   06:10   en 5h 10m   4 ciclos   │
-│   07:40   en 6h 40m   5 ciclos   │  ← resaltados los recomendados
-│   09:10   en 8h 10m   6 ciclos   │
+│    06:10    en 5h 10m   4 ciclos │
+│    07:40    en 6h 40m   5 ciclos │  ← resaltados los recomendados
+│    09:10    en 8h 10m   6 ciclos │
 │                        [copiar]  │
 │                                  │
-│  Siesta corta  20 min   14:35    │  ← solo en modo "me acuesto"
-│  Siesta larga  1 ciclo  15:45    │
+│    Siesta corta   20 min   14:35 │
+│    Siesta larga   1 ciclo  15:45 │
 ├──────────────────────────────────┤
-│  El cuaderno              ▸      │  ← abre capa
+│   ╔════════════════════════════╗ │
+│   ║     Me voy a dormir        ║ │  ← solo anota; el cálculo ya pasó
+│   ╚════════════════════════════╝ │
+│                                  │
+│   O quiero levantarme a las      │
+│   [ 06:30 ]                      │  ← único campo de la app
+├──────────────────────────────────┤
+│  El cuaderno              ▸      │
 │  ¿Por qué 90 minutos?     ▸      │
 └──────────────────────────────────┘
 ```
 
-Tres capas encima, ninguna en una barra de navegación:
-- **El cuaderno** — tus últimas noches, 3 números (promedio de horas,
-  noches registradas, calidad promedio si calificaste alguna) y el
-  gráfico de 30 días que ya existe.
-- **Ajustes** — minutos hasta dormirte, duración del ciclo, modo brasa,
-  exportar/importar, borrar datos.
-- **Por qué 90 minutos** — la página informativa, con el texto reescrito.
+### La decisión que ordena la pantalla
 
-### Alternativas descartadas
+**El cálculo es ambiente, no una acción.** Al abrir, la app ya muestra
+las horas para dormirse ahora — es una función pura del reloj, no
+necesita ningún dato guardado ni ninguna decisión del usuario.
 
-- *Dos ítems en el nav (Calculadora | Registro)*: más conservador, pero
-  mantiene una barra fija ocupando 70px en una app de una pantalla.
-- *Calculadora pura, sin registro*: más minimalista todavía, pero tira un
-  historial que con 2 toques sí tiene chance de usarse.
-- *Menú de tres puntos*: esconde todo detrás de un toque extra sin ganar
-  nada frente a las tres entradas visibles.
+Esto resuelve tres cosas de una:
+1. **Trabajo 1:** la respuesta más frecuente llega en cero toques.
+2. **Trabajo 2:** un desconocido ve contenido real al instante, no un
+   formulario vacío.
+3. Desambigua el botón principal. En el plan anterior, "Me voy a dormir"
+   calculaba *y* anotaba, y chocaba con el botón de registrar. Ahora el
+   cálculo ya ocurrió: el botón solo anota, y quiere decir una sola cosa.
 
-**Criterio dominante:** costo de interacción por uso real. Entre dos
-opciones parecidas, gana la que necesita menos toques en el caso de la
-1 de la madrugada.
+### El botón principal tiene estado
 
----
-
-## Lenguaje
-
-Se va todo el vocabulario de la literatura gauchesca del siglo XIX, que
-es lenguaje de libro y no de habla: *pilchas, baqueteado, al pago, al
-alba, tranco, recuento de 30 lunas, últimos 7 soles, la tropa, ni a
-palos, rearmá el cuero, a la sombra del ombú, borrar el rastro, leé la
-posta*.
-
-Queda rioplatense de todos los días, con los guiños de campo que se
-entienden sin diccionario (fogón, siesta, madrugada, cuaderno):
-
-| Antes | Ahora |
-|---|---|
-| Me voy a las pilchas a las: | Me voy a dormir ahora |
-| Quiero levantarme con el sol a las: | Quiero levantarme a las: |
-| Marcar el Rumbo | Pará el despertador a las: |
-| Tu tranco de sueño | Duración de tu ciclo |
-| Minutos hasta que se me cierren los ojos | Cuánto tardás en dormirte |
-| Cuaderno de Ruta / Recuento de 30 Lunas | El cuaderno |
-| Últimos 7 soles | Tus últimas noches |
-| A la Sombra del Ombú | Siesta |
-| Borrar el Rastro | Borrar todo |
-| ¡Decime a qué hora, que si no ando a ciegas! | Falta la hora |
-
-## Nombre — **pendiente de tu elección**
-
-Cambiar el nombre visible es barato: toca `<title>`, `manifest.json`, la
-meta de iOS y el README. **No** cambia el repo ni la URL de Pages.
-
-| Nombre | A favor | En contra |
+| Estado | Dice | Hace |
 |---|---|---|
-| **Fogón** | Continuidad con lo que ya tenés, la ilustración ya está hecha, se entiende solo, cálido. Riesgo cero. | No dice nada de sueño por sí mismo. |
-| **Lucero** | El lucero del alba es la estrella que se ve al amanecer: liga directo con despertar. Corto, de campo, fácil, y no lo usa nadie. | Hay que saber qué es el lucero para que cierre. |
-| **Madrugada** | La palabra más clara de la lista, y nombra exactamente la franja en que se usa la app. | Connota trasnochar, que es lo contrario de lo que la app propone. |
-| **Sueñito** | El más cálido y el más rioplatense ("echarse un sueñito"). Cubre siesta y noche por igual. | Tono liviano; puede cansar a la larga. |
-| **Cabeceo** | Guiño doble (cabecear de sueño, el caballo que cabecea). Corto y gracioso. | Se lee como dormirse sin querer, no como planificar el descanso. |
+| Despierto | **Me voy a dormir** | Abre la noche en el cuaderno |
+| Durmiendo | **Ya me levanté** | La cierra, muestra cuánto dormiste, ofrece calificarla |
 
-Mi recomendación: **Lucero**. Es el único que nombra lo que la app hace
-(despertarse bien) sin explicarlo, y sobrevive al recorte del lenguaje de
-época porque no es una palabra de época, es una palabra común.
+Nunca hay dos acciones compitiendo: en cada momento hay una sola cosa
+que tiene sentido hacer. Además es lo más demostrable de la app en una
+charla — se abre y *sabe* si estás durmiendo.
+
+Si te olvidás de cerrarla, la noche queda abierta y el cuaderno la
+muestra con un botón para completar la hora a mano. No se descarta ni se
+inventa un valor.
+
+### Tres capas, ninguna barra de navegación
+
+- **El cuaderno** — las últimas noches, 3 números (promedio de horas,
+  noches anotadas, y calidad promedio solo si calificaste alguna) y el
+  gráfico de 30 días que ya existe.
+- **Ajustes** — cuánto tardás en dormirte, cuánto dura tu ciclo, modo
+  brasa, exportar/importar, borrar datos.
+- **¿Por qué 90 minutos?** — la página informativa, con el texto
+  reescrito a la voz nueva.
+
+El registro queda **opcional e invisible**: quien no lo use no se topa
+nunca con un cuaderno vacío, porque vive detrás de un toque.
 
 ---
 
 ## Datos: qué se guarda y qué se rompe
 
-**No se rompe nada.** El esquema `sleepLogReal` queda igual, así que las
-noches que ya tengas guardadas se siguen viendo, y los archivos de backup
-viejos se siguen importando.
+**No se rompe nada.** El esquema `sleepLogReal` no cambia, así que las
+noches ya guardadas se siguen viendo y los backups viejos se siguen
+importando.
 
-Dos agregados:
-- **Clave nueva `openSleep`** para la noche en curso: `{date,
-  bedtimeActual, startedAt}`. Vive **aparte** del historial a propósito —
-  si una noche a medio registrar entrara en el array principal, rompería
-  la validación de import, las métricas y los tests de una sola vez.
-  Separándola, todo eso queda intacto.
-- **Campo `kind`** (`'noche'` | `'siesta'`) en cada registro cerrado. Se
-  deriva de la duración, no del horario: menos de 3 horas es siesta. Las
-  siestas no entran en el promedio de noches. Los registros viejos sin
-  el campo se leen como `'noche'`.
+- **Clave nueva `openSleep`** para la noche en curso (`{date,
+  bedtimeActual, startedAt}`). Vive **fuera** del historial a propósito:
+  una noche a medio anotar dentro del array principal rompería la
+  validación de import, las métricas y los tests de una sola vez.
+- **Campo `kind`** (`'noche'` | `'siesta'`) en cada registro cerrado,
+  derivado de la **duración** (menos de 3h es siesta), no del horario —
+  la duración es dato real, el horario sería una adivinanza. Los
+  registros viejos sin el campo se leen como `'noche'`.
 
-Si te olvidás de tocar "Me levanté", la noche queda abierta y el cuaderno
-la muestra con un botón para completar la hora a mano. No se descarta ni
-se inventa un valor.
+## Reutilización
+
+| Pieza | Cómo se usa |
+|---|---|
+| `calc.js` | Intacto. Cubre todo lo nuevo. |
+| `metrics.js` | Intacto. La pantalla pinta 3 de sus 5 números. |
+| `storage.js` | Se conserva export/import, validación y merge. |
+| `modal.js`, `toast.js` | Se conservan; el `<dialog>` pasa a ser la base de las capas. |
+| Vista informativa | Se conserva; se reescribe el texto. |
+| Los 64 tests | **No se modifican.** Cualquier rojo es una regresión, no un cambio de plan. |
+| PWA, service worker, CI/CD | Sin cambios. |
+
+**Nuevo:** máquina de estados de la noche, capa genérica de hoja,
+clave `openSleep`, modo brasa, y las reglas de voz del repo.
 
 ---
 
 ## Pasos
 
-- [ ] 0. `npm install` y correr los 64 tests actuales — **verificación:**
-      los 64 pasan antes de tocar nada (línea de base).
-- [ ] 1. Exportar los datos actuales a un JSON de respaldo y guardarlo
-      fuera del repo — **verificación:** el archivo existe y se puede
-      volver a importar en la app actual.
-- [ ] 2. `storage.js`: agregar `openSleep`, el campo `kind` y la
-      persistencia de la latencia — **verificación:** tests nuevos de
-      abrir/cerrar/completar noche y de clasificación siesta/noche; los
-      64 anteriores siguen en verde.
-- [ ] 3. `calc.js`: agregar el cálculo de "falta Xh Ym" —
-      **verificación:** tests de casos normales, cruce de medianoche y
-      tiempo ya pasado.
+- [ ] 0. `npm install` y correr los 64 tests — **verificación:** los 64
+      pasan antes de tocar nada (línea de base).
+- [ ] 1. Exportar los datos actuales a un JSON y guardarlo fuera del
+      repo — **verificación:** el archivo se puede reimportar en la app
+      actual.
+- [ ] 2. `storage.js`: `openSleep`, campo `kind`, persistencia de la
+      latencia y del tema — **verificación:** tests nuevos de
+      abrir/cerrar/completar noche y clasificación siesta/noche; los 64
+      anteriores siguen verdes.
+- [ ] 3. `calc.js`: cálculo de "falta Xh Ym" — **verificación:** tests de
+      caso normal, cruce de medianoche y tiempo ya pasado.
 - [ ] 4. Reescribir `index.html`: una pantalla + tres capas, sin nav —
-      **verificación:** capturas de las 4 superficies en 360px sin
+      **verificación:** capturas de las 4 superficies a 360px sin
       desbordes.
-- [ ] 5. CSS: recortar la escena a un fogón sobrio (sin estrellas, sin
-      glow, sin sombras de texto), agregar el modo brasa —
-      **verificación:** capturas en modo normal y brasa; contraste WCAG AA
-      medido en ambos.
-- [ ] 6. Cablear la pantalla: máquina de estados del botón principal,
-      resultados con siesta fusionada, copiar al portapapeles —
-      **verificación:** recorrido manual completo, ida y vuelta.
-- [ ] 7. Cablear las tres capas (cuaderno, ajustes, info) con el texto
-      reescrito — **verificación:** todas abren, cierran, y se navegan con
-      teclado.
-- [ ] 8. Arreglar los cuatro defectos detectados en la auditoría (ver
-      Riesgos) — **verificación:** un test por cada uno.
-- [ ] 9. Renombrar en `title`, `manifest.json`, meta de iOS y README —
-      **verificación:** la app instalada muestra el nombre nuevo.
-- [ ] 10. Actualizar README y borrar lo que quedó sin uso —
-      **verificación:** `npm run lint` sin avisos de código muerto.
-- [ ] 11. QA final: tests, Lighthouse, emulación móvil, build —
-      **verificación:** ver abajo.
+- [ ] 5. Identidad visual: fogón y cielo nocturno trabajados, no podados;
+      modo brasa — **verificación:** capturas en ambos modos y contraste
+      WCAG AA medido en los dos. **Checkpoint con vos antes de seguir.**
+- [ ] 6. Cablear la pantalla: cálculo al abrir, máquina de estados,
+      siesta fusionada, copiar al portapapeles — **verificación:**
+      recorrido manual completo.
+- [ ] 7. Cablear las tres capas con el texto reescrito —
+      **verificación:** abren, cierran y se navegan con teclado.
+- [ ] 8. Primera visita de un desconocido — **verificación:** abrir en
+      una ventana privada, sin datos, y confirmar que se entiende sin
+      contexto. Estados vacíos que explican en vez de solo avisar.
+- [ ] 9. Corregir los cuatro defectos del código actual (ver Riesgos) —
+      **verificación:** un test por cada uno.
+- [ ] 10. Reglas de voz del repo en `.claude/skills/` — **verificación:**
+      una sesión futura que escriba texto nuevo no vuelve al gauchesco.
+      Es también material concreto para la charla.
+- [ ] 11. README como pieza de portfolio: qué es, cómo se ve (capturas),
+      cómo se construyó — **verificación:** alguien que no conoce el
+      proyecto entiende los tres puntos sin abrir el código.
+- [ ] 12. `docs/proceso.md`: cómo se orquestó con IA, incluida la
+      corrección de rumbo de este mismo plan — **verificación:** se lee
+      solo y sirve de guion.
+- [ ] 13. QA final y deploy — **verificación:** ver abajo.
 
 ## Riesgos
 
 | Riesgo | Mitigación |
 |---|---|
-| La inferencia sobre el abandono del registro es falsa y el cuaderno tampoco se usa en v2. | Se está poniendo a prueba con investigación externa antes de ejecutar. Y el cuaderno queda en una capa: si no se usa, sacarlo después no toca la pantalla principal. |
-| Perder datos guardados durante el rediseño. | El paso 1 es exportar antes de tocar nada. El esquema no cambia, así que la importación siempre funciona como vuelta atrás. |
-| El recorte visual se lleva puesto lo que hace tuya la app. | Checkpoint con capturas en el paso 5, antes de seguir. Si quedó frío, se revierte solo ese paso. |
-| El botón que cambia de estado confunde ("¿por qué dice otra cosa que ayer?"). | La primera vez que aparece "Me levanté" se acompaña de una línea que explica que hay una noche abierta, con opción de cancelarla. |
-| Romper algo que hoy funciona sin darse cuenta. | Los 64 tests actuales no se modifican: si alguno se pone rojo, es una regresión, no un cambio de plan. |
+| El recorte de fricción se lleva puesta la identidad otra vez. | El paso 5 es un checkpoint con capturas antes de seguir. Y la regla "etiquetas planas, prosa con voz" separa explícitamente las dos variables. |
+| La identidad queda cargada y estorba el uso diario. | El riesgo inverso, igual de real. Se mide en el mismo checkpoint: si la pantalla principal no se lee de un vistazo a la madrugada, se poda. |
+| Perder datos guardados. | El paso 1 es exportar antes de tocar nada; el esquema no cambia, así que la importación funciona siempre como vuelta atrás. |
+| Romper algo que hoy funciona. | Los 64 tests no se modifican. |
+| El alcance se infla con los trabajos 2 y 3. | Los pasos 10-12 van al final y son separables: si hay que cortar, se corta ahí sin tocar la app. |
 
-**Defectos ya detectados en el código actual, a corregir en el paso 8:**
-1. `renderHistory` filtra a 7 días: una noche cargada hace 10 días cuenta
-   en las métricas pero no se puede ver ni borrar desde la interfaz.
-2. `innerHTML +=` dentro de bucles (historial y gráfico): reconstruye el
-   contenedor entero en cada vuelta.
+**Defectos ya detectados en el código actual (paso 9):**
+1. `renderHistory` filtra a 7 días: una noche de hace 10 días cuenta en
+   las métricas pero no se puede ver ni borrar desde la interfaz.
+2. `innerHTML +=` dentro de bucles (historial y gráfico).
 3. `mergeSleepLogs` deduplica por fecha *o* id: con siesta y noche el
-   mismo día, el import se come una. Con el campo `kind` esto hay que
+   mismo día, el import se come una. Con el campo `kind` hay que
    arreglarlo sí o sí.
-4. `sleepLoreDB` (esquema de la Fase 4) sigue ocupando lugar en el
-   navegador de quien lo tenga: ofrecer borrarlo desde Ajustes.
+4. `sleepLoreDB` (esquema viejo) sigue ocupando lugar en el navegador de
+   quien lo tenga: ofrecer borrarlo desde Ajustes.
 
 ## Verificación final
 
 **Automática (la corro yo y muestro la salida):**
 - Los 64 tests actuales, sin modificar, en verde.
-- Los tests nuevos de estado de noche, clasificación siesta/noche y
-  "falta Xh Ym".
+- Tests nuevos: estado de la noche, clasificación siesta/noche, "falta
+  Xh Ym".
 - `npm run lint` y `npm run build` limpios.
-- Lighthouse sobre el build de producción: performance y accesibilidad
-  ≥ 95 (la línea de base actual es 98/96/96/100).
-- Emulación en 360px, iPhone SE, iPhone 13 y Pixel 5: cero desbordes
-  horizontales, zoom habilitado.
+- Lighthouse sobre el build: performance y accesibilidad ≥ 95 (línea de
+  base actual: 98/96/96/100).
+- Emulación a 360px, iPhone SE, iPhone 13 y Pixel 5: cero desbordes, zoom
+  habilitado.
 
 **Manual (para vos, sin leer código):**
-1. Abrí la app y tocá **Me voy a dormir**. Esperado: aparecen las horas
-   de despertar con "en Xh Ym" al lado, más las dos filas de siesta. Sin
-   haber tocado ningún campo.
-2. Cerrá la app, volvé a abrirla. Esperado: el botón ahora dice **Me
-   levanté**, y avisa que tenés una noche abierta.
-3. Tocá **Me levanté**. Esperado: te muestra cuánto dormiste y te ofrece
-   calificar la noche. Podés saltear la calificación.
-4. Abrí **El cuaderno**. Esperado: la noche que acabás de cerrar está en
-   la lista, con el promedio arriba.
-5. Escribí una hora en **quiero levantarme a las** y calculá. Esperado:
-   te da las horas para acostarte, y **no** registra nada en el cuaderno.
-6. Tocá el ícono de luna (modo brasa). Esperado: todo baja de brillo y el
-   fuego deja de moverse. Cerrá y reabrí: sigue en modo brasa.
-7. Abrí **Ajustes**, cambiá "cuánto tardás en dormirte" a 35, cerrá,
-   reabrí la app y calculá. Esperado: sigue en 35 (hoy vuelve a 20).
-8. En Ajustes, exportá los datos. Esperado: baja un JSON que la app puede
-   volver a importar.
+1. Abrí la app. Esperado: **sin tocar nada**, ya te dice a qué hora poner
+   el despertador si te dormís ahora, con "en Xh Ym" al lado, más las dos
+   siestas.
+2. Tocá **Me voy a dormir**, cerrá la app y volvé a abrirla. Esperado: el
+   botón ahora dice **Ya me levanté** y avisa que hay una noche abierta.
+3. Tocá **Ya me levanté**. Esperado: te dice cuánto dormiste y te ofrece
+   calificar. Podés saltearlo.
+4. Abrí **El cuaderno**. Esperado: la noche cerrada está en la lista, con
+   el promedio arriba.
+5. Escribí una hora en **quiero levantarme a las**. Esperado: te da las
+   horas para acostarte y **no** anota nada.
+6. Tocá la luna. Esperado: todo baja de brillo y el fuego se queda
+   quieto. Cerrá y reabrí: sigue así.
+7. En **Ajustes**, poné 35 en "cuánto tardás en dormirte". Cerrá, reabrí,
+   mirá el cálculo. Esperado: sigue en 35 (hoy vuelve a 20).
+8. Abrí el link en una ventana privada, como si fueras otra persona.
+   Esperado: se entiende qué es sin que nadie te explique nada.
+9. Leé el README como si cayeras de un portfolio. Esperado: entendés qué
+   es, cómo se ve y cómo se hizo, sin abrir el código.
 
 ## Registro de decisiones y desvíos
 
-- 2026-09-17 — Nivel profundo, no estándar — hay alternativas reales de
-  enfoque y datos del usuario en juego.
-- 2026-09-17 — Se descarta cualquier forma de alarma o notificación
-  programada — verificado que no es técnicamente posible sin backend, y
-  en iOS ni siquiera con él del lado del cliente.
-- 2026-09-17 — Se elimina el vocabulario gauchesco — el propio autor
-  reportó no entenderlo. Corrige un supuesto anterior mío, que lo daba
-  por gratuito en términos de comprensión.
-- 2026-09-17 — Un solo botón de estado en vez de dos botones separados
-  para calcular y registrar — surgió del choque entre "Me voy a dormir
-  ahora" y "Me acuesto", que decían lo mismo.
-- 2026-09-17 — La noche en curso va en una clave aparte (`openSleep`) y
-  no en el historial — evita romper validación de import, métricas y los
-  64 tests existentes.
+- 2026-09-17 — **Plan reescrito de cero.** El anterior optimizaba por
+  eficiencia de interacción y proponía podar identidad y lenguaje. Se
+  invalidó al aparecer dos hechos: la app se usa a diario, y tiene un
+  segundo trabajo (mostrarla) que impone ser memorable, no mínima.
+- 2026-09-17 — Regla "etiquetas planas, prosa con voz" — permite recortar
+  fricción y aumentar carácter al mismo tiempo, que tratados como una
+  sola variable se contradecían.
+- 2026-09-17 — El tema campo/noche se conserva: es territorio real del
+  autor, no decoración. Lo que se elimina es la dicción prestada del
+  siglo XIX, que el propio autor reportó no entender.
+- 2026-09-17 — **La app calcula al abrirse**, sin esperar un toque. El
+  cálculo es una función pura del reloj: no hay razón para pedirlo. De
+  paso desambigua el botón principal, que en el plan anterior calculaba
+  y anotaba a la vez.
+- 2026-09-17 — Nombre: se recomienda conservar "A la Luz del Fogón",
+  revirtiendo la recomendación anterior ("Lucero"). Cambió el criterio:
+  con "memorable" en lugar de "mínimo", el nombre actual gana, y nunca
+  fue la parte incomprensible.
+- 2026-09-17 — El registro pasa a ser opcional e invisible detrás de una
+  capa, así que la hipótesis sobre por qué se abandonó deja de ser
+  crítica para el plan.
 - 2026-09-17 — Siesta vs. noche se clasifica por duración (< 3h) y no por
-  horario — la duración es dato real; el horario sería una adivinanza.
-- 2026-09-17 — `metrics.js` se conserva entero aunque la pantalla pinte 3
-  de sus 5 números — está testeado, no cuesta nada, y recuperar las
-  métricas de consistencia sería una línea si las querés.
+  horario.
+- 2026-09-17 — Prioridad de la investigación externa revisada a la baja:
+  los prompts 1 y 2 (adherencia y competencia) casi no mueven decisiones
+  ahora. El 3 (qué métrica vale mostrar, interfaces de bajo brillo) sigue
+  alimentando el cuaderno y el modo brasa.
