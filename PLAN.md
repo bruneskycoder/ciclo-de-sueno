@@ -431,6 +431,17 @@ Los tres salieron de mirar la app corriendo, no de leer el código.
   Ahí "1 ciclo" significa acostarse 05:10 para levantarse 07:00: no es
   una opción, es una fila absurda, y con el orden ascendente quedaba
   arriba de todo empujando las útiles al fondo.
+- 2026-09-17 — **La escena subió de 120x52 a 160x72 píxeles.** Bruno
+  reportó que no se entendían algunas cosas, y la causa no era falta de
+  detalle sino falta de lugar: el gaucho ocupaba 20x18 y en ese espacio
+  no entra un brazo, ni una bota, ni un mate. Con un tercio más de
+  píxeles por lado se redibujó todo — el gaucho con sombrero de ala,
+  poncho a franjas, el brazo afuera con el mate y las botas; el fuego con
+  leños que se distinguen en dos tonos; los árboles con tronco y copa; el
+  cardón con sus brazos; textura en el suelo; y el recado tirado en el
+  pasto, que cuenta que el que está ahí venía a caballo.
+- 2026-09-17 — El matorral del claro lleva alturas y huecos irregulares
+  fijos. Parejos se leía como un paredón de guiones detrás del gaucho.
 - 2026-09-17 — **Monte chaqueño, tormenta y viento en la escena**, a
   pedido de Bruno. El monte no es decorado: es la masa oscura contra la
   que los refusilos se ven, que si no serían destellos en el vacío. Entre

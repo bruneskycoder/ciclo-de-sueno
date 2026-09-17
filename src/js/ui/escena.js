@@ -12,12 +12,17 @@
 // interpolación de ninguna clase: un píxel del sprite es un cuadrado
 // exacto en pantalla, que es justo lo que el pixel art necesita.
 
-const ANCHO = 120;
-const ALTO = 52;
-const ESCALA = 4;
+// Resolución de la escena. Se subió de 120x52 a 160x72 por un motivo
+// concreto: a la resolución anterior el gaucho ocupaba 20x18 píxeles y
+// ahí no entra un brazo, ni una bota, ni un mate. El dibujo no quedaba
+// pobre por falta de ganas sino por falta de lugar. Con un tercio más de
+// píxeles por lado hay espacio para que las cosas se entiendan.
+const ANCHO = 160;
+const ALTO = 72;
+const ESCALA = 3;
 
 // El suelo, y de ahí para arriba se apoya todo lo demás.
-const HORIZONTE = 38;
+const HORIZONTE = 52;
 
 // --- PALETAS ---
 //
@@ -34,8 +39,11 @@ const PALETAS = {
         astroHalo: '#2a3442',
         monteLejos: '#0c1116',
         monte: '#070b0e',
+        monteClaro: '#111a1e',
         suelo: '#12100c',
+        sueloTextura: '#191509',
         pasto: '#1a1710',
+        humo: '#2b3038',
         luzSuelo: ['#54340f', '#3d2711', '#2b1a0c', '#1d1208', '#160e06'],
         // Tormenta: el frente de nubes come el cielo desde un costado, y
         // el refusilo lo alumbra por dentro.
@@ -43,13 +51,22 @@ const PALETAS = {
         nubeAlta: '#151c26',
         refusilo: '#b9c6d8',
         polvo: '#2a2419',
-        h: '#140f0a',
-        c: '#6b4a2b',
-        p: '#1c1410',
-        q: '#100b08',
+        h: '#1a130c',
+        H: '#0d0906',
+        c: '#7d5733',
+        C: '#40301f',
+        p: '#241a13',
+        P: '#4a2a1c',
+        q: '#120c08',
         r: '#c9782f',
+        R: '#f0b063',
         b: '#0e0a07',
+        B: '#2a1c11',
+        m: '#5c3d1c',
+        n: '#b9a074',
+        T: '#0b1114',
         l: '#3a2a1e',
+        L: '#56402c',
         e: '#8d3a10',
         f: '#c06a2a',
         g: '#dd9f45',
@@ -66,20 +83,32 @@ const PALETAS = {
         astroHalo: '#d8c493',
         monteLejos: '#5a6149',
         monte: '#3f4034',
+        monteClaro: '#556047',
         suelo: '#6d5f45',
+        sueloTextura: '#7a6b4e',
         pasto: '#7d6f50',
+        humo: '#9aa0a4',
         luzSuelo: ['#9c8459', '#8c7752', '#816d4a', '#776544', '#705f41'],
         nube: '#6f7278',
         nubeAlta: '#585c63',
         refusilo: '#f2ead6',
         polvo: '#8d7f63',
-        h: '#5a4630',
-        c: '#b08963',
+        h: '#6b543a',
+        H: '#473725',
+        c: '#c39b72',
+        C: '#6b4f33',
         p: '#a4552f',
+        P: '#d8813f',
         q: '#7d3f22',
         r: '#e0a15c',
+        R: '#f7d6a0',
         b: '#4a3726',
+        B: '#6b503a',
+        m: '#7d5225',
+        n: '#d8c9a8',
+        T: '#33342a',
         l: '#5b4430',
+        L: '#7a5c3f',
         e: '#a85a1e',
         f: '#d98b33',
         g: '#eeb257',
@@ -94,166 +123,230 @@ const PALETAS = {
 // monte y no como tres arbolitos sueltos.
 
 const COPA_CHICA = [
-    '..ttttt..',
-    '.ttttttt.',
-    'ttttttttt',
-    'ttttttttt',
-    '.ttttttt.',
-    '...ttt...',
-    '...ttt...',
-    '...ttt...',
+    '....ttttt....',
+    '..tttttttttt.',
+    '.TTtttttttttt',
+    'TTTttttttttTT',
+    'TTtttttttttTT',
+    '.TtttttttttT.',
+    '..TTtttttTT..',
+    '....TtttT....',
+    '.....ttT.....',
+    '.....TtT.....',
+    '.....TtT.....',
+    '.....TTT.....',
 ];
 
 const COPA_GRANDE = [
-    '...ttttttt...',
-    '.ttttttttttt.',
-    'ttttttttttttt',
-    'ttttttttttttt',
-    'ttttttttttttt',
-    '.ttttttttttt.',
-    '...ttttttt...',
-    '.....ttt.....',
-    '.....ttt.....',
-    '.....ttt.....',
-    '.....ttt.....',
+    '......ttttttt......',
+    '...ttttttttttttt...',
+    '..tttttttttttttttt.',
+    '.TTttttttttttttttTT',
+    'TTTtttttttttttttTTT',
+    'TTttttttttttttttTTT',
+    'TTtttttttttttttttTT',
+    '.TTttttttttttttTTT.',
+    '..TTttttttttttTT...',
+    '....TTttttttTT.....',
+    '......TtttTT.......',
+    '.......ttT.........',
+    '.......TtT.........',
+    '......TttT.........',
+    '......TtTT.........',
+    '.....TTtTT.........',
+    '.....TTTTT.........',
 ];
 
-// Quebracho: alto, flaco y con la copa arriba de todo. Es el que le da
-// la altura irregular al monte.
+// Quebracho: alto, flaco, con la copa arriba de todo y el tronco torcido.
+// Es el que le da al monte la altura irregular.
 const QUEBRACHO = [
-    '..ttt..',
-    '.ttttt.',
-    'ttttttt',
-    'ttttttt',
-    '.ttttt.',
-    '..ttt..',
-    '..ttt..',
-    '..ttt..',
-    '..ttt..',
-    '..ttt..',
-    '..ttt..',
-    '..ttt..',
+    '...ttttt...',
+    '.ttttttttt.',
+    'TTtttttttTT',
+    'TTttttttttT',
+    '.Tttttttt T',
+    '..TTtttTT..',
+    '....ttT....',
+    '....ttT....',
+    '....TtT....',
+    '...TttT....',
+    '...TtT.....',
+    '...TtT.....',
+    '..TttT.....',
+    '..TtT......',
+    '..TtT......',
+    '..TtT......',
+    '.TTtT......',
+    '.TTtTT.....',
+    '.TTTTT.....',
 ];
 
-// Palo borracho: el tronco panzón. Inconfundible en silueta.
+// Palo borracho: el tronco panzón. En silueta es inconfundible, y con
+// espacio se le pueden ver las espinas del tronco.
 const PALO_BORRACHO = [
-    '...ttttt...',
-    '.ttttttttt.',
-    'ttttttttttt',
-    '.ttttttttt.',
-    '...ttttt...',
-    '....ttt....',
-    '...ttttt...',
-    '..ttttttt..',
-    '..ttttttt..',
-    '...ttttt...',
-    '....ttt....',
+    '.....ttttt.....',
+    '..tttttttttttt.',
+    '.TTttttttttttTT',
+    'TTTttttttttttTT',
+    '.TTtttttttttTT.',
+    '...TTtttttTT...',
+    '.....TtttT.....',
+    '......TtT......',
+    '.....TtttT.....',
+    '....TttttTT....',
+    '...TtttttTTT...',
+    '...TtttttTTT...',
+    '...TtttttTTT...',
+    '....TtttTTT....',
+    '....TtttTT.....',
+    '.....TttT......',
+    '.....TttT......',
+    '....TTttTT.....',
 ];
 
-const CARDON = ['.t.', 'ttt', 'ttt', 'ttt', 'ttt', 'ttt', 'ttt', 'ttt'];
+// Cardón: el cactus columnar, con sus dos brazos. Sin los brazos se
+// confundía con un poste.
+const CARDON = [
+    '...t...',
+    '..ttt..',
+    '..tTt..',
+    't.ttt.t',
+    'tt tTttt',
+    'ttTttTtt',
+    '.tTttTt.',
+    '..ttTt..',
+    '..tTt..',
+    '..ttt..',
+    '..tTt..',
+    '..ttt..',
+    '..tTt..',
+    '..TTT..',
+];
+
+// El recado, tirado en el pasto. Es el detalle que dice que el que está
+// ahí sentado venía a caballo y paró a hacer noche.
+const RECADO = ['..mmmm..', '.mmmmmm.', 'mmmmmmmm', '.BmmmmB.', '..BBBB..'];
 
 // Posiciones fijas, no al azar: un monte que cambia cada vez que se abre
 // la app se siente roto, no vivo. La franja del medio (x 40 a 84) queda
 // más baja a propósito, porque ahí adelante se sienta el gaucho y contra
 // un monte alto su silueta desaparecería.
 const MONTE = [
-    { sprite: QUEBRACHO, x: 2, base: 0 },
+    { sprite: QUEBRACHO, x: 1, base: 0 },
     { sprite: COPA_GRANDE, x: 9, base: 1 },
-    { sprite: PALO_BORRACHO, x: 21, base: 0 },
-    { sprite: COPA_CHICA, x: 31, base: 2 },
-    { sprite: CARDON, x: 38, base: 0 },
-    // Entre x=40 y x=84 el monte se abre: es el claro donde están el
-    // gaucho y el fuego. Con árboles ahí atrás la silueta del gaucho se
-    // perdía contra las copas, y además un fuego no se prende en el medio
-    // del monte cerrado.
-    { sprite: COPA_CHICA, x: 84, base: 6 },
-    { sprite: CARDON, x: 82, base: 1 },
-    { sprite: COPA_GRANDE, x: 86, base: 1 },
-    { sprite: QUEBRACHO, x: 98, base: 0 },
-    { sprite: COPA_CHICA, x: 104, base: 2 },
-    { sprite: PALO_BORRACHO, x: 110, base: 0 },
+    { sprite: CARDON, x: 25, base: 0 },
+    { sprite: PALO_BORRACHO, x: 30, base: 0 },
+    { sprite: COPA_CHICA, x: 42, base: 3 },
+    { sprite: COPA_CHICA, x: 108, base: 3 },
+    { sprite: CARDON, x: 118, base: 1 },
+    { sprite: COPA_GRANDE, x: 122, base: 0 },
+    { sprite: QUEBRACHO, x: 138, base: 0 },
+    { sprite: COPA_CHICA, x: 146, base: 2 },
 ];
 
 // --- EL GAUCHO Y EL FUEGO ---
 
 const GAUCHO = [
-    '....................',
-    '.....hh....hh.......',
-    '......hhhhhh........',
-    '...hhhhhhhhhhhh.....',
-    '..hhhhhhhhhhhhhhr...',
-    '....................',
-    '.......cccc.........',
-    '.......ccccr........',
-    '......ppppprr.......',
-    '......pppppp........',
-    '.....ppppppp........',
-    '.....pppppppp.......',
-    '....ppppppppp.......',
-    '....pppppppppp......',
-    '...pppppppppppr.....',
-    '...ppppppppppprbbb..',
-    '..qqqqqqqqqqqqq.bb..',
-    '..qqqqqqqqqqqqq.bbb.',
+    '..............................',
+    '.........hhhhhhhh.............',
+    '........hhhhhhhhhh............',
+    '........hhhhhhhhhh............',
+    '.....HHHHHHHHHHHHHHHH.........',
+    '....HHHHHHHHHHHHHHHHHH........',
+    '.........cccccccc.............',
+    '.........ccccccccr............',
+    '.........CCCcccccr............',
+    '..........CCCCccr.............',
+    '........ppppppppr.............',
+    '.......pppppppppr.............',
+    '......ppppppppppr.............',
+    '......PPPPPPPPPPr.............',
+    '.....ppppppppppprr............',
+    '.....pppppppppppcc............',
+    '....ppppppppppppcnn...........',
+    '....PPPPPPPPPPPPcmm...........',
+    '...pppppppppppppmmmm..........',
+    '...ppppppppppppp.mm...........',
+    '..ppppppppppppppr.............',
+    '..pppppppppppppprr............',
+    '..qqqqqqqqqqqqqqqr............',
+    '..qqqqqqqqqqqqqqqqbbbbb.......',
+    '...qqqqqqqqqqqqqq....bbbb.....',
+    '....qqqqqqqqqqqq......BBbb....',
+    '.....qqqqqqqqqqq.......BBb....',
+    '......qqqqqqqqq...............',
 ];
 
 // Tres cuadros de la misma fogata. La leña no se mueve; lo único que
 // cambia es la llama. Las lenguas se separan arriba a propósito: una
-// llama compacta a este tamaño se lee como un montículo, no como fuego.
+// llama compacta se lee como un montículo, no como fuego. Y los leños
+// alternan dos tonos para que se vean varios y no un bulto.
 const FUEGO = [
     [
-        '................',
-        '.......w........',
-        '......w.w.......',
-        '......wgw.......',
-        '.....wgggw......',
-        '.....fgggf......',
-        '....ffgggff.....',
-        '....fffgfff.....',
-        '...ffffgffff....',
-        '...fffffffff....',
-        '..fffffffffff...',
-        '..fffffffffff...',
-        '.lllllllllllll..',
-        '.lleeeeeeeelll..',
-        '..lllllllllll...',
-        '................',
+        '......................',
+        '.........w............',
+        '........w.w...........',
+        '........wgw...........',
+        '.......wgggw..........',
+        '.......wgggw..........',
+        '......wggggw..........',
+        '......fgggf...........',
+        '.....ffgggff..........',
+        '.....fffgfff..........',
+        '....ffffgffff.........',
+        '....fffffffff.........',
+        '...fffffffffff........',
+        '...eeeeeeeeeee........',
+        '.ll.eeeeeeeee.ll......',
+        'lLll.eeeeeee.llLl.....',
+        '.lLlLlLlLlLlLlLl......',
+        '..llLlLlLlLlLll.......',
+        '...eeeeeeeeeee........',
+        '......................',
     ],
     [
-        '................',
-        '.....w..w.......',
-        '.....w..w.......',
-        '.....wggw.......',
-        '....wggggw......',
-        '....fggggf......',
-        '....ffgggf......',
-        '...fffgffff.....',
-        '...ffffffff.....',
-        '..fffffffffff...',
-        '..fffffffffff...',
-        '..fffffffffff...',
-        '.lllllllllllll..',
-        '.lleeeeeeeelll..',
-        '..lllllllllll...',
-        '................',
+        '......................',
+        '.......w....w.........',
+        '.......w....w.........',
+        '.......wggww..........',
+        '......wgggw...........',
+        '......wgggw...........',
+        '.....wggggw...........',
+        '.....fggggf...........',
+        '.....ffgggf...........',
+        '....fffgffff..........',
+        '....ffffffff..........',
+        '...fffffffff..........',
+        '...fffffffffff........',
+        '...eeeeeeeeeee........',
+        '.ll.eeeeeeeee.ll......',
+        'lLll.eeeeeee.llLl.....',
+        '.lLlLlLlLlLlLlLl......',
+        '..llLlLlLlLlLll.......',
+        '...eeeeeeeeeee........',
+        '......................',
     ],
     [
-        '................',
-        '................',
-        '.......w........',
-        '......ww........',
-        '.....wggw.......',
-        '.....wgggw......',
-        '....fgggggf.....',
-        '....fffggff.....',
-        '...ffffgfff.....',
-        '...fffffffff....',
-        '..fffffffffff...',
-        '..fffffffffff...',
-        '.lllllllllllll..',
-        '.lleeeeeeeelll..',
-        '..lllllllllll...',
-        '................',
+        '......................',
+        '......................',
+        '.........w............',
+        '........ww............',
+        '.......wggw...........',
+        '.......wgggw..........',
+        '......wggggw..........',
+        '......fgggggf.........',
+        '.....ffggggff.........',
+        '.....fffggfff.........',
+        '....ffffgffff.........',
+        '....fffffffff.........',
+        '...fffffffffff........',
+        '...eeeeeeeeeee........',
+        '.ll.eeeeeeeee.ll......',
+        'lLll.eeeeeee.llLl.....',
+        '.lLlLlLlLlLlLlLl......',
+        '..llLlLlLlLlLll.......',
+        '...eeeeeeeeeee........',
+        '......................',
     ],
 ];
 
@@ -262,78 +355,115 @@ const FUEGO = [
 // que el ojo ya está mirando.
 const FUEGO_VIENTO = [
     [
-        '................',
-        '................',
-        '..........w.....',
-        '.........wgw....',
-        '........wggw....',
-        '.......wgggw....',
-        '......fggff.....',
-        '.....ffggf......',
-        '....fffgff......',
-        '...fffffff......',
-        '..fffffffffff...',
-        '..fffffffffff...',
-        '.lllllllllllll..',
-        '.lleeeeeeeelll..',
-        '..lllllllllll...',
-        '................',
+        '......................',
+        '......................',
+        '..............w.......',
+        '............wgw.......',
+        '...........wggw.......',
+        '..........wgggw.......',
+        '.........wgggw........',
+        '........fgggf.........',
+        '.......ffggff.........',
+        '......fffgff..........',
+        '.....ffffff...........',
+        '....fffffff...........',
+        '...fffffffffff........',
+        '...eeeeeeeeeee........',
+        '.ll.eeeeeeeee.ll......',
+        'lLll.eeeeeee.llLl.....',
+        '.lLlLlLlLlLlLlLl......',
+        '..llLlLlLlLlLll.......',
+        '...eeeeeeeeeee........',
+        '......................',
     ],
     [
-        '................',
-        '................',
-        '............w...',
-        '..........wgww..',
-        '.........wggw...',
-        '........wggw....',
-        '......ffggf.....',
-        '.....fffgf......',
-        '....ffffff......',
-        '...fffffff......',
-        '..fffffffffff...',
-        '..fffffffffff...',
-        '.lllllllllllll..',
-        '.lleeeeeeeelll..',
-        '..lllllllllll...',
-        '................',
+        '......................',
+        '......................',
+        '................w.....',
+        '..............wgww....',
+        '.............wggw.....',
+        '...........wgggw......',
+        '..........wggw........',
+        '.........fggf.........',
+        '........ffgff.........',
+        '.......fffgf..........',
+        '......ffffff..........',
+        '....ffffffff..........',
+        '...fffffffffff........',
+        '...eeeeeeeeeee........',
+        '.ll.eeeeeeeee.ll......',
+        'lLll.eeeeeee.llLl.....',
+        '.lLlLlLlLlLlLlLl......',
+        '..llLlLlLlLlLll.......',
+        '...eeeeeeeeeee........',
+        '......................',
     ],
     [
-        '................',
-        '................',
-        '.........w......',
-        '........wgw.....',
-        '.......wggw.....',
-        '......wgggw.....',
-        '.....ffgggf.....',
-        '.....fffgff.....',
-        '....ffffff......',
-        '...fffffff......',
-        '..fffffffffff...',
-        '..fffffffffff...',
-        '.lllllllllllll..',
-        '.lleeeeeeeelll..',
-        '..lllllllllll...',
-        '................',
+        '......................',
+        '......................',
+        '.............w........',
+        '...........wgw........',
+        '..........wggw........',
+        '.........wgggw........',
+        '........wgggw.........',
+        '.......ffgggf.........',
+        '......fffggff.........',
+        '.....fffffff..........',
+        '....ffffffff..........',
+        '...fffffffff..........',
+        '...fffffffffff........',
+        '...eeeeeeeeeee........',
+        '.ll.eeeeeeeee.ll......',
+        'lLll.eeeeeee.llLl.....',
+        '.lLlLlLlLlLlLlLl......',
+        '..llLlLlLlLlLll.......',
+        '...eeeeeeeeeee........',
+        '......................',
     ],
 ];
 
 // Estrellas fijas, por el mismo motivo que el monte.
 const ESTRELLAS = [
-    [12, 6],
-    [28, 4],
-    [41, 10],
-    [55, 5],
-    [67, 9],
-    [79, 3],
-    [92, 8],
-    [104, 5],
-    [113, 12],
-    [20, 14],
-    [86, 15],
-    [99, 18],
+    [14, 8],
+    [30, 5],
+    [46, 13],
+    [62, 6],
+    [74, 11],
+    [88, 4],
+    [102, 10],
+    [118, 6],
+    [134, 15],
+    [22, 18],
+    [96, 19],
+    [126, 23],
+    [54, 21],
+    [110, 17],
+    [8, 12],
+    [142, 9],
 ];
 
-const PASTOS = [8, 30, 36, 96, 104, 112];
+const PASTOS = [6, 18, 34, 44, 124, 136, 148, 156];
+
+// Manchones sueltos en el suelo, para que no sea una franja lisa.
+const TIERRA = [
+    [12, 3],
+    [26, 5],
+    [38, 2],
+    [50, 7],
+    [64, 4],
+    [78, 8],
+    [92, 6],
+    [106, 3],
+    [120, 6],
+    [132, 2],
+    [144, 5],
+    [154, 8],
+    [20, 9],
+    [70, 11],
+    [116, 10],
+    [40, 13],
+    [100, 14],
+];
 
 // --- CLIMA ---
 //
@@ -391,10 +521,10 @@ function mezclar(colorA, colorB, t) {
 // desde la derecha y ocupa medio cielo: una tormenta que lo tapara todo
 // dejaría la escena sin luna y sin estrellas, y ahí se pierde la mitad
 // del encanto.
-const NUBE_X = 56;
+const NUBE_X = 74;
 const NUBE_PERFIL = [
-    16, 15, 15, 14, 13, 13, 12, 12, 11, 12, 10, 10, 9, 10, 8, 9, 8, 7, 8, 6, 7, 6, 6, 7, 5, 6, 5, 5,
-    6, 5, 4, 5,
+    22, 21, 21, 20, 19, 19, 18, 17, 18, 16, 16, 15, 14, 15, 13, 13, 12, 13, 11, 11, 10, 11, 9, 9, 8,
+    9, 8, 7, 8, 6, 7, 6, 6, 7, 5, 6, 5, 5, 6, 5, 4, 5, 4, 4,
 ];
 
 // Recorre el frente una sola vez y deja que quien llame decida qué pinta
@@ -409,7 +539,7 @@ function recorrerNubes(fn) {
 
 function dibujarNubes(ctx, paleta) {
     recorrerNubes((x, techo, i) => {
-        bloque(ctx, x, techo + 1, 2, 26 - techo, paleta.nube);
+        bloque(ctx, x, techo + 1, 2, 36 - techo, paleta.nube);
         // Borde de arriba tramado, para que la nube se deshilache contra
         // el cielo en vez de cortarse con un filo.
         if ((i + techo) % 2 === 0) bloque(ctx, x, techo, 2, 1, paleta.nube);
@@ -445,7 +575,7 @@ function dibujarFondo(paleta, deDia, tormenta) {
 
     if (paleta.estrella) {
         // Con tormenta las nubes se comen las estrellas de ese lado.
-        ESTRELLAS.filter(([x]) => !tormenta || x < 56).forEach(([x, y]) =>
+        ESTRELLAS.filter(([x]) => !tormenta || x < NUBE_X - 2).forEach(([x, y]) =>
             bloque(ctx, x, y, 1, 1, paleta.estrella),
         );
     }
@@ -453,9 +583,12 @@ function dibujarFondo(paleta, deDia, tormenta) {
     // La luna o el sol. Círculo lleno y un resplandor disperso alrededor:
     // el anillo de otro color que había antes se leía como un contorno
     // dibujado a mano, no como luz.
-    const astroX = deDia ? 92 : 24;
-    const astroY = deDia ? 9 : 8;
-    const radio = deDia ? 5 : 4;
+    // El sol se corre del borde derecho: ahí arriba están los botones de
+    // brillo y ajustes, que se apoyan sobre la escena, y el sol quedaba
+    // tapado por ellos.
+    const astroX = deDia ? 100 : 30;
+    const astroY = deDia ? 12 : 11;
+    const radio = deDia ? 7 : 6;
     // De día con tormenta el sol queda tapado por el frente.
     const astroTapado = tormenta && deDia;
     if (!astroTapado) {
@@ -476,23 +609,53 @@ function dibujarFondo(paleta, deDia, tormenta) {
     // El monte, en dos planos: una franja lejana apenas más clara detrás,
     // y las siluetas adelante. Sin los dos planos el monte se lee como
     // una pared negra.
-    bloque(ctx, 0, HORIZONTE - 6, ANCHO, 6, paleta.monteLejos);
+    // Una franja lejana apenas más clara detrás del monte: sin los dos
+    // planos el monte se lee como una pared negra. Y en el claro, esa
+    // franja es justo el fondo contra el que se recorta el gaucho.
+    bloque(ctx, 0, HORIZONTE - 9, ANCHO, 9, paleta.monteLejos);
+    // Matorral bajo en el claro, para que no quede un vacío liso. Las
+    // alturas y los huecos van irregulares y fijos: parejos se leían
+    // como un paredón de guiones detrás del gaucho.
+    const MATORRAL = [
+        [48, 4],
+        [52, 2],
+        [55, 5],
+        [60, 3],
+        [66, 2],
+        [70, 4],
+        [76, 3],
+        [82, 5],
+        [88, 2],
+        [93, 4],
+        [99, 3],
+        [104, 5],
+        [109, 2],
+    ];
+    MATORRAL.forEach(([x, alto]) => {
+        bloque(ctx, x, HORIZONTE - alto, 3, alto, paleta.monteClaro);
+        bloque(ctx, x + 1, HORIZONTE - alto - 1, 1, 1, paleta.monteClaro);
+    });
     MONTE.forEach(({ sprite, x, base }) => {
         dibujarSprite(ctx, sprite, x, HORIZONTE - sprite.length - base, { t: paleta.monte });
     });
 
     bloque(ctx, 0, HORIZONTE, ANCHO, ALTO - HORIZONTE, paleta.suelo);
     bloque(ctx, 0, HORIZONTE, ANCHO, 1, paleta.pasto);
+    TIERRA.forEach(([x, y]) => bloque(ctx, x, HORIZONTE + y, 2, 1, paleta.sueloTextura));
+
+    // El recado tirado en el pasto: el detalle que cuenta que el que está
+    // ahí sentado venía a caballo y paró a hacer noche.
+    dibujarSprite(ctx, RECADO, 46, HORIZONTE + 2, paleta);
 
     // El suelo alumbrado alrededor del fuego. El borde va tramado —un
     // píxel sí, uno no— en vez de cortado en seco: es como el pixel art
     // difumina, y sin eso las bandas se leen como un tablón apoyado.
     paleta.luzSuelo.forEach((color, y) => {
-        const medio = 20 - y * 3;
-        const solido = medio - 4;
+        const medio = 28 - y * 4;
+        const solido = medio - 5;
         for (let x = -medio; x <= medio; x++) {
             if (Math.abs(x) > solido && (x + y) % 2 !== 0) continue;
-            bloque(ctx, 72 + x, HORIZONTE + 1 + y, 1, 1, color);
+            bloque(ctx, 97 + x, HORIZONTE + 1 + y, 1, 1, color);
         }
     });
 
@@ -502,10 +665,11 @@ function dibujarFondo(paleta, deDia, tormenta) {
 // Los pastos se dibujan por cuadro y no en el fondo, porque con viento se
 // acuestan: son, junto con la llama, lo que hace que el viento se vea.
 function dibujarPastos(ctx, paleta, inclinacion) {
-    PASTOS.forEach((x) => {
-        bloque(ctx, x, HORIZONTE + 2, 1, 2, paleta.pasto);
-        bloque(ctx, x + 1 + inclinacion, HORIZONTE + 3, 1, 1, paleta.pasto);
-        if (inclinacion) bloque(ctx, x + 2 + inclinacion, HORIZONTE + 3, 1, 1, paleta.pasto);
+    PASTOS.forEach((x, i) => {
+        const alto = 3 + (i % 2);
+        bloque(ctx, x, HORIZONTE + 2, 1, alto, paleta.pasto);
+        bloque(ctx, x + 1 + inclinacion, HORIZONTE + 2, 1, alto - 1, paleta.pasto);
+        bloque(ctx, x + 2 + inclinacion * 2, HORIZONTE + 3, 1, alto - 2, paleta.pasto);
     });
 }
 
@@ -551,7 +715,7 @@ export function renderEscena() {
     let proximoRefusilo = 8;
     let refusilo = 0;
     // Polvo que cruza con el viento.
-    const polvo = [10, 44, 78, 100].map((x, i) => ({ x, y: HORIZONTE - 2 - i }));
+    const polvo = [10, 50, 96, 130].map((x, i) => ({ x, y: HORIZONTE - 2 - i * 2 }));
 
     const pintar = (ahora = 0) => {
         if (ahora - ultimo > 170) {
@@ -567,7 +731,7 @@ export function renderEscena() {
                     // sobre el cielo se leía como un panel encendido.
                     ctx.globalAlpha = refusilo === 1 ? 0.24 : 0.45;
                     recorrerNubes((x, techo) => {
-                        bloque(ctx, x, techo, 2, 27 - techo, paleta.refusilo);
+                        bloque(ctx, x, techo, 2, 37 - techo, paleta.refusilo);
                     });
                     // Y un resplandor parejo y tenue sobre todo el cielo:
                     // un refusilo de verdad alumbra la noche entera un
@@ -587,8 +751,8 @@ export function renderEscena() {
             }
 
             dibujarPastos(ctx, paleta, tormenta && !quieto ? 1 : 0);
-            dibujarSprite(ctx, GAUCHO, 42, HORIZONTE - 17, paleta);
-            dibujarSprite(ctx, cuadrosFuego[cuadro], 64, HORIZONTE - 15, paleta);
+            dibujarSprite(ctx, GAUCHO, 58, HORIZONTE - 27, paleta);
+            dibujarSprite(ctx, cuadrosFuego[cuadro], 86, HORIZONTE - 19, paleta);
             cuadro = (cuadro + 1) % cuadrosFuego.length;
         }
         // Con la pestaña oculta el navegador ya frena los cuadros, pero
@@ -599,8 +763,8 @@ export function renderEscena() {
     if (quieto) {
         ctx.drawImage(fondoCache, 0, 0);
         dibujarPastos(ctx, paleta, 0);
-        dibujarSprite(ctx, GAUCHO, 42, HORIZONTE - 17, paleta);
-        dibujarSprite(ctx, cuadrosFuego[0], 64, HORIZONTE - 15, paleta);
+        dibujarSprite(ctx, GAUCHO, 58, HORIZONTE - 27, paleta);
+        dibujarSprite(ctx, cuadrosFuego[0], 86, HORIZONTE - 19, paleta);
     } else {
         pintar();
     }
