@@ -3,7 +3,7 @@
 **Nivel:** profundo — toca todos los módulos, hay datos del usuario en
 juego, y el proyecto tiene tres objetivos simultáneos que tiran en
 direcciones distintas.
-**Estado:** terminado — pendiente el merge a `main`
+**Estado:** terminado — en `main` desde el PR #1
 **Última actualización:** 2026-09-17
 
 > **Este plan reemplaza una versión anterior que apuntaba al lugar
