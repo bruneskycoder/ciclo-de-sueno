@@ -106,10 +106,12 @@ import en JSON: es el único respaldo que existe.
 
 ## Cómo se construyó
 
-El autor no programa. La app está escrita orquestando un agente de IA, y
-lo interesante no es que la IA escribiera el código sino cómo se dirigió:
-tres rondas de entrevista antes de planificar, un plan aprobado antes de
-tocar nada, y tres veces en que el plan estaba mal y hubo que rehacerlo.
+El autor no programa. La app está escrita orquestando Claude Code, el
+agente de programación de Anthropic, y lo interesante no es que la IA
+escribiera el código sino cómo se dirigió: tres rondas de entrevista
+antes de planificar, un plan aprobado antes de tocar nada, y tres veces
+en que el plan estaba mal y hubo que rehacerlo. Los commits que escribió
+Claude lo dicen en la firma.
 
 Eso está contado en **[docs/proceso.md](./docs/proceso.md)**, con los
 errores incluidos. El plan vivo, con su registro de decisiones y de
