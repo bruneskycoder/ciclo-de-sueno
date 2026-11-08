@@ -72,7 +72,7 @@ planifica justo las noches en que uno ya se acuesta temprano.
 | Trabajo | Qué cambia en la v3 |
 |---|---|
 | 1. Calcular y anotar sin fricción | Lo anotado pasa a ser verdad: ninguna noche olvidada genera un registro, la confirmación deja de copiar el plan, la memoria trae horario. La alarma se pone de un toque. |
-| 2. Ser memorable | Escena HD-2D: un campo 3D de noche con el gaucho, el fogón, un caballo atado, vacas echadas y un alambrado, que ocupa el fondo de toda la pantalla y cuenta tu noche. |
+| 2. Ser memorable | Escena HD-2D: un campo 3D de noche con el gaucho, el fogón, un caballo atado, vacas echadas y un alambrado, bajo el cielo real de esa noche, que ocupa el fondo de toda la pantalla y cuenta tu noche. |
 | 3. Mostrar qué sale de orquestar IA | La historia de esta versión es buena para contar: los datos reales destaparon dos bugs que los 132 tests no veían. |
 
 **Éxito observable:**
@@ -93,6 +93,8 @@ planifica justo las noches en que uno ya se acuesta temprano.
 - Alguien de afuera mira una captura de la escena y nombra cada cosa:
   gaucho, fogón, caballo, vacas, alambrado, monte. Lo que no nombra, se
   saca.
+- La luna de la escena tiene la misma fase que la del cielo esa noche, y
+  la Cruz del Sur está donde está.
 
 ## Fuera de alcance
 
@@ -104,25 +106,59 @@ planifica justo las noches en que uno ya se acuesta temprano.
   confirmadas son el plan copiado y nadie mide en qué fase se despierta.
 - **Modelar el gaucho en 3D.** En HD-2D los personajes siguen siendo
   pixel art; el 3D es el mundo alrededor.
-- **Mover la escena inclinando el teléfono.** En iPhone eso abre un pedido
-  de permiso al entrar, que es la peor primera impresión. La profundidad
-  se mueve con el scroll.
+- **Mover la cámara.** Ni con el scroll ni inclinando el teléfono. Ver
+  "Lo que se aprendió de otros": en 3D pixelado, una cámara que se
+  desliza hace temblar los píxeles. La vida de la escena sale de lo que
+  se mueve adentro, no de la cámara.
+- **El Índice de Regularidad del Sueño (SRI).** Es la medida de
+  regularidad más citada, pero necesita siete días seguidos completos con
+  el estado minuto a minuto. Un diario con huecos no lo soporta, y
+  calcularlo igual sería mostrar un número que no vale.
+- **WebGPU y librerías de partículas.** WebGL alcanza para esta escena y
+  es lo más seguro en Safari; tres efectos de partículas no justifican
+  una librería general.
 - Backend, cuentas, sincronización.
 
 ## Supuestos
 
-- El atajo de iPhone puede recibir una hora como texto y crear una alarma
-  con ella. El esquema de URL está documentado por Apple; la acción de
-  alarma recibiendo la hora **no está verificada** y se prueba en el
-  teléfono. Plan B: copiar la hora.
+- El atajo de iPhone puede recibir la hora como texto y crear una alarma
+  con ella. El esquema de URL está documentado por Apple. La acción
+  "Crear alarma" necesita una fecha, no un texto suelto: los foros
+  reportan el error "no se pudo convertir de Texto a Fecha". Por eso la
+  app manda fecha y hora completas en ISO 8601
+  (`2026-11-09T07:20:00-03:00`), que Atajos sí reconoce, y el atajo pasa
+  por la acción "Fecha" antes de crear la alarma. **No está verificado en
+  un teléfono**; plan B: copiar la hora.
 - El link `shortcuts://` funciona también con la app instalada en la
   pantalla de inicio. Se prueba en el teléfono.
+- **Ubicación fija para el cielo:** sol, luna y estrellas se calculan para
+  una sola ciudad escrita en el código, sin pedir permiso de ubicación.
+  Por defecto Resistencia, Chaco, por el monte chaqueño de la escena; se
+  cambia por la tuya si me la decís.
 - Un patrón necesita al menos 5 noches en cada grupo que compara. Es un
   piso para no mostrar ruido, no un umbral estadístico.
 - Todo lo que mide la app es **tiempo en cama**, de acostarse a
   levantarse. La memoria pregunta "a qué hora te acostaste", no "a qué
   hora te dormiste", para que las dos fuentes midan lo mismo. Las noches
   viejas de memoria quedan como están.
+
+---
+
+## Lo que se aprendió de otros
+
+Antes de diseñar se leyó código y documentación de proyectos que resuelven
+bien partes de esto. Lo que se toma de cada uno, y lo que no:
+
+| Fuente | Qué se toma | Qué no |
+|---|---|---|
+| **Ejemplo oficial de pixel art de three.js** (`webgl_postprocessing_pixel`, leído en el repo) | Cámara **ortográfica** y alineada a la grilla de píxeles, objetos alineados a la grilla, y luz que **sube y baja en escalones**, no en degradé continuo. Así el 3D se ve pixel art y no 3D liso con filtro. | Su escena es un cubo flotante: de ahí sale la técnica, no la estética. |
+| **Texel Splatting** (Ebert, arXiv 2026) | La conclusión: con cámara en perspectiva, los píxeles a distinta profundidad se corren a distinto ritmo, y ningún ajuste a la grilla los estabiliza. Es el motivo de la cámara quieta. | La técnica del paper: es investigación, no algo para una app de bolsillo. |
+| **folio-2025 de Bruno Simon** (three.js, MIT; leído en el repo) | El día como **presets de luz por momento** —día, atardecer, noche, amanecer— que se interpolan: color e intensidad de la luz, **color de las sombras** (violetas o azules, nunca negras) y dos colores de niebla. Se afina tocando números, no código. Y el pasto: miles de hojas en una sola geometría, con viento que mueve solo las puntas. | WebGPU, física, sonido y el ciclo acelerado: su día dura cuatro minutos; acá el día es el real. |
+| **suncalc** (Agafonkin, BSD-2) | Altura del sol, amanecer y atardecer reales, y fase, fracción iluminada e inclinación de la luna. **3,2 kB comprimido** con lo que se usa (medido). Reemplaza escribir una función de fase propia. | Se fija la 2.1.1 (5-oct), no la 2.1.3, publicada el mismo día de este plan. |
+| **Datos de d3-celestial** (catálogo de estrellas en GeoJSON) | Las estrellas más brillantes con su posición real, proyectadas para la ciudad y la hora: la Cruz del Sur, las Tres Marías en verano, Escorpio en invierno. | El resto de la librería: con unas cien estrellas alcanza. |
+| **Consensus Sleep Diary** (Carney y otros, 2012) | El diario de sueño estándar en investigación pregunta exactamente lo que tus notas decían: calidad, cuánto tardaste en dormirte, si te despertaste a la noche, si te despertaste antes de lo que querías. Los motivos de un toque quedan alineados con eso. | El instrumento en sí: su uso está restringido. Se alinean los conceptos, no se copian las preguntas. |
+| **Jet lag social** (Wittmann, Roenneberg y otros, 2006) | La comparación "semana contra fin de semana" ya tiene una medida establecida: la diferencia del **punto medio del sueño** entre días libres y días de trabajo. Se usa esa en vez de inventar una. | El cuestionario completo de cronotipo. |
+| **Loop Habit Tracker** | Un principio: una métrica que perdona los huecos. Ninguna racha que se corte, porque los huecos de esta app son los viernes y sábados. | El puntaje de hábito: acá no hay hábito que medir. |
 
 ---
 
@@ -133,7 +169,7 @@ son opcionales.
 
 | Campo | Qué es | Por qué |
 |---|---|---|
-| `quality` | Ya existía (1 a 5). Ahora se guarda 1, 3 o 5: mal, normal, bien. | Reusa el campo, su validación y el promedio que ya calcula `metrics.js`. |
+| `quality` | Ya existía (1 a 5). Ahora se guarda 1, 3 o 5: mal, normal, bien. | Reusa el campo, su validación y el promedio que ya calcula `metrics.js`, y queda en la misma escala de cinco puntos que usa el diario estándar. |
 | `reasons` | Nuevo. Lista de motivos de una lista fija. | Lo que las notas decían, sin escribir. |
 | `source` | Nuevo. `live` (tocaste los botones en el momento), `confirmed` (elegiste la hora al día siguiente), `recalled` (las dos horas de memoria). | Con horario en las noches de memoria, `hasClockTimes` ya no distingue cuál fue de memoria. La app tiene que poder seguir diciéndolo. |
 
@@ -147,6 +183,12 @@ fondo de los dos registros imposibles.
 **Datos de prueba:** los tests usan casos sintéticos que reproducen los
 dos bugs. El backup real no entra al repo: es público y tiene notas
 personales.
+
+**Dónde viven los datos en iPhone.** Safari borra lo que guarda una web
+después de siete días sin abrirla, salvo que esté instalada en la pantalla
+de inicio, que lleva su propia cuenta. Con uso diario el riesgo es bajo,
+pero el export sigue siendo el único respaldo. Si pasó más de un mes
+desde el último, Ajustes lo dice en una línea, sin insistir.
 
 ---
 
@@ -173,8 +215,8 @@ mañana.
 **Después de anotar.** *¿Cómo te levantaste?* — Mal / Normal / Bien. Abajo,
 opcionales: *Me costó dormirme*, *Me desperté a la noche*, *Me desperté
 antes*, *Me dolía algo*. Y la frase libre al final, para lo que no entre en
-ningún botón. Los motivos salen de lo que efectivamente escribiste, no de
-una lista genérica.
+ningún botón. Los tres primeros motivos son los que pregunta el diario de
+sueño estándar, y los cuatro salen de lo que efectivamente escribiste.
 
 **Huecos.** El cuaderno muestra las noches sin anotar de los últimos 7
 días como filas propias, *Sin anotar*, y tocarlas abre la misma pregunta
@@ -183,23 +225,30 @@ de memoria. No insiste ni avisa: está ahí si la querés cargar.
 ## La alarma de un toque
 
 Cada hora de la lista suma una acción **Poner alarma**, que abre
-`shortcuts://run-shortcut?name=Alarma%20Fog%C3%B3n&input=text&text=07:20`.
-La primera vez, una hoja explica cómo armar el atajo en cuatro pasos. Si
-el atajo no anda o no estás en un iPhone, la acción copia la hora.
+`shortcuts://run-shortcut?name=Alarma%20Fog%C3%B3n&input=text&text=<fecha
+y hora en ISO 8601>`. La primera vez, una hoja explica cómo armar el atajo
+en cuatro pasos: recibir el texto, convertirlo con la acción "Fecha" y
+pasarlo a "Crear alarma". Si el atajo no anda o no estás en un iPhone, la
+acción copia la hora.
 
 ## El cuaderno: patrones con su muestra
 
 Un módulo puro nuevo, `patrones.js`, sin DOM, con tests, como `metrics.js`:
 
-- Semana contra fin de semana: tiempo en cama y hora de acostarse.
-- Hora de acostarse contra cómo te levantaste: por ejemplo, *Las noches en
-  que te acostaste antes de las 00:00 te levantaste bien 6 de 9 veces;
-  después, 1 de 5.*
-- Los motivos más frecuentes del último mes.
+- **Jet lag social:** cuánto se corre el punto medio de tu noche el
+  viernes y el sábado respecto del resto. Es la medida establecida para
+  eso, y solo se puede calcular con horario: con los datos de hoy no se
+  puede, porque los fines de semana casi no tienen.
+- **Regularidad:** cuánto varía el punto medio de tu noche, en vez de la
+  hora de acostarse sola, que es lo que mide hoy.
+- **Hora de acostarse contra cómo te levantaste:** por ejemplo, *Las
+  noches en que te acostaste antes de las 00:00 te levantaste bien 6 de 9
+  veces; después, 1 de 5.*
+- **Los motivos más frecuentes** del último mes.
 
 Cada patrón lleva su cantidad de noches. Por debajo del piso dice
 *Todavía no alcanza: faltan 3 noches de fin de semana.* Nunca habla de
-causas: dice "las noches en que", no "porque".
+causas: dice "las noches en que", no "porque". Nada de rachas.
 
 ---
 
@@ -209,22 +258,29 @@ causas: dice "las noches en que", no "porque".
 el gaucho junto al fogón, con el círculo de piedras y los leños. A un
 costado, un caballo atado a un poste. Más atrás, un alambrado que se
 pierde en la niebla, y vacas echadas que el fuego alumbra apenas. Al
-fondo, el monte chaqueño en capas y el cielo con la luna en su fase real.
+fondo, el monte chaqueño en capas, y arriba el cielo real de esa noche.
 
 **Cómo se hace.** El mundo es 3D: suelo, piedras, postes, leños y monte
 tienen volumen y texturas pixeladas. Los personajes —gaucho, caballo,
 vacas— siguen siendo sprites escritos como texto, como hoy, pegados en el
-mundo 3D de frente a la cámara. La luz del fuego es una luz real: titila,
-proyecta las sombras del gaucho y del caballo sobre el suelo, y se apaga
-hacia los bordes. Encima: brasas que suben, humo, niebla baja, brillo
-alrededor de la llama, y desenfoque de lo más lejano y lo más cercano.
-Todo se dibuja a baja resolución y se agranda sin suavizar, así queda
-pixel art y no 3D liso.
+mundo 3D de frente a la cámara. La cámara es ortográfica, quieta y
+alineada a la grilla de píxeles. La luz del fuego es una luz real: titila
+en escalones, proyecta las sombras del gaucho y del caballo sobre el
+suelo, y se apaga hacia los bordes. Las sombras toman color según la hora,
+nunca negro puro. Encima: brasas que suben, humo, niebla baja, el pasto
+moviéndose en la punta, brillo alrededor de la llama, y desenfoque de lo
+más lejano. Todo se dibuja a baja resolución y se agranda sin suavizar,
+así queda pixel art y no 3D liso.
+
+**El día real.** Cuatro presets de luz —día, atardecer, noche, amanecer—
+interpolados según la altura real del sol en la ciudad elegida, no según
+horas fijas: en invierno oscurece antes, y la escena también.
 
 **Cuenta tu noche.**
 
-- Cielo, luna y su fase según la fecha y la hora reales. La fase se
-  calcula con una función pura, testeada.
+- Cielo según la altura real del sol; luna con su fase y su inclinación
+  reales; las estrellas que se ven esa noche desde ahí, con la Cruz del
+  Sur en su lugar.
 - Al tocar una hora de la lista, el fuego tiene tantos leños como ciclos.
 - Con una noche en curso, el fuego está consumido en proporción a lo que
   llevás en la cama: si abrís la app a las 3 de la mañana, ves cuánto
@@ -235,8 +291,7 @@ pixel art y no 3D liso.
 pantalla. Las tarjetas flotan sobre el campo, y la luz del fuego titila
 sobre sus bordes, sincronizada con la llama de verdad. Los títulos ganan
 detalle pixel; las horas y los textos siguen en letra legible, porque se
-leen a la 1 de la mañana. Al scrollear, la cámara se mueve apenas y los
-planos se separan.
+leen a la 1 de la mañana.
 
 **Modo brasa.** La escena se queda quieta y muy oscura, sin brillo ni
 desenfoque.
@@ -247,7 +302,7 @@ desenfoque.
 |---|---|---|---|
 | Qué es | La librería 3D más usada en la web, con los efectos ya hechos (pixelado, brillo, desenfoque) | Escribir los shaders y el motor sin librería | Renderizar la escena afuera y armarla con capas de imágenes |
 | Peso | +133 kB comprimido (medido, escena mínima) | ~15–25 kB (estimado) | Imágenes, cientos de kB |
-| Reutiliza | Los sprites de texto como texturas | Los sprites | Poco |
+| Reutiliza | Los sprites de texto como texturas, y el ejemplo oficial de pixel art | Los sprites | Poco |
 | Puede contar tu noche | Sí | Sí | Solo con muchas variantes armadas de antemano |
 | Mantenible por quien no programa | Sí: documentación abundante y oficial | No: cada efecto es código propio | Sí, pero cada cambio es rehacer imágenes |
 | Riesgo | Peso y batería | Tiempo y bugs propios en lo más difícil | Pierde lo dinámico, que es lo memorable |
@@ -256,8 +311,10 @@ desenfoque.
 código.** El peso se resuelve cargando la escena después de la lista, así
 que no compite con el trabajo 1.
 
-**Recomendación: A, three.js.** B gana en peso pero pone el código más
-difícil de la app en manos de un motor propio; C no puede contar la noche.
+**Recomendación: A, three.js, con `WebGLRenderer`.** B gana en peso pero
+pone el código más difícil de la app en manos de un motor propio; C no
+puede contar la noche. La versión WebGPU de three.js es la que usa
+folio-2025, pero pesa el doble y en Safari es lo menos probado.
 
 **Protecciones del peso:** la escena se carga después de la lista; la
 escena 2D de hoy (`escena.js`) queda como respaldo mientras carga y si el
@@ -276,9 +333,12 @@ reducido.
 | `sleep-session.js` | `isStaleOpenSleep` se usa por fin; `closeSleepSession` aprende a calcular con marcas de tiempo. |
 | `storage.js` | Mismo esquema más tres campos opcionales; la validación suma el techo de 16 horas. |
 | `escena.js` | Queda como respaldo 2D, y sus sprites se mudan a un archivo compartido para que los use también la escena 3D. |
+| Ejemplo de pixel art de three.js | Cámara alineada a la grilla y luz en escalones, adaptados. |
+| suncalc | Sol y luna. No se escribe astronomía propia. |
+| Datos de d3-celestial | Las estrellas brillantes, recortadas a lo que se ve. |
 | Los 132 tests | No se modifican. Un rojo es una regresión. |
 
-**Nuevo:** `patrones.js`, la fase de la luna, la escena 3D, el atajo de
+**Nuevo:** `patrones.js`, la escena 3D, los presets de luz, el atajo de
 alarma, y los sprites nuevos de caballo, vaca y alambrado.
 
 ---
@@ -311,44 +371,58 @@ no depende de la escena.
       la noche en el cuaderno.
 - [ ] 7. Huecos de la última semana en el cuaderno — verificación: tests
       de qué noches cuentan como hueco y captura.
-- [ ] 8. Poner alarma: link al atajo, hoja de instrucciones y plan B —
-      verificación automática del link armado; la real es tuya, en el
-      iPhone.
-- [ ] 9. `patrones.js` y su pantalla — verificación: tests con casos por
-      debajo y por encima del piso; captura.
-- [ ] 10. Lint, tests, build y Lighthouse — verificación: la salida de cada
+- [ ] 8. Poner alarma: link al atajo con fecha ISO, hoja de instrucciones y
+      plan B — verificación automática del link armado (incluido el cruce
+      de medianoche: 07:20 pedido a las 23:00 es mañana); la real es tuya,
+      en el iPhone.
+- [ ] 9. `patrones.js` y su pantalla: jet lag social, regularidad del punto
+      medio, acostarse contra cómo te levantaste, motivos — verificación:
+      tests con casos por debajo y por encima del piso, y el jet lag
+      contra un ejemplo calculado a mano; captura.
+- [ ] 10. Aviso de respaldo: si el último export tiene más de un mes,
+      Ajustes lo dice — verificación: test de la fecha.
+- [ ] 11. Lint, tests, build y Lighthouse — verificación: la salida de cada
       uno.
 
 ### Etapa B — escena (segundo PR)
 
-- [ ] 11. **Prototipo y checkpoint.** La escena sola, de noche y de día,
-      con todos los elementos. Te mando capturas y no sigo hasta tu OK.
-      Prueba de lectura: alguien que no la vio nombra cada cosa.
-- [ ] 12. Integrarla: carga diferida, respaldo 2D, pausa en segundo plano —
+- [ ] 12. **Prototipo y checkpoint.** La escena sola, con la cámara
+      alineada y la luz en escalones, de noche, al atardecer y de día, con
+      todos los elementos. Te mando capturas y no sigo hasta tu OK. Prueba
+      de lectura: alguien que no la vio nombra cada cosa.
+- [ ] 13. Integrarla: carga diferida, respaldo 2D, pausa en segundo plano —
       verificación: la lista aparece antes que la escena (medido con
       Playwright), y sin WebGL se ve la escena 2D.
-- [ ] 13. Contar la noche: leños por ciclo, fuego consumido, fase de la
-      luna — verificación: tests de la fase contra fechas de luna llena
-      conocidas; capturas con 3 y con 6 ciclos.
-- [ ] 14. La interfaz recibe la luz: fondo de pantalla completa, tarjetas
+- [ ] 14. El cielo real: presets de luz por altura del sol, luna con
+      suncalc, estrellas proyectadas — verificación: la fase y el
+      atardecer contra los de timeanddate.com para tres fechas; la Cruz
+      del Sur contra una carta celeste de esa hora.
+- [ ] 15. Contar la noche: leños por ciclo y fuego consumido —
+      verificación: capturas con 3 y con 6 ciclos, y con una noche en
+      curso a la mitad.
+- [ ] 16. La interfaz recibe la luz: fondo de pantalla completa, tarjetas
       flotando, luz del fuego en los bordes — verificación: contraste AA
       de los textos sobre la escena, medido.
-- [ ] 15. QA: Lighthouse ≥ 90 de performance y 100 de accesibilidad;
-      cuadros por segundo con la CPU frenada 4 veces — verificación: los
-      números.
-- [ ] 16. README y `docs/proceso.md`: el capítulo de cómo los datos
-      reales destaparon lo que los tests no veían.
+- [ ] 17. QA: Lighthouse ≥ 90 de performance y 100 de accesibilidad;
+      cuadros por segundo con la CPU frenada 4 veces; sin temblor de
+      píxeles en una grabación de 10 segundos — verificación: los números
+      y la grabación.
+- [ ] 18. README y `docs/proceso.md`: el capítulo de cómo los datos
+      reales destaparon lo que los tests no veían, y qué se tomó de otros
+      proyectos.
 
 ## Riesgos
 
 | Riesgo | Mitigación |
 |---|---|
-| Los elementos nuevos no se leen, como pasó con el recado y la tormenta. | El checkpoint del paso 11 con la prueba de lectura: lo que no se nombra, se saca. |
+| Los elementos nuevos no se leen, como pasó con el recado y la tormenta. | El checkpoint del paso 12 con la prueba de lectura: lo que no se nombra, se saca. |
 | Un toque más en la memoria baja la cobertura (la lección de la v1). | Hipótesis: un toque no la mueve. Se verifica con el backup del mes que viene: la cobertura tiene que seguir arriba del 70%. Si cae, la segunda pregunta se vuelve opcional. |
-| La acción de alarma de Atajos no recibe la hora. | Plan B: copiar la hora. Se sabe en tu primera prueba. |
+| La acción de alarma de Atajos no recibe la hora. | Fecha ISO y paso por la acción "Fecha"; si igual falla, plan B: copiar la hora. Se sabe en tu primera prueba. |
 | 13 veces más peso. | Carga diferida, respaldo 2D, piso de Lighthouse de 90. |
+| Los píxeles tiemblan. | Cámara ortográfica quieta y alineada, que es la solución del ejemplo oficial; se verifica en una grabación. |
 | Safari pierde el contexto WebGL al pasar a segundo plano. | Se escucha la pérdida y se vuelve a la escena 2D. |
 | Batería y calor a la noche. | Baja resolución, 30 cuadros como techo, pausa en segundo plano, quieta en modo brasa. |
+| La ciudad fija no es la tuya y el atardecer no coincide. | Se cambia en una línea; ver Supuestos. |
 | Datos personales en un repo público. | Tests con casos sintéticos; el backup real no entra. |
 
 ## Verificación final
@@ -372,9 +446,11 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
    hora. Esperado: queda una alarma en el Reloj a esa hora.
 5. Abrí la app con el teléfono en modo avión. Esperado: la lista aparece
    primero, y la escena llega después o queda la versión 2D.
-6. Mostrale una captura de la escena a alguien y pedile que diga qué ve.
+6. Salí a mirar el cielo y compará. Esperado: la luna tiene la misma fase,
+   y si la Cruz del Sur está alta, en la escena también.
+7. Mostrale una captura de la escena a alguien y pedile que diga qué ve.
    Esperado: nombra cada cosa sin ayuda.
-7. Tocá la luna. Esperado: la escena se queda quieta y se apaga.
+8. Tocá la luna. Esperado: la escena se queda quieta y se apaga.
 
 ## Registro de decisiones y desvíos
 
@@ -386,7 +462,7 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
   escena va de fondo de toda la pantalla; las horas no pasan a tipografía
   pixel, porque se leen a la 1 de la mañana.
 - 2026-11-08 — **La escena cuenta la noche:** leños por ciclo, fuego
-  consumido y luna real.
+  consumido, luna y cielo reales.
 - 2026-11-08 — **Se amplía con caballo, vacas y alambrado**, a pedido de
   Bruno y contra el historial: el recado y la tormenta se sacaron por no
   leerse. Queda condicionado a la prueba de lectura del checkpoint.
@@ -406,3 +482,21 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
 - 2026-11-08 — **three.js** en vez de WebGL a mano o de una escena
   prerenderizada: el criterio es que se pueda mantener orquestando IA. El
   peso medido (+133 kB comprimido) se contiene con carga diferida.
+- 2026-11-08 — **Desvío tras investigar otros proyectos: la cámara queda
+  quieta.** El plan decía que la cámara se movería apenas con el scroll.
+  El ejemplo oficial de pixel art de three.js y el paper de Texel
+  Splatting muestran por qué no: en 3D pixelado, mover una cámara en
+  perspectiva hace temblar los píxeles, y ningún ajuste lo arregla. Se
+  usa cámara ortográfica alineada a la grilla, y la profundidad sale de la
+  luz, las sombras, la niebla y el desenfoque.
+- 2026-11-08 — **suncalc para el sol y la luna** en vez de una función de
+  fase propia: 3,2 kB comprimido, BSD-2, con la precisión de
+  timeanddate.com. De paso agrega lo que la función propia no daba: la
+  altura real del sol, que define cuándo es atardecer.
+- 2026-11-08 — **El día como presets de luz interpolados**, tomado de
+  folio-2025: un juego de números por momento del día, sombras de color.
+- 2026-11-08 — **Estrellas reales**, con la Cruz del Sur. Agregado sin
+  preguntar: cuesta unos pocos kB y es lo que hace "realista" al cielo.
+- 2026-11-08 — **"Semana contra fin de semana" pasa a ser el jet lag
+  social**, la medida establecida (diferencia del punto medio del sueño).
+  Y se descarta el SRI porque el diario con huecos no lo soporta.
