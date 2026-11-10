@@ -2,8 +2,8 @@
 
 **Nivel:** profundo — suma una dependencia que multiplica por 13 el peso
 de la app, cambia el esquema de los datos y redibuja la escena entera.
-**Estado:** borrador — esperando aprobación
-**Última actualización:** 2026-11-10
+**Estado:** Etapa A hecha (PR aparte); Etapa B pendiente
+**Última actualización:** 2026-11-10 (cierre de la Etapa A)
 
 > El [plan de la v2](./PLAN.md) sigue valiendo como historia y como
 > criterio: los tres trabajos de la app y la regla "el recorte va sobre la
@@ -365,38 +365,38 @@ alarma, y los sprites nuevos de caballo, vaca y alambrado.
 Va primero porque el bug sigue ensuciando datos hoy, y porque es chica y
 no depende de la escena.
 
-- [ ] 0. `npm install` y los 132 tests en verde — verificación: la salida
+- [x] 0. `npm install` y los 132 tests en verde — verificación: la salida
       del comando.
-- [ ] 1. La noche olvidada: más de 16 horas no se cierra sola, y "Me voy a
+- [x] 1. La noche olvidada: más de 16 horas no se cierra sola, y "Me voy a
       dormir" nunca queda bloqueado — verificación: tests con los dos casos
       reales reproducidos (23:20 del 23-oct cerrada el 5-nov a las 22:50;
       23:10 del 22-sep cerrada el 24-sep a las 23:32).
-- [ ] 2. Duración en vivo por marcas de tiempo y techo de 16 horas al
+- [x] 2. Duración en vivo por marcas de tiempo y techo de 16 horas al
       guardar e importar — verificación: tests; un backup con un registro
       de 1410 minutos se rechaza.
-- [ ] 3. Campos `reasons`, `source` y `tz`; calidad 1/3/5 — verificación:
+- [x] 3. Campos `reasons`, `source` y `tz`; calidad 1/3/5 — verificación:
       tests de import y export, y un backup de la v2 se importa igual.
-- [ ] 4. Memoria con hora de acostarse y de levantarse — verificación:
+- [x] 4. Memoria con hora de acostarse y de levantarse — verificación:
       tests de las horas sugeridas (mediana, sin datos, cruce de
       medianoche) y captura en tamaño iPhone.
-- [ ] 5. Confirmación con horas alrededor de la planeada — verificación:
+- [x] 5. Confirmación con horas alrededor de la planeada — verificación:
       captura y recorrido con Playwright.
-- [ ] 6. *¿Cómo te levantaste?* con motivos y frase opcional —
+- [x] 6. *¿Cómo te levantaste?* con motivos y frase opcional —
       verificación: recorrido completo en Playwright, de abrir la app a ver
       la noche en el cuaderno.
-- [ ] 7. Huecos de la última semana en el cuaderno — verificación: tests
+- [x] 7. Huecos de la última semana en el cuaderno — verificación: tests
       de qué noches cuentan como hueco y captura.
-- [ ] 8. Poner alarma: link al atajo con fecha ISO, hoja de instrucciones y
+- [x] 8. Poner alarma: link al atajo con fecha ISO, hoja de instrucciones y
       plan B — verificación automática del link armado (incluido el cruce
       de medianoche: 07:20 pedido a las 23:00 es mañana); la real es tuya,
       en el iPhone.
-- [ ] 9. `patrones.js` y su pantalla: jet lag social, regularidad del punto
+- [x] 9. `patrones.js` y su pantalla: jet lag social, regularidad del punto
       medio, acostarse contra cómo te levantaste, motivos — verificación:
       tests con casos por debajo y por encima del piso, y el jet lag
       contra un ejemplo calculado a mano; captura.
-- [ ] 10. Aviso de respaldo: si el último export tiene más de un mes,
+- [x] 10. Aviso de respaldo: si el último export tiene más de un mes,
       Ajustes lo dice — verificación: test de la fecha.
-- [ ] 11. Lint, tests, build y Lighthouse — verificación: la salida de cada
+- [x] 11. Lint, tests, build y Lighthouse — verificación: la salida de cada
       uno.
 
 ### Etapa B — escena (segundo PR)
@@ -530,6 +530,32 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
 - 2026-11-10 — La app está instalada en la pantalla de inicio (dato de
   Bruno): el borrado de Safari a los 7 días no la alcanza. El aviso de
   respaldo queda igual, porque cambiar de teléfono se lleva todo.
+
+- 2026-11-10 — **Etapa A hecha.** 219 tests (los 132 originales sin
+  modificar), lint y build limpios, Lighthouse 99 / 100 / 100 en la
+  pantalla principal, recorridos con Playwright en iPhone 13 y en 375 px.
+  Desvíos y hallazgos:
+  - **"Olvidada" es el camino normal, no una rareza.** Una noche abierta a
+    las 23:30 pasa las 16 horas a las 15:30 del día siguiente, y la app se
+    abre recién de noche. Por eso la tarjeta ofrece las mismas horas para
+    elegir en `confirm` y en `stale`; cambia solo el texto.
+  - **`askShapeFor` no se tocó:** sus tests fijan que una noche abierta de
+    otra fecha da `recall`. La noche olvidada va en `askShapeWithStale`.
+  - **Un backup con un registro de más de 16 horas se rechaza entero**, como
+    dice el paso 2. El backup real del 8-nov trae el de 1410 minutos, así
+    que no se puede importar tal cual: hay que hacer primero la limpieza
+    manual 1 (borrar las tres noches) y volver a exportar. La app lo dice:
+    *Hay una noche de más de 16 horas en ese archivo. No se tocó nada.*
+  - **La zona horaria no es un nombre único.** Chromium devuelve
+    `America/Cordoba` donde el plan escribe `America/Argentina/Cordoba`
+    (el mismo huso, con el nombre viejo). El paso 14 tiene que tratar los
+    alias (`America/Cordoba`, `America/Buenos_Aires`, `America/Argentina/*`)
+    como Argentina antes de buscar la ciudad de referencia.
+  - **Los huecos incluyen las noches salteadas** con "No la anoto": siguen
+    siendo noches sin anotar y se pueden cargar después.
+  - **Sin verificar todavía, y solo vos podés:** que el atajo cree la
+    alarma en un iPhone (verificación manual 4). La hoja de la app lo dice
+    con esas palabras; sacar esa línea cuando se pruebe.
 
 ---
 

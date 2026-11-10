@@ -11,9 +11,12 @@ import {
     contarRegistrosV1,
     exportData,
     getCycleLength,
+    getLastExportAt,
     getLatency,
+    getSleepLogs,
     getTheme,
     importData,
+    markExported,
     saveCycleLength,
     saveLatency,
     saveTheme,
@@ -21,6 +24,8 @@ import {
 import { chooseModal, confirmModal } from './modal.js';
 import { showToast } from './toast.js';
 import { renderEscena } from './escena.js';
+import { abrirGuiaAlarma } from './home.js';
+import { backupReminder } from '../respaldo.js';
 
 export function initAjustes() {
     const latencia = document.getElementById('ajuste-latencia');
@@ -44,6 +49,7 @@ export function initAjustes() {
     });
 
     document.getElementById('btn-exportar').addEventListener('click', exportar);
+    document.getElementById('btn-guia-alarma').addEventListener('click', () => abrirGuiaAlarma());
 
     const archivo = document.getElementById('import-file-input');
     document.getElementById('btn-importar').addEventListener('click', () => archivo.click());
@@ -62,6 +68,15 @@ export function renderAjustes() {
     document.getElementById('ajuste-latencia').value = getLatency();
     document.getElementById('ajuste-ciclo').value = getCycleLength();
     document.getElementById('ajuste-brasa').checked = getTheme() === 'brasa';
+
+    // Una línea, sin insistir: solo en Ajustes y solo si hace falta.
+    const aviso = backupReminder({
+        lastExportAt: getLastExportAt(),
+        recordCount: getSleepLogs().length,
+    });
+    const lineaAviso = document.getElementById('aviso-respaldo');
+    lineaAviso.hidden = !aviso;
+    lineaAviso.textContent = aviso || '';
 
     // La opción de borrar los datos viejos solo se muestra si hay algo
     // que borrar. Ofrecerla siempre sería contarle a todo el mundo un
@@ -99,6 +114,8 @@ function exportar() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+    markExported();
+    renderAjustes();
 
     showToast(`Bajaron ${datos.records.length} noches.`);
 }
@@ -128,7 +145,9 @@ async function importar(file) {
             ? modo === 'replace'
                 ? 'Listo, se reemplazó todo.'
                 : 'Listo, se sumaron las que faltaban.'
-            : 'Ese archivo no tiene la forma esperada. No se tocó nada.',
+            : resultado.error === 'too-long'
+              ? 'Hay una noche de más de 16 horas en ese archivo. No se tocó nada.'
+              : 'Ese archivo no tiene la forma esperada. No se tocó nada.',
     );
 }
 
