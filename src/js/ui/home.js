@@ -17,10 +17,10 @@ import {
     formatDuration,
     formatTime,
     minutesUntilClock,
-    addMinutesToClock,
     SIESTA_CORTA_MINUTOS,
 } from '../calc.js';
 import {
+    clearOpenSleep,
     finishOpenSleep,
     getCycleLength,
     getLatency,
@@ -28,15 +28,27 @@ import {
     getSkippedNights,
     getSleepLogs,
     getTheme,
-    saveRecalledNight,
+    hasSeenAlarmGuide,
+    markAlarmGuideSeen,
+    saveRecalledClockNight,
     saveTheme,
     skipNight,
     startOpenSleep,
     updateSleepLog,
 } from '../storage.js';
-import { askShapeFor, shouldAskAboutNight } from '../sleep-session.js';
+import {
+    QUALITY_LEVELS,
+    REASONS,
+    askShapeWithStale,
+    isStaleOpenSleep,
+    nightToAskAbout,
+    shouldAskAboutNight,
+} from '../sleep-session.js';
+import { alarmShortcutUrl, isIOS } from '../alarma.js';
+import { aroundPlanned, clockOptions, usualClock, wakeOptionsFor } from '../horas-sugeridas.js';
 import { showToast } from './toast.js';
 import { renderEscena } from './escena.js';
+import { openSheet } from './sheets.js';
 
 // La lista es UNA escalera ordenada por cuánto se duerme, de menos a
 // más: la siesta corta primero, después uno, dos, tres… ciclos. En la
@@ -61,8 +73,12 @@ let horaElegida = null;
 
 // La noche por la que se está preguntando ahora, y el registro recién
 // creado al responder — para poder agregarle la frase después.
-let nocheEnCurso = null;
+// `pregunta` es el estado de la tarjeta mientras se responde; `forzada` es la
+// noche que se pidió desde un hueco del cuaderno.
+let pregunta = null;
+let preguntaForzada = null;
 let registroReciente = null;
+let horaDeAlarma = null;
 
 export function initHome() {
     document.getElementById('btn-principal').addEventListener('click', alTocarPrincipal);
@@ -70,10 +86,16 @@ export function initHome() {
     document.getElementById('btn-tema').addEventListener('click', alternarTema);
 
     document.getElementById('resultado-filas').addEventListener('click', (evento) => {
+        const alarma = evento.target.closest('[data-alarma]');
+        if (alarma) {
+            ponerAlarma(alarma.dataset.alarma);
+            return;
+        }
         const fila = evento.target.closest('.fila');
         if (fila && fila.dataset.hora) elegirHora(fila.dataset.hora);
     });
 
+    conectarHojaAlarma();
     conectarTarjetaAnoche();
     aplicarTema(getTheme());
 
@@ -141,6 +163,7 @@ function renderResultado({ modo = 'ahora', hora = null } = {}) {
         detalle: r.cycles === 1 ? '1 ciclo' : `${r.cycles} ciclos`,
         recomendada: r.isOptimal,
         seleccionable: esAhora,
+        alarma: esAhora,
     }));
 
     // La siesta corta no es una fracción de ciclo: es cortar antes de
@@ -157,6 +180,7 @@ function renderResultado({ modo = 'ahora', hora = null } = {}) {
                 detalle: 'siesta corta',
                 recomendada: false,
                 seleccionable: false,
+                alarma: true,
             });
         }
     }
@@ -201,6 +225,19 @@ function filaResultado(opcion, ahora) {
     );
 
     li.appendChild(fila);
+
+    // Una hora de despertar se puede poner de alarma con un toque. Las
+    // horas de acostarse (cuando se pide levantarse a una hora fija) no:
+    // no hay alarma que poner para irse a dormir.
+    if (opcion.alarma) {
+        const alarma = document.createElement('button');
+        alarma.type = 'button';
+        alarma.className = 'btn-alarma';
+        alarma.dataset.alarma = opcion.hora;
+        alarma.textContent = 'Poner alarma';
+        alarma.setAttribute('aria-label', `Poner alarma a las ${opcion.hora}`);
+        li.appendChild(alarma);
+    }
     return li;
 }
 
@@ -224,12 +261,76 @@ function alPedirHora(evento) {
     renderAccion();
 }
 
+// --- ALARMA ---
+//
+// Un toque abre el atajo del iPhone con la fecha y hora completas (ver
+// alarma.js). La primera vez se muestra antes la hoja que explica cómo
+// armar el atajo. Si no es un iPhone, la acción copia la hora.
+
+function ponerAlarma(hora) {
+    if (!hasSeenAlarmGuide()) {
+        abrirGuiaAlarma(hora);
+        return;
+    }
+    lanzarAlarma(hora);
+}
+
+function lanzarAlarma(hora) {
+    if (isIOS(navigator)) {
+        const url = alarmShortcutUrl(hora);
+        if (url) window.location.href = url;
+        return;
+    }
+    copiarHora(hora);
+}
+
+async function copiarHora(hora) {
+    try {
+        await navigator.clipboard.writeText(hora);
+        showToast(`Copiada: ${hora}.`);
+    } catch {
+        showToast('No pude copiar la hora.');
+    }
+}
+
+/** Abre la hoja con los pasos del atajo. Sin hora, es solo para leer. */
+export function abrirGuiaAlarma(hora = null) {
+    horaDeAlarma = hora;
+    const texto = document.getElementById('alarma-hora');
+    texto.hidden = !hora;
+    texto.textContent = hora ? `Alarma para las ${hora}.` : '';
+    document.getElementById('alarma-poner').hidden = !hora;
+    document.getElementById('alarma-copiar').hidden = !hora;
+    openSheet('hoja-alarma');
+}
+
+function conectarHojaAlarma() {
+    document.getElementById('alarma-poner').addEventListener('click', () => {
+        markAlarmGuideSeen();
+        document.getElementById('hoja-alarma').close();
+        if (horaDeAlarma) lanzarAlarma(horaDeAlarma);
+    });
+    document.getElementById('alarma-copiar').addEventListener('click', () => {
+        if (horaDeAlarma) copiarHora(horaDeAlarma);
+    });
+}
+
 // --- ACCIÓN ---
+
+// Una noche abierta hace más de 16 horas ya no es "la noche en curso":
+// es un olvido. Si el botón la siguiera tratando como abierta, diría "Ya me
+// levanté" y cerrarla daría un registro imposible, y no habría forma de
+// marcar "Me voy a dormir". Eso fue lo que pasó del 25-oct al 4-nov en los
+// datos reales: ocho noches anotadas de memoria, sin horario.
+function nocheEnCursoVigente() {
+    const abierta = getOpenSleep();
+    return abierta && !isStaleOpenSleep(abierta) ? abierta : null;
+}
 
 function renderAccion() {
     const btn = document.getElementById('btn-principal');
     const detalle = document.getElementById('accion-detalle');
-    const abierta = getOpenSleep();
+    const abierta = nocheEnCursoVigente();
 
     if (abierta) {
         btn.textContent = 'Ya me levanté';
@@ -240,11 +341,17 @@ function renderAccion() {
     }
 
     btn.textContent = horaElegida ? `Me voy a dormir hasta las ${horaElegida}` : 'Me voy a dormir';
-    detalle.textContent = horaElegida ? '' : 'Tocá una hora de arriba si querés dejarla anotada.';
+    if (getOpenSleep()) {
+        detalle.textContent = 'La noche que quedó abierta se descarta si tocás este botón.';
+    } else {
+        detalle.textContent = horaElegida
+            ? ''
+            : 'Tocá una hora de arriba si querés dejarla anotada.';
+    }
 }
 
 function alTocarPrincipal() {
-    if (getOpenSleep()) {
+    if (nocheEnCursoVigente()) {
         const resultado = finishOpenSleep();
         if (!resultado.ok) {
             showToast('No pude cerrar esa noche.');
@@ -253,12 +360,16 @@ function alTocarPrincipal() {
         const { durationMinutes, cyclesCompleted } = resultado.record;
         showToast(`Dormiste ${formatDuration(durationMinutes)}. ${cyclesCompleted} ciclos.`);
         registroReciente = resultado.record;
-        nocheEnCurso = resultado.record.date;
+        preguntaForzada = null;
+        pregunta = null;
         renderHome();
-        mostrarPedidoDeNota();
+        mostrarDespues();
         return;
     }
 
+    // Si había una noche olvidada, esto la pisa: queda como hueco que se
+    // puede cargar desde el cuaderno.
+    pregunta = null;
     startOpenSleep(new Date(), { intendedWaketime: horaElegida });
     horaElegida = null;
     showToast('Anotado. Que descanses.');
@@ -268,135 +379,286 @@ function alTocarPrincipal() {
 // --- LA TARJETA DE ANOCHE ---
 
 function conectarTarjetaAnoche() {
-    document.getElementById('anoche-si').addEventListener('click', confirmarAnoche);
-    document.getElementById('anoche-distinto').addEventListener('click', () => {
-        document.getElementById('anoche-confirmar').hidden = true;
-        document.getElementById('anoche-horas').hidden = false;
-    });
-    document.getElementById('anoche-saltear').addEventListener('click', () => {
-        if (nocheEnCurso) skipNight(nocheEnCurso);
-        renderHome();
-    });
-    document.getElementById('anoche-guardar-nota').addEventListener('click', guardarNota);
     document.getElementById('anoche-horas').addEventListener('click', (evento) => {
-        const btn = evento.target.closest('[data-horas]');
-        if (btn) responderHoras(Number(btn.dataset.horas));
+        const btn = evento.target.closest('button');
+        if (!btn) return;
+        if (btn.dataset.otra) {
+            const panel = document.getElementById('anoche-otra');
+            panel.hidden = !panel.hidden;
+            if (!panel.hidden) document.getElementById('anoche-otra-input').focus();
+            return;
+        }
+        if (btn.dataset.hora) alElegirHora(btn.dataset.hora);
+    });
+    document.getElementById('anoche-otra-ok').addEventListener('click', () => {
+        const hora = document.getElementById('anoche-otra-input').value;
+        if (!hora) {
+            showToast('Falta la hora.');
+            return;
+        }
+        alElegirHora(hora);
+    });
+    document.getElementById('anoche-saltear').addEventListener('click', saltearNoche);
+    document.getElementById('anoche-calidad').addEventListener('click', (evento) => {
+        const btn = evento.target.closest('[data-valor]');
+        if (btn) marcarCalidad(Number(btn.dataset.valor));
+    });
+    document.getElementById('anoche-motivos').addEventListener('click', (evento) => {
+        const btn = evento.target.closest('[data-motivo]');
+        if (btn) marcarMotivo(btn.dataset.motivo);
+    });
+    document.getElementById('anoche-listo').addEventListener('click', cerrarTarjeta);
+}
+
+// Desde un hueco del cuaderno: abre la misma pregunta de memoria, pero por
+// esa noche. No insiste ni avisa; está ahí si querés cargarla.
+export function preguntarPorNoche(noche) {
+    preguntaForzada = noche;
+    registroReciente = null;
+    pregunta = null;
+    renderAnoche();
+    const tarjeta = document.getElementById('tarjeta-anoche');
+    tarjeta.scrollIntoView({ block: 'center' });
+}
+
+function etiquetaDeNoche(clave) {
+    if (clave === nightToAskAbout()) return 'anoche';
+    return `la noche del ${fechaCorta(clave)}`;
+}
+
+function fechaCorta(clave) {
+    return new Date(`${clave}T00:00:00`).toLocaleDateString('es-AR', {
+        weekday: 'long',
+        day: 'numeric',
     });
 }
 
 function renderAnoche() {
     const tarjeta = document.getElementById('tarjeta-anoche');
-    const hayQuePreguntar = shouldAskAboutNight({
-        records: getSleepLogs(),
-        openSleep: getOpenSleep(),
-        skipped: getSkippedNights(),
-    });
 
-    if (!hayQuePreguntar) {
-        tarjeta.hidden = true;
-        return;
+    // Mientras se muestra "¿Cómo te levantaste?", cada toque guarda en
+    // seguida y avisa un cambio de datos. Sin esta guarda, el aviso
+    // repintaba la tarjeta y la hacía desaparecer a mitad de respuesta.
+    if (registroReciente) return;
+
+    const abierta = getOpenSleep();
+    if (!preguntaForzada) {
+        const hayQuePreguntar = shouldAskAboutNight({
+            records: getSleepLogs(),
+            openSleep: abierta,
+            skipped: getSkippedNights(),
+        });
+        if (!hayQuePreguntar) {
+            tarjeta.hidden = true;
+            pregunta = null;
+            return;
+        }
     }
 
-    const forma = askShapeFor({ openSleep: getOpenSleep() });
-    nocheEnCurso = forma.night;
+    const forma = askShapeWithStale({ openSleep: abierta, night: preguntaForzada });
+
+    // Si ya se está respondiendo esta misma pregunta, no se reinicia: volver
+    // a la app a mitad de la respuesta no tiene que devolverte al primer paso.
+    if (!pregunta || pregunta.night !== forma.night || pregunta.mode !== forma.mode) {
+        pregunta =
+            forma.mode === 'recall'
+                ? { night: forma.night, mode: 'recall', step: 'bed', bedtime: null, open: null }
+                : {
+                      night: forma.night,
+                      mode: forma.mode,
+                      step: 'wake',
+                      bedtime: forma.open.bedtimeActual,
+                      open: forma.open,
+                  };
+    }
+
     tarjeta.hidden = false;
-    document.getElementById('anoche-nota').hidden = true;
-    document.getElementById('anoche-titulo').textContent = '¿Cómo dormiste anoche?';
-
-    // Solo se puede confirmar si además de la hora de acostarse quedó
-    // guardada la que se pensaba despertar. Si no, no hay nada que
-    // confirmar y se pregunta directamente cuántas horas durmió.
-    const puedeConfirmar = forma.mode === 'confirm' && forma.open.intendedWaketime;
-
-    document.getElementById('anoche-detalle').textContent = puedeConfirmar
-        ? `Te acostaste a las ${forma.open.bedtimeActual} y calculabas despertarte ${forma.open.intendedWaketime}.`
-        : forma.mode === 'confirm'
-          ? `Te acostaste a las ${forma.open.bedtimeActual}, pero no sé hasta cuándo.`
-          : 'No quedó anotada, así que va de memoria.';
-
-    document.getElementById('anoche-confirmar').hidden = !puedeConfirmar;
-    const contenedorHoras = document.getElementById('anoche-horas');
-    contenedorHoras.hidden = puedeConfirmar;
-    pintarOpcionesDeHoras(contenedorHoras);
+    document.getElementById('anoche-despues').hidden = true;
+    document.getElementById('anoche-saltear').hidden = false;
+    pintarPregunta();
 }
 
-// Horas enteras, y nada más. La primera versión ofrecía múltiplos del
-// ciclo configurado ("6h", "7h 30m", "9h"), que es más exacto y peor: a
-// la noche siguiente nadie recuerda haber dormido siete horas y media.
-// Se recuerda "como siete horas". La app deduce los ciclos sola.
-const HORAS_POSIBLES = [5, 6, 7, 8, 9];
+function pintarPregunta() {
+    const { night, mode, step, bedtime, open } = pregunta;
+    const planeada = open ? open.intendedWaketime : null;
 
-function pintarOpcionesDeHoras(contenedor) {
+    const titulo = document.getElementById('anoche-titulo');
+    const detalle = document.getElementById('anoche-detalle');
+    if (mode === 'stale') {
+        titulo.textContent = `Quedó abierta la noche del ${fechaCorta(night)}, desde las ${bedtime}.`;
+        detalle.textContent = planeada ? `Calculabas despertarte ${planeada}.` : '';
+    } else {
+        titulo.textContent = `¿Cómo dormiste ${etiquetaDeNoche(night)}?`;
+        if (mode === 'confirm') {
+            detalle.textContent = planeada
+                ? `Te acostaste a las ${bedtime} y calculabas despertarte ${planeada}.`
+                : `Te acostaste a las ${bedtime}.`;
+        } else {
+            detalle.textContent = 'No quedó anotada, así que va de memoria.';
+        }
+    }
+
+    document.getElementById('anoche-pregunta').hidden = false;
+    document.getElementById('anoche-otra').hidden = true;
+    document.getElementById('anoche-pregunta-texto').textContent =
+        step === 'bed' ? '¿A qué hora te acostaste?' : '¿A qué hora te levantaste?';
+
+    // Las horas ofrecidas: alrededor de la planeada si la hay (una antes,
+    // la planeada y una después: elegir 07:20 entre 06:50, 07:20 y 07:50
+    // es una respuesta, tocar "Fue así" era un reflejo) y si no, alrededor
+    // de tus horarios de siempre.
+    const registros = getSleepLogs();
+    let horas;
+    if (step === 'bed') horas = clockOptions(usualClock(registros, 'bedtimeActual'));
+    else horas = planeada ? aroundPlanned(planeada) : wakeOptionsFor(registros);
+
+    const contenedor = document.getElementById('anoche-horas');
     contenedor.innerHTML = '';
-    HORAS_POSIBLES.forEach((horas) => {
+    horas.forEach((hora) => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'btn-chip';
-        btn.dataset.horas = String(horas);
-        btn.textContent = `${horas}h`;
+        btn.dataset.hora = hora;
+        btn.textContent = hora;
         contenedor.appendChild(btn);
     });
+    const otra = document.createElement('button');
+    otra.type = 'button';
+    otra.className = 'btn-chip btn-chip-otra';
+    otra.dataset.otra = 'si';
+    otra.textContent = 'Otra hora';
+    contenedor.appendChild(otra);
 }
 
-function confirmarAnoche() {
-    const abierta = getOpenSleep();
-    if (!abierta || !abierta.intendedWaketime) return;
+function alElegirHora(hora) {
+    if (!pregunta) return;
 
-    const resultado = finishOpenSleep({ waketimeActual: abierta.intendedWaketime });
+    if (pregunta.step === 'bed') {
+        pregunta.bedtime = hora;
+        pregunta.step = 'wake';
+        pintarPregunta();
+        return;
+    }
+
+    const resultado = pregunta.open
+        ? finishOpenSleep({ waketimeActual: hora })
+        : saveRecalledClockNight({
+              night: pregunta.night,
+              bedtimeActual: pregunta.bedtime,
+              waketimeActual: hora,
+          });
+
     if (!resultado.ok) {
-        showToast('No pude anotar esa noche.');
+        showToast(
+            resultado.error === 'too-long'
+                ? 'Una noche no puede durar más de 16 horas.'
+                : 'No pude anotar esa noche.',
+        );
+        // De memoria se vuelve al primer paso: lo más probable es que la
+        // hora de acostarse esté mal. Con una noche abierta, la hora de
+        // acostarse es real y solo se vuelve a elegir la de levantarse.
+        if (!pregunta.open) {
+            pregunta.step = 'bed';
+            pintarPregunta();
+        }
         return;
     }
     trasAnotar(resultado.record);
 }
 
-function responderHoras(horas) {
-    const abierta = getOpenSleep();
-
-    // Si se conoce la hora de acostarse, la de despertar se deduce: son
-    // dos datos reales y una suma, no un horario inventado. Así la noche
-    // conserva horario y puede aportar a la regularidad.
-    if (abierta && abierta.date === nocheEnCurso) {
-        const waketimeActual = addMinutesToClock(abierta.bedtimeActual, horas * 60);
-        const resultado = finishOpenSleep({ waketimeActual });
-        if (resultado.ok) {
-            trasAnotar(resultado.record);
-            return;
-        }
+function saltearNoche() {
+    if (pregunta) {
+        skipNight(pregunta.night);
+        // Una noche abierta que se saltea se descarta: si quedara viva, el
+        // botón principal seguiría tratándola como la noche en curso.
+        const abierta = getOpenSleep();
+        if (abierta && abierta.date === pregunta.night) clearOpenSleep();
     }
-
-    trasAnotar(saveRecalledNight({ hours: horas, night: nocheEnCurso }));
+    preguntaForzada = null;
+    pregunta = null;
+    renderHome();
+    document.getElementById('tarjeta-anoche').hidden = true;
 }
 
 function trasAnotar(registro) {
     registroReciente = registro;
+    preguntaForzada = null;
+    pregunta = null;
     showToast(`Anotada: ${formatDuration(registro.durationMinutes)}.`);
     renderResultado();
     renderAccion();
-    mostrarPedidoDeNota();
+    mostrarDespues();
 }
 
-// La única cosa que escribe una persona. Las horas las pone la app; esto
-// es lo que convierte al cuaderno en algo para leer y no en una planilla.
-function mostrarPedidoDeNota() {
+// --- DESPUÉS DE ANOTAR: ¿CÓMO TE LEVANTASTE? ---
+//
+// Vuelve la calificación, en tres niveles y de un toque. La v2 la había
+// reemplazado por una frase libre, pero los datos mostraron que la frase
+// cargaba justamente eso, y que se dejó de escribir a las dos semanas.
+// Cada toque se guarda en el momento: no hay un "Guardar" que olvidar.
+
+function mostrarDespues() {
     const tarjeta = document.getElementById('tarjeta-anoche');
     tarjeta.hidden = false;
     document.getElementById('anoche-titulo').textContent = 'Quedó anotada';
     document.getElementById('anoche-detalle').textContent = registroReciente
         ? `${formatDuration(registroReciente.durationMinutes)}, ${registroReciente.cyclesCompleted} ciclos.`
         : '';
-    document.getElementById('anoche-confirmar').hidden = true;
-    document.getElementById('anoche-horas').hidden = true;
-    document.getElementById('anoche-nota').hidden = false;
+    document.getElementById('anoche-pregunta').hidden = true;
+    document.getElementById('anoche-saltear').hidden = true;
+    document.getElementById('anoche-despues').hidden = false;
     document.getElementById('anoche-nota-input').value = '';
+    pintarDespues();
 }
 
-function guardarNota() {
-    const input = document.getElementById('anoche-nota-input');
-    const nota = input.value.trim();
+function pintarDespues() {
+    const calidad = document.getElementById('anoche-calidad');
+    calidad.innerHTML = '';
+    QUALITY_LEVELS.forEach(({ value, label }) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-chip';
+        btn.dataset.valor = String(value);
+        btn.textContent = label;
+        btn.setAttribute('aria-pressed', String(registroReciente.quality === value));
+        calidad.appendChild(btn);
+    });
+
+    const motivos = document.getElementById('anoche-motivos');
+    motivos.innerHTML = '';
+    REASONS.forEach(({ id, label }) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-chip';
+        btn.dataset.motivo = id;
+        btn.textContent = label;
+        btn.setAttribute('aria-pressed', String((registroReciente.reasons || []).includes(id)));
+        motivos.appendChild(btn);
+    });
+}
+
+function marcarCalidad(valor) {
+    if (!registroReciente) return;
+    // Tocar el que ya estaba marcado lo desmarca: la pregunta es opcional.
+    const nueva = registroReciente.quality === valor ? null : valor;
+    registroReciente = updateSleepLog(registroReciente.id, { quality: nueva }) || registroReciente;
+    pintarDespues();
+}
+
+function marcarMotivo(id) {
+    if (!registroReciente) return;
+    const actuales = registroReciente.reasons || [];
+    const nuevos = actuales.includes(id) ? actuales.filter((m) => m !== id) : [...actuales, id];
+    registroReciente = updateSleepLog(registroReciente.id, { reasons: nuevos }) || registroReciente;
+    pintarDespues();
+}
+
+function cerrarTarjeta() {
+    const nota = document.getElementById('anoche-nota-input').value.trim();
     if (nota && registroReciente) updateSleepLog(registroReciente.id, { notes: nota });
 
     registroReciente = null;
     document.getElementById('tarjeta-anoche').hidden = true;
+    renderHome();
     if (nota) showToast('Guardada.');
 }

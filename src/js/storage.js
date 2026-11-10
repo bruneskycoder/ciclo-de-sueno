@@ -17,14 +17,18 @@
 // mismo que sueño real: convertirlos mezclaría ficción con dato real en
 // las métricas nuevas). "Borrar todo" borra solo los datos de la v2;
 // los de la v1 se ofrecen aparte en Ajustes (ver contarRegistrosV1).
-import { clampCycleLength, clampLatency, formatTime } from './calc.js';
+import { clampCycleLength, clampLatency } from './calc.js';
 import {
     closeSleepSession,
+    isPlausibleDuration,
+    isReasonId,
     isValidOpenSleep,
     nightToAskAbout,
     openSleepFrom,
+    recalledNightRecord,
     recalledRecord,
     recordKind,
+    SOURCES,
 } from './sleep-session.js';
 
 // storage.js NO importa ninguna vista. Antes sí: llamaba a mano a
@@ -99,6 +103,16 @@ export function saveTheme(theme) {
 
 const SLEEP_LOG_KEY = 'sleepLogReal';
 
+// La zona horaria del teléfono, sin pedir ningún permiso: el navegador la
+// expone sola y el iPhone la cambia al aterrizar en otro país.
+export function currentTimeZone() {
+    try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+    } catch {
+        return null;
+    }
+}
+
 export function getSleepLogs() {
     const data = localStorage.getItem(SLEEP_LOG_KEY);
     return data ? JSON.parse(data) : [];
@@ -116,7 +130,17 @@ function saveSleepLogs(data) {
  *
  * Esquema: {id, date: "YYYY-MM-DD", bedtimeActual: "HH:MM",
  * waketimeActual: "HH:MM", durationMinutes, cyclesCompleted,
- * quality: 1-5|null, notes: string}
+ * quality: 1|3|5|null, notes: string, reasons: string[],
+ * source: 'live'|'confirmed'|'recalled'|null, tz: string|null}
+ *
+ * Los tres últimos campos son de la v3 y opcionales: un backup de la v2
+ * se importa igual. `tz` es la zona horaria del teléfono al anotar. Las
+ * horas se guardan como hora local ("23:30"); sin la zona, una noche en
+ * Nueva Zelanda y una en Chaco se mezclarían en los patrones como si
+ * fueran el mismo reloj.
+ *
+ * Devuelve null si la duración pasa el techo de 16 horas: ningún camino
+ * de la app tiene que poder guardar un registro imposible.
  */
 export function saveSleepLog({
     date,
@@ -127,7 +151,12 @@ export function saveSleepLog({
     kind,
     quality,
     notes,
+    reasons,
+    source,
+    tz,
 }) {
+    if (!isPlausibleDuration(durationMinutes)) return null;
+
     const logs = getSleepLogs();
     const registro = {
         id: Date.now().toString(),
@@ -139,6 +168,9 @@ export function saveSleepLog({
         kind: recordKind({ kind }),
         quality: quality ?? null,
         notes: notes || '',
+        reasons: Array.isArray(reasons) ? reasons.filter(isReasonId) : [],
+        source: SOURCES.includes(source) ? source : null,
+        tz: tz || currentTimeZone(),
     };
     logs.push(registro);
     saveSleepLogs(logs);
@@ -202,21 +234,23 @@ export function clearOpenSleep() {
  * Cierra la noche en curso y la guarda en el historial.
  *
  * @param {Object} [params]
- * @param {string} [params.waketimeActual] - Hora de despertar. Por
- *   defecto, la del reloj: el caso normal es tocar "Ya me levanté" recién
- *   levantado. Se pasa explícita cuando se completa a mano una noche que
- *   quedó olvidada.
+ * @param {string} [params.waketimeActual] - Hora de despertar elegida. Sin
+ *   ella se cierra EN VIVO: la duración sale de las marcas de tiempo, no de
+ *   restar horas de reloj (ver closeSleepSession). Se pasa al confirmar una
+ *   noche al día siguiente o al completar una olvidada.
  * @returns {{ok: true, record: Object} | {ok: false, error: string}}
  */
 export function finishOpenSleep({ waketimeActual, now = new Date() } = {}) {
     const resultado = closeSleepSession({
         open: getOpenSleep(),
-        waketimeActual: waketimeActual || formatTime(now),
+        waketimeActual,
+        closedAt: waketimeActual ? null : now,
         cycleMinutes: getCycleLength(),
     });
     if (!resultado.ok) return resultado;
 
     const registro = saveSleepLog(resultado.record);
+    if (!registro) return { ok: false, error: 'too-long' };
     clearOpenSleep();
     return { ok: true, record: registro };
 }
@@ -263,6 +297,30 @@ export function saveRecalledNight({ hours, night = nightToAskAbout(), notes = ''
     if (abierta && abierta.date === night) clearOpenSleep();
 
     return registro;
+}
+
+/**
+ * Guarda una noche respondida de memoria con las dos horas: a qué hora te
+ * acostaste y a qué hora te levantaste. Cierra la noche abierta de esa
+ * fecha, si la había, igual que saveRecalledNight.
+ *
+ * @returns {{ok: true, record: Object} | {ok: false, error: string}}
+ */
+export function saveRecalledClockNight({ night, bedtimeActual, waketimeActual }) {
+    const resultado = recalledNightRecord({
+        night,
+        bedtimeActual,
+        waketimeActual,
+        cycleMinutes: getCycleLength(),
+    });
+    if (!resultado.ok) return resultado;
+
+    const registro = saveSleepLog(resultado.record);
+    if (!registro) return { ok: false, error: 'too-long' };
+
+    const abierta = getOpenSleep();
+    if (abierta && abierta.date === night) clearOpenSleep();
+    return { ok: true, record: registro };
 }
 
 export function deleteSleepLog(id) {
@@ -343,6 +401,32 @@ const TIME_RE = /^\d{1,2}:\d{2}$/;
  * sugerencias calculadas, no sueño real, y exportarlas mezclaría los dos
  * conceptos en el archivo de backup.
  */
+// Cuándo se bajó el último respaldo, para el aviso de Ajustes (ver
+// respaldo.js). Se guarda aparte del historial: es de este teléfono, no de
+// los datos, y no tiene por qué viajar en el archivo.
+const LAST_EXPORT_KEY = 'lastExportAt';
+
+export function getLastExportAt() {
+    return localStorage.getItem(LAST_EXPORT_KEY);
+}
+
+export function markExported(now = new Date()) {
+    localStorage.setItem(LAST_EXPORT_KEY, now.toISOString());
+}
+
+// Si ya se mostró la explicación del atajo de la alarma. La primera vez que
+// se toca "Poner alarma" aparece la hoja con los pasos; después, el toque
+// abre el atajo directo.
+const ALARM_GUIDE_KEY = 'alarmGuideSeen';
+
+export function hasSeenAlarmGuide() {
+    return localStorage.getItem(ALARM_GUIDE_KEY) === '1';
+}
+
+export function markAlarmGuideSeen() {
+    localStorage.setItem(ALARM_GUIDE_KEY, '1');
+}
+
 export function exportData() {
     return {
         version: EXPORT_VERSION,
@@ -373,7 +457,24 @@ export function validateImportPayload(data) {
             horaValidaOAusente(r.bedtimeActual) &&
             horaValidaOAusente(r.waketimeActual) &&
             typeof r.durationMinutes === 'number' &&
-            r.durationMinutes >= 0,
+            r.durationMinutes >= 0 &&
+            isPlausibleDuration(r.durationMinutes),
+    );
+}
+
+// Para decirle a la persona POR QUÉ se rechazó el archivo: un registro de
+// más de 16 horas es un error conocido (dos aparecieron en los datos
+// reales), y "no tiene la forma esperada" no la ayuda a encontrarlo.
+function hayNocheImposible(data) {
+    return (
+        Boolean(data) &&
+        Array.isArray(data.records) &&
+        data.records.some(
+            (r) =>
+                r &&
+                typeof r.durationMinutes === 'number' &&
+                !isPlausibleDuration(r.durationMinutes),
+        )
     );
 }
 
@@ -390,8 +491,14 @@ function normalizeImportedRecord(r, index) {
         durationMinutes: r.durationMinutes,
         cyclesCompleted: typeof r.cyclesCompleted === 'number' ? r.cyclesCompleted : 0,
         kind: recordKind(r),
-        quality: typeof r.quality === 'number' ? r.quality : null,
+        // De 1 a 5 y entero: la v2 guardaba la escala completa y la v3 usa
+        // 1, 3 y 5, así que ambas se aceptan. Lo demás es un archivo tocado
+        // a mano y se descarta.
+        quality: Number.isInteger(r.quality) && r.quality >= 1 && r.quality <= 5 ? r.quality : null,
         notes: typeof r.notes === 'string' ? r.notes : '',
+        reasons: Array.isArray(r.reasons) ? r.reasons.filter(isReasonId) : [],
+        source: SOURCES.includes(r.source) ? r.source : null,
+        tz: typeof r.tz === 'string' && r.tz ? r.tz : null,
     };
 }
 
@@ -434,7 +541,7 @@ export function mergeSleepLogs(current, incomingRaw) {
  */
 export function importData(data, { mode }) {
     if (!validateImportPayload(data)) {
-        return { ok: false, error: 'invalid-shape' };
+        return { ok: false, error: hayNocheImposible(data) ? 'too-long' : 'invalid-shape' };
     }
 
     if (mode === 'replace') {

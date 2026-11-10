@@ -16,7 +16,7 @@
 // rompería de una sola vez la validación de importación, las
 // agregaciones de metrics.js y los tests que ya existen. Separada, el
 // historial sigue conteniendo únicamente noches cerradas y completas.
-import { calcularDuracionReal, formatTime } from './calc.js';
+import { calcularDuracionReal, clampCycleLength, formatTime } from './calc.js';
 
 // Una siesta larga completa un ciclo (~90 min); tres horas deja lugar de
 // sobra para eso sin llegar a confundirse con una noche corta. Se
@@ -120,39 +120,115 @@ export function isStaleOpenSleep(open, now = new Date(), maxHours = STALE_HOURS)
     return elapsedMs > maxHours * 60 * 60 * 1000;
 }
 
+// Ningún descanso real dura más de 16 horas. Es el mismo número que
+// STALE_HOURS pero en minutos y con otro papel: STALE_HOURS decide cuándo
+// una noche abierta se considera olvidada; este es el techo de lo que se
+// acepta como registro, al cerrar, al guardar y al importar. Existe
+// porque los datos reales trajeron dos registros imposibles (23h 30m y una
+// "siesta" de 22 minutos que en realidad había quedado abierta dos días):
+// se cerraron restando horas de reloj, que no saben que pasaron días.
+export const MAX_SLEEP_MINUTES = STALE_HOURS * 60;
+
+export function isPlausibleDuration(minutes) {
+    return typeof minutes === 'number' && minutes >= 0 && minutes <= MAX_SLEEP_MINUTES;
+}
+
+// De dónde salió un registro. Con horario en las noches de memoria,
+// `hasClockTimes` ya no alcanza para saber cuáles lo fueron.
+export const SOURCES = ['live', 'confirmed', 'recalled'];
+
+// Cómo te levantaste, en tres niveles. Se guarda en `quality` (1, 3 o 5)
+// para reusar el campo, su validación y el promedio de metrics.js, y queda
+// en la misma escala de cinco puntos que usa el diario de sueño estándar
+// (Consensus Sleep Diary, Carney y otros, 2012).
+export const QUALITY_LEVELS = [
+    { value: 1, label: 'Mal' },
+    { value: 3, label: 'Normal' },
+    { value: 5, label: 'Bien' },
+];
+
+// Motivos de un toque. Los tres primeros son conceptos que pregunta el
+// diario de sueño estándar; el cuarto salió de lo que las notas reales
+// decían. Es una lista fija a propósito: sin texto libre se pueden contar.
+export const REASONS = [
+    { id: 'costo-dormirme', label: 'Me costó dormirme' },
+    { id: 'desperte-noche', label: 'Me desperté a la noche' },
+    { id: 'desperte-antes', label: 'Me desperté antes' },
+    { id: 'dolor', label: 'Me dolía algo' },
+];
+
+export function isReasonId(value) {
+    return REASONS.some((r) => r.id === value);
+}
+
 /**
  * Cierra una noche abierta y devuelve el registro listo para guardar.
- * Reutiliza calcularDuracionReal (calc.js) en vez de recalcular la
- * duración acá: es la misma cuenta que ya hacía el formulario de la v1,
- * ya está testeada, y ya resuelve el cruce de medianoche.
+ *
+ * Hay dos formas de cerrar, y la diferencia es la causa de fondo de los
+ * dos registros imposibles:
+ *
+ * - EN VIVO (se pasa `closedAt`): la duración sale de restar las marcas
+ *   de tiempo reales, `startedAt` y `closedAt`. Sabe que pasaron días.
+ * - CON UNA HORA ELEGIDA (se pasa `waketimeActual`, sin `closedAt`): la
+ *   persona dice a qué hora se levantó y la cuenta es de reloj, que
+ *   asume que fue la primera vez que el reloj marcó esa hora después de
+ *   acostarse. Por eso el techo de 16 horas importa acá: si la noche
+ *   quedó abierta días, cualquier hora elegida da un absurdo y se rechaza.
  *
  * @param {Object} params
  * @param {Object} params.open - La noche abierta (esquema de openSleepFrom).
- * @param {string} params.waketimeActual - Hora real de despertar, "HH:MM".
+ * @param {string} [params.waketimeActual] - Hora real de despertar, "HH:MM".
+ * @param {Date} [params.closedAt] - El instante del cierre, para cerrar en vivo.
  * @param {number} [params.cycleMinutes=90] - Duración de ciclo del usuario.
+ * @param {'live'|'confirmed'|'recalled'} [params.source]
  * @returns {{ok: true, record: Object} | {ok: false, error: string}}
  */
-export function closeSleepSession({ open, waketimeActual, cycleMinutes = 90 }) {
+export function closeSleepSession({
+    open,
+    waketimeActual,
+    closedAt = null,
+    cycleMinutes = 90,
+    source = null,
+}) {
     if (!isValidOpenSleep(open)) {
         return { ok: false, error: 'no-open-sleep' };
     }
 
-    const duracion = calcularDuracionReal({
-        bedtimeActual: open.bedtimeActual,
-        waketimeActual,
-        cycleMinutes,
-    });
+    let duracion;
+    let despertar = waketimeActual;
+
+    if (closedAt) {
+        const minutos = Math.round((closedAt.getTime() - Date.parse(open.startedAt)) / 60000);
+        if (minutos < 1) return { ok: false, error: 'too-short' };
+        despertar = formatTime(closedAt);
+        const cycleLength = clampCycleLength(cycleMinutes);
+        duracion = {
+            ok: true,
+            durationMinutes: minutos,
+            cyclesCompleted: Math.round(minutos / cycleLength),
+        };
+    } else {
+        duracion = calcularDuracionReal({
+            bedtimeActual: open.bedtimeActual,
+            waketimeActual,
+            cycleMinutes,
+        });
+    }
     if (!duracion.ok) return duracion;
+    if (!isPlausibleDuration(duracion.durationMinutes)) {
+        return { ok: false, error: 'too-long' };
+    }
 
     return {
         ok: true,
         record: {
             date: open.date,
             bedtimeActual: open.bedtimeActual,
-            waketimeActual,
+            waketimeActual: despertar,
             durationMinutes: duracion.durationMinutes,
             cyclesCompleted: duracion.cyclesCompleted,
             kind: classifyKind(duracion.durationMinutes),
+            source: source || (closedAt ? 'live' : 'confirmed'),
         },
     };
 }
@@ -211,6 +287,10 @@ export function shouldAskAboutNight({
     skipped = [],
     now = new Date(),
 }) {
+    // Una noche que quedó abierta días se pregunta aunque no sea "anoche":
+    // dejarla sin resolver era lo que trababa el botón principal.
+    if (isStaleOpenSleep(openSleep, now) && !skipped.includes(openSleep.date)) return true;
+
     const noche = nightToAskAbout(now);
 
     if (skipped.includes(noche)) return false;
@@ -221,21 +301,46 @@ export function shouldAskAboutNight({
 }
 
 /**
- * Con qué forma se pregunta. Si anoche quedó una noche abierta, la app ya
- * sabe a qué hora te acostaste y —si elegiste una fila del cálculo— a qué
- * hora pensabas despertarte: alcanza con confirmar. Si no hay nada, se
- * pregunta lo único que una persona recuerda sin esfuerzo a la noche
- * siguiente: cuántas horas durmió.
+ * Con qué forma se pregunta.
+ *
+ * - `confirm`: la noche de anoche quedó abierta. La app ya sabe a qué hora
+ *   te acostaste; falta la hora de levantarte, y si elegiste una fila del
+ *   cálculo, además a qué hora pensabas hacerlo.
+ * - `recall`: no hay nada. Se pregunta a qué hora te acostaste y a qué
+ *   hora te levantaste, de memoria.
+ *
+ * `night` fuerza la noche por la que se pregunta: es lo que usa tocar un
+ * hueco del cuaderno.
  *
  * @returns {{mode: 'confirm', night: string, open: Object} | {mode: 'recall', night: string}}
  */
-export function askShapeFor({ openSleep = null, now = new Date() }) {
-    const night = nightToAskAbout(now);
+export function askShapeFor({ openSleep = null, now = new Date(), night: forzada = null }) {
+    const night = forzada || nightToAskAbout(now);
 
     if (isValidOpenSleep(openSleep) && openSleep.date === night) {
         return { mode: 'confirm', night, open: openSleep };
     }
     return { mode: 'recall', night };
+}
+
+/**
+ * Igual que askShapeFor, pero antes mira si quedó una noche olvidada
+ * (abierta hace más de 16 horas). Va aparte para que askShapeFor siga
+ * respondiendo solo por la noche que se pide: una noche abierta de otra
+ * fecha ahí significa "no sirve para confirmar", y esa regla ya tiene
+ * tests.
+ *
+ * `stale`: se sabe a qué hora te acostaste, no cuándo te levantaste, y no
+ * se puede deducir. Se pregunta la hora, y el resultado se valida contra
+ * el techo de 16 horas.
+ *
+ * @returns {{mode: 'stale', night: string, open: Object} | ReturnType<typeof askShapeFor>}
+ */
+export function askShapeWithStale({ openSleep = null, now = new Date(), night = null }) {
+    if (!night && isStaleOpenSleep(openSleep, now)) {
+        return { mode: 'stale', night: openSleep.date, open: openSleep };
+    }
+    return askShapeFor({ openSleep, now, night });
 }
 
 /**
@@ -257,4 +362,68 @@ export function recalledRecord({ night, hours, cycleMinutes = 90 }) {
         cyclesCompleted: Math.round(durationMinutes / cycleMinutes),
         kind: classifyKind(durationMinutes),
     };
+}
+
+/**
+ * Registro armado a partir de las dos horas dichas de memoria. Es lo que
+ * reemplaza a "dormí como siete horas": la memoria ahora trae horario, así
+ * que la noche puede aportar a la regularidad. Se marca `recalled` para
+ * que la app siga sabiendo que no se midió en el momento.
+ *
+ * Todo lo que mide la app es tiempo en cama (de acostarse a levantarse).
+ * Por eso se pregunta "a qué hora te acostaste" y no "a qué hora te
+ * dormiste": las dos fuentes miden lo mismo.
+ *
+ * @returns {{ok: true, record: Object} | {ok: false, error: string}}
+ */
+export function recalledNightRecord({ night, bedtimeActual, waketimeActual, cycleMinutes = 90 }) {
+    const duracion = calcularDuracionReal({ bedtimeActual, waketimeActual, cycleMinutes });
+    if (!duracion.ok) return duracion;
+    if (!isPlausibleDuration(duracion.durationMinutes)) {
+        return { ok: false, error: 'too-long' };
+    }
+    return {
+        ok: true,
+        record: {
+            date: night,
+            bedtimeActual,
+            waketimeActual,
+            durationMinutes: duracion.durationMinutes,
+            cyclesCompleted: duracion.cyclesCompleted,
+            kind: classifyKind(duracion.durationMinutes),
+            source: 'recalled',
+        },
+    };
+}
+
+/**
+ * Las noches de los últimos `days` días que quedaron sin anotar. El
+ * cuaderno las muestra como filas propias para poder cargarlas después:
+ * los huecos reales de esta app son los viernes y sábados, y la tarjeta de
+ * anoche solo pregunta por la última noche.
+ *
+ * Una noche cuenta como hueco si es posterior a la primera que se anotó
+ * (o abrió) alguna vez: antes de eso la app no se usaba, y llenar el
+ * cuaderno de "Sin anotar" por días anteriores a instalarla sería un
+ * reproche por algo que no pasó. Las siestas no tapan una noche.
+ *
+ * @returns {string[]} Fechas "YYYY-MM-DD", de la más reciente a la más vieja.
+ */
+export function gapNights({ records = [], openSleep = null, now = new Date(), days = 7 }) {
+    const fechas = records.map((r) => r.date);
+    if (isValidOpenSleep(openSleep)) fechas.push(openSleep.date);
+    if (fechas.length === 0) return [];
+    const primera = [...fechas].sort()[0];
+
+    const anotadas = new Set(records.filter((r) => recordKind(r) === 'noche').map((r) => r.date));
+    const [y, m, d] = nightToAskAbout(now).split('-').map(Number);
+    const huecos = [];
+    for (let i = 0; i < days; i++) {
+        const dia = new Date(y, m - 1, d - i);
+        const clave = formatDateKey(dia);
+        if (clave < primera) break;
+        if (isValidOpenSleep(openSleep) && openSleep.date === clave) continue;
+        if (!anotadas.has(clave)) huecos.push(clave);
+    }
+    return huecos;
 }

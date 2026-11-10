@@ -9,11 +9,20 @@
 // 7 días, así que una noche de hace diez días contaba en los promedios
 // pero no se podía ver ni borrar desde ninguna parte.
 import { deleteSleepLog, getOpenSleep, getSleepLogs, clearOpenSleep } from '../storage.js';
-import { onlyNights, recordKind, hasClockTimes } from '../sleep-session.js';
+import {
+    onlyNights,
+    recordKind,
+    hasClockTimes,
+    gapNights,
+    isStaleOpenSleep,
+    REASONS,
+} from '../sleep-session.js';
 import { recordsInWindow, weeklySummary } from '../metrics.js';
 import { formatDuration } from '../calc.js';
 import { confirmModal } from './modal.js';
 import { showToast } from './toast.js';
+import { preguntarPorNoche } from './home.js';
+import { renderPatrones } from './patrones-vista.js';
 
 const MAX_MINUTOS_GRAFICO = 720; // 12 horas: el techo de la barra más alta
 const NOCHE_CORTA = 360; // menos de 6 horas se pinta apagada
@@ -33,6 +42,15 @@ export function initCuaderno() {
             return;
         }
 
+        // Un hueco: "Sin anotar". Se cierra el cuaderno y se abre la misma
+        // pregunta de memoria, pero por esa noche.
+        const anotar = evento.target.closest('[data-anotar]');
+        if (anotar) {
+            document.getElementById('hoja-cuaderno').close();
+            preguntarPorNoche(anotar.dataset.anotar);
+            return;
+        }
+
         if (evento.target.closest('[data-cancelar-abierta]')) {
             clearOpenSleep();
             showToast('Cancelada.');
@@ -42,6 +60,7 @@ export function initCuaderno() {
 
 export function renderCuaderno() {
     renderResumen();
+    renderPatrones();
     renderNoches();
     renderGrafico();
 }
@@ -64,9 +83,9 @@ function renderResumen() {
         [String(noches.length), noches.length === 1 ? 'noche' : 'noches'],
     ];
 
-    // La calificación de 1 a 5 ya no se pide: la reemplazó la frase. Pero
-    // si quedaron registros viejos que la tienen, el promedio se sigue
-    // mostrando en vez de tirar un dato que el usuario cargó.
+    // Cómo te levantaste: 1, 3 o 5 (mal, normal, bien). El promedio
+    // también incluye los registros de la v2, que guardaban la escala
+    // completa: no se tira un dato que la persona cargó.
     if (semana.avgQuality !== null) {
         datos.push([`${semana.avgQuality.toFixed(1)}/5`, 'según vos']);
     }
@@ -93,7 +112,8 @@ function renderNoches() {
     const abierta = getOpenSleep();
     if (abierta) lista.appendChild(tarjetaAbierta(abierta));
 
-    const registros = [...getSleepLogs()].sort((a, b) => (a.date < b.date ? 1 : -1));
+    const guardados = getSleepLogs();
+    const registros = [...guardados].sort((a, b) => (a.date < b.date ? 1 : -1));
 
     if (registros.length === 0) {
         if (!abierta) {
@@ -106,7 +126,41 @@ function renderNoches() {
         return;
     }
 
-    registros.forEach((registro) => lista.appendChild(tarjetaNoche(registro)));
+    // Los huecos de la última semana van mezclados con las noches, cada
+    // uno en su fecha. No insisten ni avisan: están ahí si querés cargarlos.
+    const huecos = gapNights({ records: guardados, openSleep: abierta }).map((date) => ({
+        date,
+        hueco: true,
+    }));
+    [...registros, ...huecos]
+        .sort((a, b) => (a.date < b.date ? 1 : -1))
+        .forEach((fila) =>
+            lista.appendChild(fila.hueco ? tarjetaHueco(fila.date) : tarjetaNoche(fila)),
+        );
+}
+
+function tarjetaHueco(date) {
+    const li = document.createElement('li');
+    li.className = 'noche hueco';
+
+    const izquierda = document.createElement('div');
+    const fecha = document.createElement('div');
+    fecha.className = 'fecha';
+    fecha.textContent = formatearFecha(date);
+    const estado = document.createElement('div');
+    estado.className = 'sin-horario';
+    estado.textContent = 'Sin anotar';
+    izquierda.append(fecha, estado);
+
+    const anotar = document.createElement('button');
+    anotar.type = 'button';
+    anotar.className = 'btn-chip';
+    anotar.dataset.anotar = date;
+    anotar.textContent = 'Anotar';
+    anotar.setAttribute('aria-label', `Anotar la noche del ${formatearFecha(date)}`);
+
+    li.append(izquierda, anotar);
+    return li;
 }
 
 function tarjetaAbierta(abierta) {
@@ -116,7 +170,8 @@ function tarjetaAbierta(abierta) {
     const izquierda = document.createElement('div');
     const fecha = document.createElement('div');
     fecha.className = 'fecha';
-    fecha.textContent = 'en curso';
+    const olvidada = isStaleOpenSleep(abierta);
+    fecha.textContent = olvidada ? `${formatearFecha(abierta.date)} · quedó abierta` : 'en curso';
     const horario = document.createElement('div');
     horario.className = 'horario';
     horario.textContent = `Te acostaste a las ${abierta.bedtimeActual}`;
@@ -128,7 +183,7 @@ function tarjetaAbierta(abierta) {
     cancelar.type = 'button';
     cancelar.className = 'btn-saltear';
     cancelar.dataset.cancelarAbierta = 'si';
-    cancelar.textContent = 'Cancelar esta noche';
+    cancelar.textContent = olvidada ? 'Descartar esta noche' : 'Cancelar esta noche';
     acciones.appendChild(cancelar);
 
     li.append(izquierda, document.createElement('div'), acciones);
@@ -148,7 +203,7 @@ function tarjetaNoche(registro) {
     const horario = document.createElement('div');
     horario.className = hasClockTimes(registro) ? 'horario' : 'sin-horario';
     horario.textContent = hasClockTimes(registro)
-        ? `${registro.bedtimeActual} a ${registro.waketimeActual}`
+        ? `${registro.bedtimeActual} a ${registro.waketimeActual}${registro.source === 'recalled' ? ' · de memoria' : ''}`
         : 'Anotada de memoria, sin horario';
     izquierda.append(fecha, horario);
 
@@ -157,6 +212,14 @@ function tarjetaNoche(registro) {
     duracion.textContent = formatDuration(registro.durationMinutes);
 
     li.append(izquierda, duracion);
+
+    const sensacion = lineaDeSensacion(registro);
+    if (sensacion) {
+        const linea = document.createElement('div');
+        linea.className = 'sensacion';
+        linea.textContent = sensacion;
+        li.appendChild(linea);
+    }
 
     // textContent y no innerHTML: es texto escrito por una persona y
     // nunca se interpreta como HTML.
@@ -179,6 +242,21 @@ function tarjetaNoche(registro) {
     li.appendChild(acciones);
 
     return li;
+}
+
+// "Te levantaste bien · Me costó dormirme". Con la escala completa de la v2
+// (1 a 5), 1-2 se lee como mal y 4-5 como bien.
+function lineaDeSensacion(registro) {
+    const partes = [];
+    if (typeof registro.quality === 'number') {
+        const nivel = registro.quality <= 2 ? 'mal' : registro.quality === 3 ? 'normal' : 'bien';
+        partes.push(`Te levantaste ${nivel}`);
+    }
+    const etiquetas = new Map(REASONS.map((r) => [r.id, r.label]));
+    (registro.reasons || []).forEach((id) => {
+        if (etiquetas.has(id)) partes.push(etiquetas.get(id));
+    });
+    return partes.join(' · ');
 }
 
 function formatearFecha(fechaStr) {

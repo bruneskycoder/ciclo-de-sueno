@@ -686,3 +686,132 @@ input::placeholder {
     background: #2b1d10;
     border: 1px solid var(--brasa-honda);
 }
+
+/* ============ V3: LA TARJETA EN PASOS, LA ALARMA Y LOS PATRONES ============ */
+.anoche-bloque {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+}
+.anoche-pregunta {
+    font-size: 15px;
+    color: var(--hueso);
+}
+.anoche-otra {
+    display: flex;
+    gap: var(--esp-2);
+    align-items: center;
+}
+.anoche-otra input {
+    flex: 1;
+}
+/* "Otra hora" es la salida de emergencia, no una respuesta más: se ve, pero
+   más callada que las horas. */
+.btn-chip-otra {
+    color: var(--hueso-tenue);
+    border-style: dashed;
+}
+/* Un chip marcado: el borde y el texto de brasa, como una fila elegida. */
+.btn-chip[aria-pressed='true'] {
+    color: var(--brasa-viva);
+    border-color: var(--brasa);
+    background: rgba(221, 159, 69, 0.12);
+}
+
+/* La alarma vive al costado de cada hora de la lista. */
+.btn-alarma {
+    flex: 0 0 auto;
+    width: 76px;
+    padding: 0 var(--esp-2);
+    font-family: var(--tipo);
+    font-size: 12px;
+    line-height: 1.3;
+    color: var(--hueso-tenue);
+    background: var(--noche-alta);
+    border: none;
+    border-left: 1px solid var(--noche-borde);
+}
+.btn-alarma:hover {
+    color: var(--brasa);
+}
+.resultado-filas > li > .fila {
+    flex: 1;
+    min-width: 0;
+}
+
+.alarma-hora {
+    font-size: 16px;
+    color: var(--brasa-viva);
+}
+.pasos {
+    margin: 0;
+    padding-left: var(--esp-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--hueso);
+}
+
+/* Cuaderno: la línea de cómo te levantaste, los huecos y los patrones. */
+.noche .sensacion {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    color: var(--hueso-tenue);
+}
+.noche.hueco {
+    align-items: center;
+    background: transparent;
+    border-style: dashed;
+}
+
+.subtitulo-cuaderno {
+    font-family: var(--tipo);
+    font-size: 15px;
+    color: var(--hueso);
+}
+.patrones {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+}
+.patrones-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+}
+.patron {
+    padding: var(--esp-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-1);
+    background: var(--noche);
+    border: 1px solid var(--noche-borde);
+    border-radius: var(--radio);
+}
+.patron-titulo {
+    font-size: 12px;
+    color: var(--hueso-tenue);
+}
+.patron-texto {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--hueso);
+}
+.patron-muestra {
+    font-size: 12px;
+    color: var(--hueso-tenue);
+}
+.aviso {
+    color: var(--brasa-viva);
+}
+
+/* Los dos botones de la hoja de la alarma, uno debajo del otro: lado a
+   lado, "Copiar la hora" se partía en tres renglones. */
+.botonera.apilada {
+    flex-direction: column;
+}

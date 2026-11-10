@@ -87,34 +87,53 @@
                 <h2 id="anoche-titulo" class="anoche-titulo">¿Cómo dormiste anoche?</h2>
                 <p id="anoche-detalle" class="anoche-detalle"></p>
 
-                <div id="anoche-confirmar" class="anoche-opciones" hidden>
-                    <button type="button" class="btn-chip" id="anoche-si">Fue así</button>
-                    <button type="button" class="btn-chip" id="anoche-distinto">
-                        Fue distinto
-                    </button>
+                <!-- La pregunta, en uno o dos pasos. Con una noche marcada
+                     solo falta la hora de levantarse; de memoria son dos
+                     toques: a qué hora te acostaste y a qué hora te
+                     levantaste. Las horas se arman en JS alrededor de tus
+                     horarios de siempre. -->
+                <div id="anoche-pregunta" class="anoche-bloque" hidden>
+                    <p id="anoche-pregunta-texto" class="anoche-pregunta"></p>
+                    <div
+                        id="anoche-horas"
+                        class="anoche-opciones"
+                        role="group"
+                        aria-labelledby="anoche-pregunta-texto"
+                    ></div>
+                    <div id="anoche-otra" class="anoche-otra" hidden>
+                        <label for="anoche-otra-input" class="visually-hidden">Otra hora</label>
+                        <input type="time" id="anoche-otra-input" />
+                        <button type="button" class="btn-chip" id="anoche-otra-ok">Listo</button>
+                    </div>
                 </div>
 
-                <div
-                    id="anoche-horas"
-                    class="anoche-opciones"
-                    hidden
-                    role="group"
-                    aria-label="Horas dormidas"
-                >
-                    <!-- Las opciones se arman en JS: el rango sale de la
-                         duración de ciclo configurada, no de números fijos. -->
-                </div>
-
-                <div id="anoche-nota" class="anoche-nota" hidden>
-                    <label for="anoche-nota-input">¿Algo para anotar de esa noche?</label>
-                    <input
-                        type="text"
-                        id="anoche-nota-input"
-                        maxlength="140"
-                        placeholder="Dormí tarde y encima tomé vino"
-                        autocomplete="off"
-                    />
-                    <button type="button" class="btn-chip" id="anoche-guardar-nota">Guardar</button>
+                <!-- Después de anotar: cómo te levantaste, con motivos de
+                     un toque y una frase libre al final. Todo opcional. -->
+                <div id="anoche-despues" class="anoche-bloque" hidden>
+                    <p id="anoche-calidad-texto" class="anoche-pregunta">¿Cómo te levantaste?</p>
+                    <div
+                        id="anoche-calidad"
+                        class="anoche-opciones"
+                        role="group"
+                        aria-labelledby="anoche-calidad-texto"
+                    ></div>
+                    <p class="ayuda">Si pasó algo de esto:</p>
+                    <div
+                        id="anoche-motivos"
+                        class="anoche-opciones"
+                        role="group"
+                        aria-label="Si pasó algo de esto"
+                    ></div>
+                    <div class="anoche-nota">
+                        <label for="anoche-nota-input">¿Algo más para anotar?</label>
+                        <input
+                            type="text"
+                            id="anoche-nota-input"
+                            maxlength="140"
+                            autocomplete="off"
+                        />
+                    </div>
+                    <button type="button" class="btn-chip" id="anoche-listo">Listo</button>
                 </div>
 
                 <button type="button" class="btn-saltear" id="anoche-saltear">No la anoto</button>
@@ -174,6 +193,12 @@
 
                 <div class="resumen" id="cuaderno-resumen"></div>
 
+                <section class="patrones" aria-labelledby="patrones-titulo">
+                    <h3 id="patrones-titulo" class="subtitulo-cuaderno">Lo que dicen tus noches</h3>
+                    <p id="patrones-zona" class="ayuda" hidden></p>
+                    <ul id="patrones-lista" class="patrones-lista"></ul>
+                </section>
+
                 <ul id="cuaderno-noches" class="noches"></ul>
 
                 <details class="detalle-grafico">
@@ -231,12 +256,24 @@
                     </p>
                 </div>
 
+                <div class="campo">
+                    <span class="etiqueta-grupo">Alarma de un toque</span>
+                    <p class="ayuda">
+                        Cada hora de la lista tiene un botón para poner la alarma. Hace falta armar
+                        un atajo en el iPhone, una sola vez.
+                    </p>
+                    <button type="button" class="btn-secundario" id="btn-guia-alarma">
+                        Cómo armar el atajo
+                    </button>
+                </div>
+
                 <h3 class="subtitulo-ajustes">Tus datos</h3>
                 <p class="ayuda">
                     Todo esto vive en este navegador y en ningún otro lado. No hay servidor
                     guardando nada: si borrás los datos del sitio o cambiás de teléfono, se va todo.
                     El único respaldo sos vos.
                 </p>
+                <p class="ayuda aviso" id="aviso-respaldo" hidden></p>
                 <div class="botonera">
                     <button type="button" class="btn-secundario" id="btn-exportar">Exportar</button>
                     <button type="button" class="btn-secundario" id="btn-importar">Importar</button>
@@ -252,6 +289,53 @@
                     <p class="ayuda" id="datos-viejos-texto"></p>
                     <button type="button" class="btn-secundario" id="btn-borrar-viejos">
                         Borrarlos
+                    </button>
+                </div>
+            </div>
+        </dialog>
+
+        <!-- ============ CAPA: LA ALARMA ============ -->
+        <dialog id="hoja-alarma" class="hoja" aria-labelledby="alarma-titulo">
+            <div class="hoja-contenido">
+                <div class="hoja-barra">
+                    <h2 id="alarma-titulo" tabindex="-1">Poner la alarma</h2>
+                    <button type="button" class="btn-cerrar" data-cerrar-hoja>
+                        <span aria-hidden="true">✕</span>
+                        <span class="visually-hidden">Cerrar</span>
+                    </button>
+                </div>
+
+                <p class="ayuda">
+                    iOS no deja que una página ponga una alarma. Lo que sí deja es abrir un atajo
+                    tuyo, y el atajo la pone. Se arma una sola vez:
+                </p>
+                <ol class="pasos">
+                    <li>
+                        Abrí la app Atajos y creá un atajo nuevo. Llamalo exactamente
+                        <strong>Alarma Fogón</strong>.
+                    </li>
+                    <li>
+                        La hora le llega como texto. Agregá la acción <strong>Fecha</strong> y, como
+                        fecha, elegí <strong>Entrada de atajo</strong>.
+                    </li>
+                    <li>
+                        Agregá la acción <strong>Crear alarma</strong> y, como hora, elegí el
+                        resultado de <strong>Fecha</strong>.
+                    </li>
+                    <li>Guardalo y volvé acá.</li>
+                </ol>
+                <p class="ayuda">
+                    Esto sigue la documentación de Apple y todavía no se probó en un teléfono. Si el
+                    atajo no anda, copiá la hora y ponela a mano en el Reloj.
+                </p>
+
+                <p id="alarma-hora" class="alarma-hora" hidden></p>
+                <div class="botonera apilada">
+                    <button type="button" class="btn-secundario" id="alarma-copiar" hidden>
+                        Copiar la hora
+                    </button>
+                    <button type="button" class="btn-principal" id="alarma-poner" hidden>
+                        Poner la alarma
                     </button>
                 </div>
             </div>
