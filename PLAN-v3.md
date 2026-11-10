@@ -540,3 +540,7 @@ lo armó. Orden de lectura: este plan, la skill de voz
 (`.claude/skills/voz/SKILL.md`) para cualquier texto visible, y después
 el paso 0. La Etapa A va en su propio PR; la B, en otro, después del
 checkpoint del paso 12.
+
+**Modelo por etapa** (ver `CLAUDE.md`): la Etapa A con Sonnet 5.5, en una
+sesión nueva; la Etapa B con Opus 5.5, en otra. Al cerrar la Etapa A, la
+sesión le avisa a Bruno que la B conviene abrirla con Opus.
