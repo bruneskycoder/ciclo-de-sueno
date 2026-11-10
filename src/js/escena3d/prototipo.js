@@ -385,7 +385,7 @@ const mLeno = new THREE.MeshToonMaterial({ color: '#9a6a40', emissive: '#4a200a'
     scene.add(posteCaballo);
     cartel(CABALLO, PALETA_CABALLO, 66, 0, -32, { sombra: true });
     // La soga: del poste al hocico.
-    const soga = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 14), new THREE.MeshBasicMaterial({ color: '#c8b48a' }));
+    const soga = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 12), new THREE.MeshBasicMaterial({ color: '#4a3a28' }));
     soga.position.set(52, 11, -33);
     soga.rotation.y = Math.PI / 2;
     scene.add(soga);
@@ -405,7 +405,10 @@ const mLeno = new THREE.MeshToonMaterial({ color: '#9a6a40', emissive: '#4a200a'
         const { tex } = texturaDeSprite(fr, PALETA_PASTO);
         return new THREE.MeshBasicMaterial({ map: tex, alphaTest: 0.5 });
     });
-    for (let i = 0; i < 36; i++) {
+    // Prueba de lectura: nadie nombró el pasto ("puntos sueltos que no se
+    // entienden"), así que no se dibuja. La lista queda vacía a propósito;
+    // para volver a probarlo, subir el 0 de este bucle.
+    for (let i = 0; i < 0; i++) {
         const x = (rp() - 0.5) * W;
         const z = -170 + rp() * 250;
         if (Math.hypot(x - FX, z) < 20) continue;
