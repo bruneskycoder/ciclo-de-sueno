@@ -3,7 +3,7 @@
 **Nivel:** profundo — suma una dependencia que multiplica por 13 el peso
 de la app, cambia el esquema de los datos y redibuja la escena entera.
 **Estado:** borrador — esperando aprobación
-**Última actualización:** 2026-11-08
+**Última actualización:** 2026-11-10
 
 > El [plan de la v2](./PLAN.md) sigue valiendo como historia y como
 > criterio: los tres trabajos de la app y la regla "el recorte va sobre la
@@ -131,10 +131,18 @@ planifica justo las noches en que uno ya se acuesta temprano.
   un teléfono**; plan B: copiar la hora.
 - El link `shortcuts://` funciona también con la app instalada en la
   pantalla de inicio. Se prueba en el teléfono.
-- **Ubicación fija para el cielo:** sol, luna y estrellas se calculan para
-  una sola ciudad escrita en el código, sin pedir permiso de ubicación.
-  Por defecto Resistencia, Chaco, por el monte chaqueño de la escena; se
-  cambia por la tuya si me la decís.
+- **Ubicación del cielo, sin pedir permiso:** sol, luna y estrellas se
+  calculan para el lugar que indica la **zona horaria del teléfono**, que
+  el navegador expone sin pedir nada y que el iPhone cambia solo al
+  aterrizar en otro país. Cada zona trae en la base de datos de husos
+  horarios las coordenadas de su ciudad de referencia: `Pacific/Auckland`
+  es Auckland, "la mayor parte de Nueva Zelanda". En Argentina no
+  alcanza: Chaco cae en `America/Argentina/Cordoba`, cuya referencia es
+  Córdoba, a unos 650 km, con el atardecer corrido unos 20 minutos. Así
+  que **con cualquier zona argentina se usa Resistencia**, la casa; entre
+  Resistencia y General José de San Martín la diferencia es de un par de
+  minutos. Para quien quiera precisión, Ajustes ofrece **Usar mi
+  ubicación**: un toque, un permiso, y queda guardada.
 - Un patrón necesita al menos 5 noches en cada grupo que compara. Es un
   piso para no mostrar ruido, no un umbral estadístico.
 - Todo lo que mide la app es **tiempo en cama**, de acostarse a
@@ -155,7 +163,7 @@ bien partes de esto. Lo que se toma de cada uno, y lo que no:
 | **Texel Splatting** (Ebert, arXiv 2026) | La conclusión: con cámara en perspectiva, los píxeles a distinta profundidad se corren a distinto ritmo, y ningún ajuste a la grilla los estabiliza. Es el motivo de la cámara quieta. | La técnica del paper: es investigación, no algo para una app de bolsillo. |
 | **folio-2025 de Bruno Simon** (three.js, MIT; leído en el repo) | El día como **presets de luz por momento** —día, atardecer, noche, amanecer— que se interpolan: color e intensidad de la luz, **color de las sombras** (violetas o azules, nunca negras) y dos colores de niebla. Se afina tocando números, no código. Y el pasto: miles de hojas en una sola geometría, con viento que mueve solo las puntas. | WebGPU, física, sonido y el ciclo acelerado: su día dura cuatro minutos; acá el día es el real. |
 | **suncalc** (Agafonkin, BSD-2) | Altura del sol, amanecer y atardecer reales, y fase, fracción iluminada e inclinación de la luna. **3,2 kB comprimido** con lo que se usa (medido). Reemplaza escribir una función de fase propia. | Se fija la 2.1.1 (5-oct), no la 2.1.3, publicada el mismo día de este plan. |
-| **Datos de d3-celestial** (catálogo de estrellas en GeoJSON) | Las estrellas más brillantes con su posición real, proyectadas para la ciudad y la hora: la Cruz del Sur, las Tres Marías en verano, Escorpio en invierno. | El resto de la librería: con unas cien estrellas alcanza. |
+| **Datos de d3-celestial** (catálogo de estrellas en GeoJSON) | Las estrellas más brillantes con su posición real, proyectadas para el lugar y la hora: la Cruz del Sur, las Tres Marías en verano, Escorpio en invierno. | El resto de la librería: con unas cien estrellas alcanza. |
 | **Consensus Sleep Diary** (Carney y otros, 2012) | El diario de sueño estándar en investigación pregunta exactamente lo que tus notas decían: calidad, cuánto tardaste en dormirte, si te despertaste a la noche, si te despertaste antes de lo que querías. Los motivos de un toque quedan alineados con eso. | El instrumento en sí: su uso está restringido. Se alinean los conceptos, no se copian las preguntas. |
 | **Jet lag social** (Wittmann, Roenneberg y otros, 2006) | La comparación "semana contra fin de semana" ya tiene una medida establecida: la diferencia del **punto medio del sueño** entre días libres y días de trabajo. Se usa esa en vez de inventar una. | El cuestionario completo de cronotipo. |
 | **Loop Habit Tracker** | Un principio: una métrica que perdona los huecos. Ninguna racha que se corte, porque los huecos de esta app son los viernes y sábados. | El puntaje de hábito: acá no hay hábito que medir. |
@@ -172,6 +180,7 @@ son opcionales.
 | `quality` | Ya existía (1 a 5). Ahora se guarda 1, 3 o 5: mal, normal, bien. | Reusa el campo, su validación y el promedio que ya calcula `metrics.js`, y queda en la misma escala de cinco puntos que usa el diario estándar. |
 | `reasons` | Nuevo. Lista de motivos de una lista fija. | Lo que las notas decían, sin escribir. |
 | `source` | Nuevo. `live` (tocaste los botones en el momento), `confirmed` (elegiste la hora al día siguiente), `recalled` (las dos horas de memoria). | Con horario en las noches de memoria, `hasClockTimes` ya no distingue cuál fue de memoria. La app tiene que poder seguir diciéndolo. |
+| `tz` | Nuevo. La zona horaria del teléfono al anotar la noche. | Las horas se guardan como hora local (`23:30`). Sin la zona, una noche en Nueva Zelanda y una en Chaco se mezclan en los patrones como si fueran el mismo reloj. |
 
 **Validación nueva:** ningún registro de más de 16 horas, ni al guardar ni
 al importar.
@@ -250,6 +259,12 @@ Cada patrón lleva su cantidad de noches. Por debajo del piso dice
 *Todavía no alcanza: faltan 3 noches de fin de semana.* Nunca habla de
 causas: dice "las noches en que", no "porque". Nada de rachas.
 
+**Viajes.** Los patrones solo comparan noches de la misma zona horaria:
+cuando cambia, la ventana arranca de nuevo. Comparar la regularidad de
+alguien que acaba de cruzar 16 horas de diferencia con la de su semana en
+Chaco mediría el vuelo, no la costumbre. El cuaderno lo dice: *Desde que
+cambiaste de zona horaria van 4 noches.*
+
 ---
 
 ## La escena: HD-2D
@@ -273,7 +288,7 @@ más lejano. Todo se dibuja a baja resolución y se agranda sin suavizar,
 así queda pixel art y no 3D liso.
 
 **El día real.** Cuatro presets de luz —día, atardecer, noche, amanecer—
-interpolados según la altura real del sol en la ciudad elegida, no según
+interpolados según la altura real del sol donde estás, no según
 horas fijas: en invierno oscurece antes, y la escena también.
 
 **Cuenta tu noche.**
@@ -359,8 +374,8 @@ no depende de la escena.
 - [ ] 2. Duración en vivo por marcas de tiempo y techo de 16 horas al
       guardar e importar — verificación: tests; un backup con un registro
       de 1410 minutos se rechaza.
-- [ ] 3. Campos `reasons` y `source`; calidad 1/3/5 — verificación: tests
-      de import y export, y un backup de la v2 se importa igual.
+- [ ] 3. Campos `reasons`, `source` y `tz`; calidad 1/3/5 — verificación:
+      tests de import y export, y un backup de la v2 se importa igual.
 - [ ] 4. Memoria con hora de acostarse y de levantarse — verificación:
       tests de las horas sugeridas (mediana, sin datos, cruce de
       medianoche) y captura en tamaño iPhone.
@@ -393,10 +408,14 @@ no depende de la escena.
 - [ ] 13. Integrarla: carga diferida, respaldo 2D, pausa en segundo plano —
       verificación: la lista aparece antes que la escena (medido con
       Playwright), y sin WebGL se ve la escena 2D.
-- [ ] 14. El cielo real: presets de luz por altura del sol, luna con
-      suncalc, estrellas proyectadas — verificación: la fase y el
-      atardecer contra los de timeanddate.com para tres fechas; la Cruz
-      del Sur contra una carta celeste de esa hora.
+- [ ] 14. El cielo real: ubicación por zona horaria (Resistencia para
+      cualquier zona argentina) con **Usar mi ubicación** opcional,
+      presets de luz por altura del sol, luna con suncalc, estrellas
+      proyectadas — verificación: tests de la ubicación para
+      `America/Argentina/Cordoba`, `Pacific/Auckland` y una zona
+      desconocida; la fase y el atardecer contra los de timeanddate.com
+      para tres fechas en Resistencia y una en Auckland; la Cruz del Sur
+      contra una carta celeste de esa hora.
 - [ ] 15. Contar la noche: leños por ciclo y fuego consumido —
       verificación: capturas con 3 y con 6 ciclos, y con una noche en
       curso a la mitad.
@@ -422,7 +441,8 @@ no depende de la escena.
 | Los píxeles tiemblan. | Cámara ortográfica quieta y alineada, que es la solución del ejemplo oficial; se verifica en una grabación. |
 | Safari pierde el contexto WebGL al pasar a segundo plano. | Se escucha la pérdida y se vuelve a la escena 2D. |
 | Batería y calor a la noche. | Baja resolución, 30 cuadros como techo, pausa en segundo plano, quieta en modo brasa. |
-| La ciudad fija no es la tuya y el atardecer no coincide. | Se cambia en una línea; ver Supuestos. |
+| En un viaje, el cielo queda en la ciudad de referencia de la zona y no donde estás (Christchurch está unos 750 km al sur de Auckland). | La diferencia es de minutos en el atardecer; quien quiera exactitud toca **Usar mi ubicación**. |
+| Una noche que cruza el vuelo queda absurda. | La duración por marcas de tiempo y el techo de 16 horas ya la frenan; la noche queda como hueco cargable. |
 | Datos personales en un repo público. | Tests con casos sintéticos; el backup real no entra. |
 
 ## Verificación final
@@ -500,3 +520,23 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
 - 2026-11-08 — **"Semana contra fin de semana" pasa a ser el jet lag
   social**, la medida establecida (diferencia del punto medio del sueño).
   Y se descarta el SRI porque el diario con huecos no lo soporta.
+- 2026-11-10 — **El cielo sigue al teléfono, no a una ciudad fija.**
+  Bruno confirmó Resistencia o General José de San Martín como casa, y
+  preguntó qué pasa cuando viaje a Nueva Zelanda. La zona horaria resuelve
+  las dos cosas sin pedir permiso: en Argentina, Resistencia; afuera, la
+  ciudad de referencia de la zona. La ubicación exacta queda como opción.
+- 2026-11-10 — **Campo `tz` en cada noche**, por la misma pregunta: sin
+  él, los patrones mezclarían relojes de dos países.
+- 2026-11-10 — La app está instalada en la pantalla de inicio (dato de
+  Bruno): el borrado de Safari a los 7 días no la alcanza. El aviso de
+  respaldo queda igual, porque cambiar de teléfono se lleva todo.
+
+---
+
+## Cómo retomar en una sesión nueva
+
+Este archivo es el traspaso: alcanza para arrancar sin la conversación que
+lo armó. Orden de lectura: este plan, la skill de voz
+(`.claude/skills/voz/SKILL.md`) para cualquier texto visible, y después
+el paso 0. La Etapa A va en su propio PR; la B, en otro, después del
+checkpoint del paso 12.
