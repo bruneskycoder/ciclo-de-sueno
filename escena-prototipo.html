@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Prototipo de la escena</title>
+        <style>
+            html,
+            body {
+                margin: 0;
+                background: #000;
+                overflow: hidden;
+            }
+            canvas {
+                display: block;
+                image-rendering: pixelated;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="escena3d"></canvas>
+        <script type="module">
+            import { crearEscena } from './src/js/escena3d/prototipo.js';
+            const escena = crearEscena(document.getElementById('escena3d'));
+            window.__escena = escena;
+            const q = new URLSearchParams(location.search);
+            if (q.get('ciclos')) escena.setCiclos(Number(q.get('ciclos')));
+            if (q.get('preset')) escena.setPreset(q.get('preset'));
+        </script>
+    </body>
+</html>

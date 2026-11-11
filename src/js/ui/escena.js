@@ -30,7 +30,7 @@ const HORIZONTE = 52;
 // borde; de día se le ven los colores. El modo brasa usa la paleta
 // nocturna bajada: si alguien puso "bajá el brillo", una escena diurna
 // luminosa sería exactamente lo contrario de lo que pidió.
-const PALETAS = {
+export const PALETAS = {
     noche: {
         cieloAlto: '#080d12',
         cieloBajo: '#16202b',
@@ -112,7 +112,7 @@ const PALETAS = {
 // repiten con distinto alto y separación alcanzan para que se lea como
 // monte y no como tres arbolitos sueltos.
 
-const COPA_CHICA = [
+export const COPA_CHICA = [
     '....ttttt....',
     '..tttttttttt.',
     '.TTtttttttttt',
@@ -127,7 +127,7 @@ const COPA_CHICA = [
     '.....TTT.....',
 ];
 
-const COPA_GRANDE = [
+export const COPA_GRANDE = [
     '......ttttttt......',
     '...ttttttttttttt...',
     '..tttttttttttttttt.',
@@ -149,7 +149,7 @@ const COPA_GRANDE = [
 
 // Quebracho: alto, flaco, con la copa arriba de todo y el tronco torcido.
 // Es el que le da al monte la altura irregular.
-const QUEBRACHO = [
+export const QUEBRACHO = [
     '...ttttt...',
     '.ttttttttt.',
     'TTtttttttTT',
@@ -173,7 +173,7 @@ const QUEBRACHO = [
 
 // Palo borracho: el tronco panzón. En silueta es inconfundible, y con
 // espacio se le pueden ver las espinas del tronco.
-const PALO_BORRACHO = [
+export const PALO_BORRACHO = [
     '.....ttttt.....',
     '..tttttttttttt.',
     '.TTttttttttttTT',
@@ -196,7 +196,7 @@ const PALO_BORRACHO = [
 
 // Cardón: el cactus columnar, con sus dos brazos. Sin los brazos se
 // confundía con un poste.
-const CARDON = [
+export const CARDON = [
     '...t...',
     '..ttt..',
     '..tTt..',
@@ -236,7 +236,7 @@ const MONTE = [
 // cara, el hombro y la rodilla. Corrida de la cabeza al piso, como
 // estaba, formaba una línea naranja continua que se leía como un bastón
 // apoyado contra el cuerpo. La luz marca salientes, no dibuja contornos.
-const GAUCHO = [
+export const GAUCHO = [
     '..............................',
     '.........hhhhhhhh.............',
     '........hhhhhhhhhh............',
