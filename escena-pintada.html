@@ -99,12 +99,12 @@
             // desplazamiento vale cero en la base y crece hacia la punta, para
             // que troncos y suelo no resbalen.
             const VIENTO = [
-                { x0: 0, x1: 180, punta: 192, base: 330, amp: 2, fase: 0.0 },
-                { x0: 148, x1: 200, punta: 232, base: 320, amp: 1.5, fase: 1.3 },
-                { x0: 200, x1: 292, punta: 244, base: 320, amp: 1.4, fase: 2.1 },
-                { x0: 345, x1: 402, punta: 262, base: 300, amp: 1, fase: 0.7 },
-                { x0: 500, x1: 572, punta: 700, base: 790, amp: 1.5, fase: 0.4 },
-                { x0: 428, x1: 462, punta: 702, base: 738, amp: 1.2, fase: 1.8 },
+                { x0: 0, x1: 180, punta: 192, base: 330, amp: 4, fase: 0.0 },
+                { x0: 148, x1: 200, punta: 232, base: 320, amp: 3, fase: 1.3 },
+                { x0: 200, x1: 292, punta: 244, base: 320, amp: 3, fase: 2.1 },
+                { x0: 345, x1: 402, punta: 262, base: 300, amp: 2, fase: 0.7 },
+                { x0: 500, x1: 572, punta: 700, base: 790, amp: 2, fase: 0.4 },
+                { x0: 428, x1: 462, punta: 702, base: 738, amp: 1.5, fase: 1.8 },
                 { x0: 55, x1: 180, punta: 705, base: 765, amp: 1, fase: 2.6 },
                 { x0: 205, x1: 270, punta: 765, base: 805, amp: 1, fase: 0.9 },
                 { x0: 470, x1: 572, punta: 600, base: 645, amp: 1, fase: 1.1 },
@@ -114,11 +114,19 @@
             // ahí está el palenque, que no tiene que moverse.
             const CAJA = { x0: 246, x1: 322, y0: 500, y1: 612 };
 
+            // Posiciones de las estrellas más claras de la pintura, repartidas
+            // por todo el cielo; ritmo y fase de cada una salen de su número,
+            // así ninguna titila al mismo tiempo que otra.
             const ESTRELLAS = [
-                { x: 328, y: 56, w: 1.7, fase: 0.0 },
-                { x: 353, y: 82, w: 2.3, fase: 2.0 },
-                { x: 526, y: 40, w: 1.1, fase: 4.1 },
-            ];
+                [328, 56], [353, 82], [301, 81], [526, 40], [144, 16], [557, 9],
+                [475, 58], [178, 107], [466, 103], [421, 127], [21, 135],
+                [218, 135], [478, 147], [244, 11], [417, 28], [176, 45],
+            ].map(([x, y], i) => ({
+                x,
+                y,
+                w: 0.9 + ((i * 37) % 17) / 8,
+                fase: (i * 2.399) % (Math.PI * 2),
+            }));
 
             // ---------------------------------------------------------------
             const q = new URLSearchParams(location.search);
@@ -228,7 +236,7 @@
             // píxel todo tiembla y parece un error de la imagen.
             function viento(t, fase) {
                 const rafaga = 0.5 + 0.5 * Math.sin(t * 0.45 + fase);
-                const vaiven = Math.sin(t * 1.1 + fase + 0.8 * Math.sin(t * 0.37));
+                const vaiven = Math.sin(t * 1.5 + fase + 0.8 * Math.sin(t * 0.37));
                 return (0.35 + 0.65 * rafaga) * vaiven;
             }
 
@@ -338,12 +346,12 @@
             function dibujarEstrellas(t) {
                 for (const e of ESTRELLAS) {
                     const v = Math.sin(t * e.w + e.fase);
-                    if (v > 0.55) {
+                    if (v > 0.4) {
                         // Brillo: cuatro puntas de un píxel.
                         ctx.fillStyle = 'rgba(232,220,196,0.9)';
                         ctx.fillRect(e.x - 2, e.y, 5, 1);
                         ctx.fillRect(e.x, e.y - 2, 1, 5);
-                    } else if (v < -0.7) {
+                    } else if (v < -0.5) {
                         // Apagada: se tapa con el color de cielo de al lado.
                         const c = src[(e.y + 4) * W + (e.x + 5)];
                         ctx.fillStyle = `rgb(${c & 255},${(c >> 8) & 255},${(c >> 16) & 255})`;
