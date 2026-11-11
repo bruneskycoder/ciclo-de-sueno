@@ -1,9 +1,11 @@
-# Plan: versión 3 — datos que dicen la verdad, alarma de un toque y escena HD-2D
+# Plan: versión 3 — datos que dicen la verdad, alarma de un toque y escena pintada
 
-**Nivel:** profundo — suma una dependencia que multiplica por 13 el peso
-de la app, cambia el esquema de los datos y redibuja la escena entera.
-**Estado:** Etapa A hecha (PR aparte); Etapa B pendiente
-**Última actualización:** 2026-11-10 (cierre de la Etapa A)
+**Nivel:** profundo — cambia el esquema de los datos y redibuja la escena
+entera con una pintura generada que pesa cientos de kB.
+**Estado:** Etapa A hecha (PR aparte); Etapa B reescrita tras la prueba de
+la escena pintada, pendiente
+**Última actualización:** 2026-11-11 (Etapa B reescrita: de HD-2D con
+three.js a una pintura animada por código)
 
 > El [plan de la v2](./PLAN.md) sigue valiendo como historia y como
 > criterio: los tres trabajos de la app y la regla "el recorte va sobre la
@@ -72,7 +74,7 @@ planifica justo las noches en que uno ya se acuesta temprano.
 | Trabajo | Qué cambia en la v3 |
 |---|---|
 | 1. Calcular y anotar sin fricción | Lo anotado pasa a ser verdad: ninguna noche olvidada genera un registro, la confirmación deja de copiar el plan, la memoria trae horario. La alarma se pone de un toque. |
-| 2. Ser memorable | Escena HD-2D: un campo 3D de noche con el gaucho, el fogón, un caballo atado, vacas echadas y un alambrado, bajo el cielo real de esa noche, que ocupa el fondo de toda la pantalla y cuenta tu noche. |
+| 2. Ser memorable | Escena pintada: una pintura de pixel art de un campo de noche con el gaucho, el fogón, un caballo atado, vacas echadas y un alambrado, generada con IA y animada por código (fuego, viento, brasas, humo, estrellas), bajo el cielo real de esa noche. Ocupa el fondo de la pantalla y cuenta tu noche. |
 | 3. Mostrar qué sale de orquestar IA | La historia de esta versión es buena para contar: los datos reales destaparon dos bugs que los 132 tests no veían. |
 
 **Éxito observable:**
@@ -89,12 +91,16 @@ planifica justo las noches en que uno ya se acuesta temprano.
   pueden cargar.
 - Cada patrón del cuaderno dice sobre cuántas noches se apoya, y dice
   "todavía no alcanza" cuando son pocas.
-- La lista de horas aparece sin esperar a la escena 3D.
+- La lista de horas aparece sin esperar a la escena.
 - Alguien de afuera mira una captura de la escena y nombra cada cosa:
   gaucho, fogón, caballo, vacas, alambrado, monte. Lo que no nombra, se
   saca.
-- La luna de la escena tiene la misma fase que la del cielo esa noche, y
-  la Cruz del Sur está donde está.
+- Cuando la luna está sobre el horizonte, la escena la muestra con la
+  fase y la inclinación de esa noche; si no salió, no hay luna. Las
+  estrellas son las que se ven desde ahí, con la Cruz del Sur donde
+  corresponde mirando al sur.
+- Las imágenes de la escena caben en el presupuesto que fija el paso 12 y
+  Lighthouse de performance sigue en 90 o más.
 
 ## Fuera de alcance
 
@@ -104,19 +110,22 @@ planifica justo las noches en que uno ya se acuesta temprano.
   alarma: hace falta armar el atajo una vez.
 - **Calibrar el ciclo personal con los datos.** No se puede: las noches
   confirmadas son el plan copiado y nadie mide en qué fase se despierta.
-- **Modelar el gaucho en 3D.** En HD-2D los personajes siguen siendo
-  pixel art; el 3D es el mundo alrededor.
-- **Mover la cámara.** Ni con el scroll ni inclinando el teléfono. Ver
-  "Lo que se aprendió de otros": en 3D pixelado, una cámara que se
-  desliza hace temblar los píxeles. La vida de la escena sale de lo que
-  se mueve adentro, no de la cámara.
+- **Un motor 3D** (three.js, WebGL a mano o WebGPU). Se hizo el
+  prototipo y Bruno lo rechazó: los sprites escritos como texto, de unos
+  30 píxeles, no dan para anatomía ni detalle. El límite era la fuente
+  del dibujo, no el motor.
+- **Mover la cámara o hacer parallax.** Ni con el scroll ni inclinando el
+  teléfono: la pintura es una sola capa. La vida de la escena sale de lo
+  que se anima adentro.
+- **Personajes animados** (la cola del caballo, el mate, el gaucho que se
+  mueve). Solo si un generador especializado mantiene al personaje igual
+  entre cuadros; no está verificado y no se promete.
 - **El Índice de Regularidad del Sueño (SRI).** Es la medida de
   regularidad más citada, pero necesita siete días seguidos completos con
   el estado minuto a minuto. Un diario con huecos no lo soporta, y
   calcularlo igual sería mostrar un número que no vale.
-- **WebGPU y librerías de partículas.** WebGL alcanza para esta escena y
-  es lo más seguro en Safari; tres efectos de partículas no justifican
-  una librería general.
+- **Librerías de partículas.** Las brasas y el humo son unas decenas de
+  píxeles dibujados a mano en un canvas 2D.
 - Backend, cuentas, sincronización.
 
 ## Supuestos
@@ -167,6 +176,14 @@ bien partes de esto. Lo que se toma de cada uno, y lo que no:
 | **Consensus Sleep Diary** (Carney y otros, 2012) | El diario de sueño estándar en investigación pregunta exactamente lo que tus notas decían: calidad, cuánto tardaste en dormirte, si te despertaste a la noche, si te despertaste antes de lo que querías. Los motivos de un toque quedan alineados con eso. | El instrumento en sí: su uso está restringido. Se alinean los conceptos, no se copian las preguntas. |
 | **Jet lag social** (Wittmann, Roenneberg y otros, 2006) | La comparación "semana contra fin de semana" ya tiene una medida establecida: la diferencia del **punto medio del sueño** entre días libres y días de trabajo. Se usa esa en vez de inventar una. | El cuestionario completo de cronotipo. |
 | **Loop Habit Tracker** | Un principio: una métrica que perdona los huecos. Ninguna racha que se corte, porque los huecos de esta app son los viernes y sábados. | El puntaje de hábito: acá no hay hábito que medir. |
+
+> **Actualización 2026-11-11.** Se descartó el motor 3D (ver "La escena").
+> Las filas del ejemplo de pixel art de three.js, Texel Splatting y
+> folio-2025 quedan como historia de por qué se probó eso y por qué se
+> rechazó. Sobreviven dos ideas: la luz que sube y baja en escalones y el
+> desplazamiento redondeado a píxeles enteros, que la pintura animada usa
+> con el mismo fundamento. suncalc y las estrellas de d3-celestial siguen
+> en pie.
 
 ---
 
@@ -267,75 +284,118 @@ cambiaste de zona horaria van 4 noches.*
 
 ---
 
-## La escena: HD-2D
+## La escena: pintura animada
 
-**Qué se ve.** Un campo de noche en 3D, visto un poco desde arriba. Adelante
-el gaucho junto al fogón, con el círculo de piedras y los leños. A un
-costado, un caballo atado a un poste. Más atrás, un alambrado que se
-pierde en la niebla, y vacas echadas que el fuego alumbra apenas. Al
-fondo, el monte chaqueño en capas, y arriba el cielo real de esa noche.
+**Qué se ve.** Un claro del monte chaqueño de noche, visto un poco desde
+arriba: el gaucho sentado junto al fogón con el mate, un caballo zaino
+ensillado y atado a un palenque, un alambrado de postes de quebracho con
+tres vacas echadas detrás, el monte en tres planos y el cielo arriba. Es
+una pintura de pixel art de 572 × 1024 generada con IA (Gemini; el prompt
+está en `docs/escena-pintada.md`) y se muestra sin suavizar. Hoy vive en
+`public/escena/noche.png` y pesa 567 kB (medido).
 
-**Cómo se hace.** El mundo es 3D: suelo, piedras, postes, leños y monte
-tienen volumen y texturas pixeladas. Los personajes —gaucho, caballo,
-vacas— siguen siendo sprites escritos como texto, como hoy, pegados en el
-mundo 3D de frente a la cámara. La cámara es ortográfica, quieta y
-alineada a la grilla de píxeles. La luz del fuego es una luz real: titila
-en escalones, proyecta las sombras del gaucho y del caballo sobre el
-suelo, y se apaga hacia los bordes. Las sombras toman color según la hora,
-nunca negro puro. Encima: brasas que suben, humo, niebla baja, el pasto
-moviéndose en la punta, brillo alrededor de la llama, y desenfoque de lo
-más lejano. Todo se dibuja a baja resolución y se agranda sin suavizar,
-así queda pixel art y no 3D liso.
+**Cómo se hace.** La pintura es la base y el código la anima en un canvas
+2D, sin librerías. Está armado, con las coordenadas medidas sobre la
+pintura, en `escena-pintada.html`:
 
-**El día real.** Cuatro presets de luz —día, atardecer, noche, amanecer—
-interpolados según la altura real del sol donde estás, no según
-horas fijas: en invierno oscurece antes, y la escena también.
+- **Llama:** 4 cuadros que salen de deformar la llama pintada (inclinar la
+  punta, ondularla, estirarla), en vez de dibujar otra que desentone.
+- **Luz del fuego:** seis anillos de resplandor, elipses chatas alrededor
+  del fogón, que suben y bajan de a saltos y no en degradé.
+- **Brasas y humo:** 16 brasas y 5 volutas, cada una función pura del
+  tiempo y sin estado, así que la misma captura se repite.
+- **Viento:** 9 zonas de copas y pasto con la punta móvil y la base
+  quieta. El desplazamiento se redondea a píxeles enteros: con fracciones,
+  todo tiembla y parece un error de la imagen.
+- **Estrellas:** 16 que titilan, cada una a su ritmo.
+- Techo de 30 cuadros por segundo; todo quieto con movimiento reducido.
+
+**Lo que la prueba no resolvió.** Cada fila es un supuesto, no un hecho, y
+dice dónde se verifica:
+
+| Supuesto | Por qué todavía es un supuesto | Dónde se resuelve |
+|---|---|---|
+| El código puede poner la luna y las estrellas de esa noche. | La pintura trae una luna en cuarto creciente arriba a la izquierda, la Cruz del Sur arriba al centro y estrellas, todo pintado. Hace falta la misma imagen con el cielo liso, y que Gemini la dé sin mover lo demás. No se probó. | Paso 12 |
+| Atardecer y día salen de la pintura de noche. | `docs/escena-pintada.md` supone que alcanza con teñir. Un cielo nocturno con filtro puede leerse como "noche con filtro". No se probó. | Paso 14d |
+| El fuego se puede consumir y los leños contar ciclos. | La llama se probó entre 0,94 y 1,05 de escala. Achicarla a la mitad puede deformarla. Los leños nuevos sobre una pila pintada pueden verse pegados. | Paso 15 |
+| La pintura entra en la pantalla sin perder nada. | 572 × 1024 es 9:16 y un iPhone 13 es 390 × 844. Llenar la pantalla recortaría unos 50 px por lado, y con ellos el borde del poncho y el anca del caballo. | Paso 16 |
+| Se ve nítida en cualquier iPhone. | Agrandar con vecino más cercano un número no entero de veces deja píxeles de ancho desparejo, y en movimiento se nota. Cuentas: 1170 / 572 = 2,05 con 3 px por punto (casi entero); 750 / 572 = 1,31 con 2 px por punto. No se midió en teléfono. | Paso 17 |
+
+**El día real.** Cuatro momentos —día, atardecer, noche, amanecer— elegidos
+según la altura real del sol donde estás, no según horas fijas: en
+invierno oscurece antes, y la escena también. De noche es la pintura tal
+cual. Para los otros hay dos caminos y se decide con evidencia en el paso
+14d:
+
+1. **Variantes** pedidas a Gemini sobre la misma imagen ("la misma escena
+   exacta, mismo encuadre, al atardecer"), mezcladas según la altura del
+   sol. Sirven si los elementos quedan en el mismo lugar.
+2. **Tinte:** un color por momento aplicado sobre la pintura de noche, con
+   sombras de color y nunca negras. Sirve si alguien que no la vio dice
+   qué momento del día es.
+
+Si ninguno pasa, de día y al atardecer se muestra la escena 2D de hoy
+(`escena.js`) hasta que haya una pintura que sí. Orden de esfuerzo: noche,
+atardecer, día. No se midió cuánto de la app se usa a cada hora: los
+registros se crearon entre las 12:59 y la 01:01, nada más.
 
 **Cuenta tu noche.**
 
-- Cielo según la altura real del sol; luna con su fase y su inclinación
-  reales; las estrellas que se ven esa noche desde ahí, con la Cruz del
-  Sur en su lugar.
-- Al tocar una hora de la lista, el fuego tiene tantos leños como ciclos.
-- Con una noche en curso, el fuego está consumido en proporción a lo que
-  llevás en la cama: si abrís la app a las 3 de la mañana, ves cuánto
-  quemó.
-- De día, la misma escena con luz de sol y el fuego chico.
+- **Cielo:** luna con su fase y su inclinación reales, en el lugar donde la
+  pintura la tenía, y solo si está sobre el horizonte esa noche. Estrellas
+  reales proyectadas hacia donde mira la escena (supuesto declarado: al
+  sur, porque es donde está la Cruz del Sur), recortadas por el contorno
+  del monte. La posición de la luna es fija y la fase es real; las
+  estrellas giran como en el cielo.
+- **Fuego consumido:** con una noche en curso, la llama, el resplandor y
+  las brasas bajan en proporción a lo que llevás en la cama respecto de lo
+  planeado. Si abrís la app a las 3 de la mañana, ves cuánto quemó. Los
+  leños pintados no cambian.
+- **Leños por ciclo:** al tocar una hora de la lista, sprites sueltos sobre
+  la pintura, dibujados con su paleta, tantos como ciclos. Condicionado a
+  la prueba de lectura del paso 15: si no se leen o desentonan, se
+  descartan y la cantidad de ciclos queda en el texto de la tarjeta, que
+  ya lo dice.
+- **De día,** el fuego chico.
 
-**La interfaz recibe la luz.** La escena pasa a ser el fondo de toda la
-pantalla. Las tarjetas flotan sobre el campo, y la luz del fuego titila
-sobre sus bordes, sincronizada con la llama de verdad. Los títulos ganan
-detalle pixel; las horas y los textos siguen en letra legible, porque se
-leen a la 1 de la mañana.
+**La interfaz recibe la luz.** La pintura pasa a ser el fondo fijo de toda
+la pantalla, anclada arriba y con el ancho completo, sin recortar nada; si
+la pantalla es más alta que 9:16, el suelo se extiende hacia abajo, que es
+casi liso. El título y la bajada van arriba, sobre el cielo. Las tarjetas
+arrancan debajo del fuego, sobre el suelo oscuro, y al scrollear suben y
+tapan la escena. La cámara no se mueve: es el contenido el que sube. La luz
+del fuego titila sobre los bordes de las tarjetas, con la misma función del
+tiempo que la llama. Las horas y los textos siguen en letra legible,
+porque se leen a la 1 de la mañana.
 
-**Modo brasa.** La escena se queda quieta y muy oscura, sin brillo ni
-desenfoque.
+**Modo brasa.** La escena se queda quieta y muy oscura, sin resplandor. Se
+activa con el botón ☾ de la cabecera, como hoy.
 
-### Cómo construirla: tres enfoques
+### Cómo se decidió: tres enfoques
 
-| | A. three.js | B. WebGL a mano | C. Escena prerenderizada |
+| | A. three.js con sprites de texto | B. Pintura generada + animación 2D | C. Una pintura por cada estado |
 |---|---|---|---|
-| Qué es | La librería 3D más usada en la web, con los efectos ya hechos (pixelado, brillo, desenfoque) | Escribir los shaders y el motor sin librería | Renderizar la escena afuera y armarla con capas de imágenes |
-| Peso | +133 kB comprimido (medido, escena mínima) | ~15–25 kB (estimado) | Imágenes, cientos de kB |
-| Reutiliza | Los sprites de texto como texturas, y el ejemplo oficial de pixel art | Los sprites | Poco |
-| Puede contar tu noche | Sí | Sí | Solo con muchas variantes armadas de antemano |
-| Mantenible por quien no programa | Sí: documentación abundante y oficial | No: cada efecto es código propio | Sí, pero cada cambio es rehacer imágenes |
-| Riesgo | Peso y batería | Tiempo y bugs propios en lo más difícil | Pierde lo dinámico, que es lo memorable |
+| Qué es | Mundo 3D con personajes de unos 30 píxeles escritos como texto | Una pintura de Gemini; el código anima e ilumina encima | Generar con IA cada hora, cada cantidad de leños, cada fase de luna |
+| Calidad del dibujo | Limitada por los sprites. Bruno vio el prototipo y lo rechazó | La de las referencias que Bruno mostró | La misma que B |
+| Peso | +133 kB comprimido de librería (medido, escena mínima) | Imágenes: 567 kB la de noche (medido); código chico | Decenas de imágenes |
+| Puede contar tu noche | Sí | Luz, fuego y cielo, sí; leños sin verificar | Solo con variantes armadas de antemano |
+| Mantenible sin leer código | Sí | Sí, salvo que cada cambio visual es otro pedido a Gemini | No: cada cambio es rehacer imágenes |
+| Riesgo | Calidad (se concretó) | Que las variantes no coincidan; peso; términos de uso de la imagen | Combinatoria |
 
-**Criterio dominante: que se pueda mantener orquestando IA sin leer
-código.** El peso se resuelve cargando la escena después de la lista, así
-que no compite con el trabajo 1.
+**Criterio dominante: la calidad del dibujo.** El plan anterior dejó
+"que se pueda mantener orquestando IA sin leer código" como criterio
+dominante. Eso eligió three.js y no vio que lo que limitaba era la fuente
+del dibujo, no el motor. Ese criterio sigue valiendo, pero como piso.
 
-**Recomendación: A, three.js, con `WebGLRenderer`.** B gana en peso pero
-pone el código más difícil de la app en manos de un motor propio; C no
-puede contar la noche. La versión WebGPU de three.js es la que usa
-folio-2025, pero pesa el doble y en Safari es lo menos probado.
+**Recomendación: B.** C no escala; A ya se probó.
 
 **Protecciones del peso:** la escena se carga después de la lista; la
-escena 2D de hoy (`escena.js`) queda como respaldo mientras carga y si el
-teléfono no tiene WebGL o pierde el contexto; 30 cuadros por segundo como
-techo; se pausa con la app en segundo plano; quieta con movimiento
-reducido.
+escena 2D de hoy (`escena.js`) queda como respaldo mientras carga, si la
+imagen falla y de día mientras no haya variante; las pinturas se importan
+desde `src/` para que el nombre lleve hash (el service worker responde del
+cache primero: una pintura nueva con nombre fijo en `public/` no llegaría
+a un teléfono que ya guardó la vieja); 30 cuadros por segundo como techo;
+se pausa con la app en segundo plano; quieta con movimiento reducido.
 
 ---
 
@@ -347,14 +407,16 @@ reducido.
 | `metrics.js` | Intacto. `avgQuality` ya promedia la calidad. |
 | `sleep-session.js` | `isStaleOpenSleep` se usa por fin; `closeSleepSession` aprende a calcular con marcas de tiempo. |
 | `storage.js` | Mismo esquema más tres campos opcionales; la validación suma el techo de 16 horas. |
-| `escena.js` | Queda como respaldo 2D, y sus sprites se mudan a un archivo compartido para que los use también la escena 3D. |
-| Ejemplo de pixel art de three.js | Cámara alineada a la grilla y luz en escalones, adaptados. |
+| `escena.js` | Queda como respaldo 2D: mientras carga la pintura, si falla y de día mientras no haya variante. Sus sprites no se mudan: el 3D que los iba a compartir se descartó. |
+| `escena-pintada.html` | Se mueve al build: la llama, la luz, las brasas, el humo, el viento y las estrellas ya están medidos sobre la pintura. |
+| `public/escena/noche.png` | La pintura aprobada. Se reemplaza por la versión de cielo liso si el paso 12 sale. |
 | suncalc | Sol y luna. No se escribe astronomía propia. |
 | Datos de d3-celestial | Las estrellas brillantes, recortadas a lo que se ve. |
 | Los 132 tests | No se modifican. Un rojo es una regresión. |
 
-**Nuevo:** `patrones.js`, la escena 3D, los presets de luz, el atajo de
-alarma, y los sprites nuevos de caballo, vaca y alambrado.
+**Nuevo en la Etapa B:** la escena pintada en el build, el cielo
+(ubicación, sol, luna y estrellas) y el tinte por momento del día. Las
+pinturas son archivos, no código.
 
 ---
 
@@ -401,48 +463,122 @@ no depende de la escena.
 
 ### Etapa B — escena (segundo PR)
 
-- [ ] 12. **Prototipo y checkpoint.** La escena sola, con la cámara
-      alineada y la luz en escalones, de noche, al atardecer y de día, con
-      todos los elementos. Te mando capturas y no sigo hasta tu OK. Prueba
-      de lectura: alguien que no la vio nombra cada cosa.
-- [ ] 13. Integrarla: carga diferida, respaldo 2D, pausa en segundo plano —
-      verificación: la lista aparece antes que la escena (medido con
-      Playwright), y sin WebGL se ve la escena 2D.
-- [ ] 14. El cielo real: ubicación por zona horaria (Resistencia para
-      cualquier zona argentina) con **Usar mi ubicación** opcional,
-      presets de luz por altura del sol, luna con suncalc, estrellas
-      proyectadas — verificación: tests de la ubicación para
-      `America/Argentina/Cordoba`, `Pacific/Auckland` y una zona
-      desconocida; la fase y el atardecer contra los de timeanddate.com
-      para tres fechas en Resistencia y una en Auckland; la Cruz del Sur
-      contra una carta celeste de esa hora.
-- [ ] 15. Contar la noche: leños por ciclo y fuego consumido —
-      verificación: capturas con 3 y con 6 ciclos, y con una noche en
-      curso a la mitad.
-- [ ] 16. La interfaz recibe la luz: fondo de pantalla completa, tarjetas
-      flotando, luz del fuego en los bordes — verificación: contraste AA
-      de los textos sobre la escena, medido.
-- [ ] 17. QA: Lighthouse ≥ 90 de performance y 100 de accesibilidad;
-      cuadros por segundo con la CPU frenada 4 veces; sin temblor de
-      píxeles en una grabación de 10 segundos — verificación: los números
-      y la grabación.
-- [ ] 18. README y `docs/proceso.md`: el capítulo de cómo los datos
-      reales destaparon lo que los tests no veían, y qué se tomó de otros
-      proyectos.
+Reescrita el 2026-11-11 tras la prueba de la escena pintada. Se conserva
+la numeración 12 a 18 para que las referencias de otros documentos sigan
+valiendo. El checkpoint del paso 12 original ya ocurrió: el prototipo 3D
+se rechazó y la pintura animada se aprobó.
+
+- [ ] 12. **Cerrar la prueba y preparar la pintura.**
+      - a. *Sacar el 3D.* Borrar `escena-prototipo.html`,
+        `src/js/escena3d/` y `docs/escena3d-prototipo.png`, y correr
+        `npm uninstall three` — verificación: `npm ls three` vacío, los
+        219 tests, lint y build en verde.
+      - b. *Cielo liso.* Bruno le pide a Gemini, adjuntando `noche.png`:
+        "la misma imagen exacta, mismo encuadre y mismos elementos, pero
+        con el cielo liso: sin estrellas ni luna". Se guarda como
+        `noche-cielo-liso.png` — verificación: un script mide cuánto
+        cambió la imagen fuera del cielo; gaucho, caballo, fuego, vacas y
+        alambrado tienen que quedar en el mismo lugar. Tres intentos; si
+        no, plan B: se queda el cielo pintado y se pierden la luna y las
+        estrellas reales. Lo demás del plan no cambia.
+      - c. *Contorno del monte.* Para cada columna de la pintura, la
+        altura donde termina el cielo, para que las estrellas no se
+        dibujen delante de los árboles ni del cardón — verificación:
+        captura con el contorno marcado, como el `?mascara=1` de la
+        prueba.
+      - d. *Peso.* Probar PNG con paleta y WebP sin pérdida y quedarse con
+        el más chico que no cambie ningún píxel a ojo. Fijar acá el
+        presupuesto de las imágenes (punto de partida, estimado: la mitad
+        de los 567 kB de hoy por pintura). Las pinturas pasan a
+        `src/assets/` y se importan, para que el nombre lleve hash —
+        verificación: kB antes y después, captura lado a lado, y el nombre
+        con hash en `dist/`.
+      - **Checkpoint.** Te mando la pintura de cielo liso y no sigo hasta
+        tu OK. Es tu decisión si el cielo real vale más que el cielo
+        pintado que ya te gustó; el supuesto por defecto es que sí, por la
+        decisión del 8-nov de que la escena cuente la noche.
+- [ ] 13. **Integrarla.** El código de `escena-pintada.html` pasa al build
+      como módulo propio, con la pintura de fondo de pantalla completa
+      detrás de la interfaz de hoy (sin tocar las tarjetas todavía). Carga
+      diferida: arranca cuando la lista ya se dibujó. Respaldo: `escena.js`
+      mientras carga, si la imagen no llega y si el teléfono no puede.
+      Pausa en segundo plano, quieta con movimiento reducido y en modo
+      brasa, 30 cuadros como techo — verificación con Playwright: la lista
+      aparece antes que la escena (medido), con la imagen bloqueada se ve
+      la escena 2D y la app sigue andando, el CLS no empeora respecto de
+      hoy, y los 219 tests, lint y build en verde.
+- [ ] 14. **El cielo real.**
+      - a. *Ubicación.* Por zona horaria: Resistencia para cualquier zona
+        argentina, incluidos los alias que devuelve Chromium
+        (`America/Cordoba`, `America/Buenos_Aires`, `America/Argentina/*`);
+        la ciudad de referencia de la zona afuera; **Usar mi ubicación**
+        opcional en Ajustes — verificación: tests para
+        `America/Argentina/Cordoba`, `America/Cordoba`, `Pacific/Auckland`
+        y una zona desconocida.
+      - b. *Sol y luna con suncalc 2.1.1* — verificación: fase y
+        atardecer contra timeanddate.com para tres fechas en Resistencia y
+        una en Auckland.
+      - c. *Luna y estrellas sobre la pintura.* Luna en su lugar, con fase
+        e inclinación reales y solo si está sobre el horizonte. Estrellas
+        del catálogo proyectadas hacia el sur, recortadas por el contorno
+        del paso 12c, titilando — verificación: tests de la proyección
+        (función pura); la Cruz del Sur contra una carta celeste para una
+        hora de una noche en Resistencia; capturas de luna nueva, cuarto y
+        llena.
+      - d. *El momento del día.* La altura del sol elige entre día,
+        atardecer, noche y amanecer, por variantes o por tinte, según la
+        regla de "El día real" — verificación: capturas de los cuatro
+        momentos y la prueba de lectura con alguien que no las vio
+        (*¿qué momento del día es?*). Si ninguna vía pasa, de día y al
+        atardecer queda la escena 2D, y se anota acá.
+- [ ] 15. **Contar la noche.**
+      - a. *Fuego consumido:* llama, resplandor y brasas bajan con la noche
+        en curso — verificación: capturas con la noche al 25%, 60% y 100%.
+        Escalar la llama pintada a la mitad no está probado; si se
+        deforma, plan B: una pintura con el fuego en brasas pedida a
+        Gemini, y se alterna.
+      - b. *Leños por ciclo:* sprites sueltos sobre la pintura —
+        verificación: capturas con 3 y con 6 ciclos y prueba de lectura.
+        Lo que alguien que no la vio no cuenta, o desentona, se saca.
+      - c. *De día, fuego chico,* si el paso 14d dejó una vía para el día.
+- [ ] 16. **La interfaz recibe la luz.** Pintura anclada arriba con el
+      ancho completo, suelo extendido hacia abajo, título y bajada sobre el
+      cielo, tarjetas que arrancan debajo del fuego y suben al scrollear,
+      luz del fuego en sus bordes con la misma función del tiempo que la
+      llama — verificación: contraste AA de los textos medido sobre los
+      píxeles reales de la pintura que quedan detrás, en el peor caso, a
+      375 × 667, 390 × 844 y 430 × 932; capturas en reposo y scrolleadas.
+- [ ] 17. **QA.** Lighthouse ≥ 90 de performance y 100 de accesibilidad;
+      cuadros por segundo con la CPU frenada 4 veces (meta: sostener 30;
+      piso aceptable, propuesto: 24); peso total de la escena contra el
+      presupuesto del paso 12d; sin temblor de píxeles en una grabación de
+      10 segundos a 3 px por punto y a 2 px por punto — verificación: los
+      números y las grabaciones. Si hay temblor, escalar por un número
+      entero.
+- [ ] 18. **README y `docs/proceso.md`:** el capítulo de cómo los datos
+      reales destaparon lo que los tests no veían; el de cómo un prototipo
+      3D de peso alto se probó, se rechazó y se reemplazó por una pintura
+      que cuesta menos código; y qué se tomó de otros proyectos. El README
+      dice que la pintura la generó una IA y apunta al prompt. Actualizar
+      la descripción de la escena en el README, que todavía habla de
+      sprites escritos como texto.
 
 ## Riesgos
 
 | Riesgo | Mitigación |
 |---|---|
-| Los elementos nuevos no se leen, como pasó con el recado y la tormenta. | El checkpoint del paso 12 con la prueba de lectura: lo que no se nombra, se saca. |
+| Lo que se suma sobre la pintura (variantes de hora, leños, cielo) no se lee o desentona, como pasó con el recado y la tormenta. | Prueba de lectura con alguien que no la vio en los pasos 14d y 15b. Lo que desentona se saca y la escena sigue con lo que sí funciona. |
 | Un toque más en la memoria baja la cobertura (la lección de la v1). | Hipótesis: un toque no la mueve. Se verifica con el backup del mes que viene: la cobertura tiene que seguir arriba del 70%. Si cae, la segunda pregunta se vuelve opcional. |
 | La acción de alarma de Atajos no recibe la hora. | Fecha ISO y paso por la acción "Fecha"; si igual falla, plan B: copiar la hora. Se sabe en tu primera prueba. |
-| 13 veces más peso. | Carga diferida, respaldo 2D, piso de Lighthouse de 90. |
-| Los píxeles tiemblan. | Cámara ortográfica quieta y alineada, que es la solución del ejemplo oficial; se verifica en una grabación. |
-| Safari pierde el contexto WebGL al pasar a segundo plano. | Se escucha la pérdida y se vuelve a la escena 2D. |
-| Batería y calor a la noche. | Baja resolución, 30 cuadros como techo, pausa en segundo plano, quieta en modo brasa. |
+| Las pinturas pesan: la de noche son 567 kB (medido) y con atardecer y día serían unos 1,7 MB (suma estimada). | Formato más chico (12d), carga diferida, respaldo 2D, piso de Lighthouse de 90 medido en el 17. El service worker las guarda en el cache al primer pedido, así que después andan sin conexión. |
+| Gemini no devuelve "la misma imagen": al pedir cielo liso o una hora distinta, se mueve algo. | Se pide sobre la imagen adjunta y un script mide cuánto cambió fuera del cielo. Tres intentos y se cae al plan B del 12b o al tinte. |
+| Una pintura nueva no llega a un teléfono que ya guardó la vieja, porque el service worker responde del cache primero. | Nombre con hash: la pintura se importa desde `src/`, no se sirve desde `public/`. Se verifica en `dist/`. |
+| Los píxeles tiemblan: la pintura se agranda un número no entero de veces y algunos píxeles salen más anchos que otros. | El viento ya se redondea a píxeles enteros (probado a ojo en la prueba). El paso 17 graba a 2 y a 3 px por punto; si hay temblor, escalar por un entero. Hipótesis: no se midió en teléfono. |
+| La pintura no entra en pantalla: llenar un iPhone 13 recortaría unos 50 px por lado y se llevaría el poncho y el anca del caballo. | Ancho completo y suelo extendido hacia abajo (paso 16); se verifica a tres tamaños. |
+| Batería y calor a la noche. | 30 cuadros como techo, pausa en segundo plano, quieta en modo brasa, un solo canvas de 572 × 1024. |
 | En un viaje, el cielo queda en la ciudad de referencia de la zona y no donde estás (Christchurch está unos 750 km al sur de Auckland). | La diferencia es de minutos en el atardecer; quien quiera exactitud toca **Usar mi ubicación**. |
 | Una noche que cruza el vuelo queda absurda. | La duración por marcas de tiempo y el techo de 16 horas ya la frenan; la noche queda como hueco cargable. |
+| Imagen generada por IA en un repo público. No verifiqué los términos de uso de Gemini sobre las imágenes que genera. | Bruno los revisa antes de publicar; el README dice que la pintura es generada y enlaza el prompt. |
 | Datos personales en un repo público. | Tests con casos sintéticos; el backup real no entra. |
 
 ## Verificación final
@@ -466,11 +602,15 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
    hora. Esperado: queda una alarma en el Reloj a esa hora.
 5. Abrí la app con el teléfono en modo avión. Esperado: la lista aparece
    primero, y la escena llega después o queda la versión 2D.
-6. Salí a mirar el cielo y compará. Esperado: la luna tiene la misma fase,
-   y si la Cruz del Sur está alta, en la escena también.
+6. Salí a mirar el cielo hacia el sur y compará. Esperado: si la luna está
+   sobre el horizonte, tiene la misma fase; si no salió, la escena no la
+   muestra. Si la Cruz del Sur está alta, en la escena también.
 7. Mostrale una captura de la escena a alguien y pedile que diga qué ve.
    Esperado: nombra cada cosa sin ayuda.
-8. Tocá la luna. Esperado: la escena se queda quieta y se apaga.
+8. Tocá ☾. Esperado: la escena se queda quieta y se apaga.
+9. Mirá la escena un minuto en el teléfono. Esperado: el viento y la llama
+   se mueven sin que ningún píxel tiemble ni parpadee. Esto no se puede
+   verificar bien en Chromium: depende de la pantalla.
 
 ## Registro de decisiones y desvíos
 
@@ -557,6 +697,45 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
     alarma en un iPhone (verificación manual 4). La hoja de la app lo dice
     con esas palabras; sacar esa línea cuando se pruebe.
 
+- 2026-11-11 — **La escena pasa de HD-2D con three.js a una pintura animada
+  por código.** Bruno vio el prototipo 3D del paso 12 y lo rechazó: los
+  sprites escritos como texto, de unos 30 píxeles, no dan para anatomía ni
+  detalle. Mostró referencias de pixel art pintado con IA. La prueba
+  (`escena-pintada.html`, PR 8 y 9: una pintura de Gemini y el código solo
+  la anima) se tomó como aprobada cuando Bruno pidió reescribir la Etapa B.
+  **Supuesto declarado sin preguntar:** pedir la reescritura es el OK. Se
+  descartan three.js (se desinstala) y el prototipo 3D; el enfoque A del
+  plan queda como historia. El criterio dominante del plan anterior
+  (mantenible orquestando IA) eligió three.js y no vio que el límite era la
+  fuente del dibujo; ahora manda la calidad del dibujo.
+- 2026-11-11 — **El cielo real depende de una segunda pintura.** La de
+  noche trae luna y estrellas pintadas. Para que el código ponga las de esa
+  noche hace falta la misma imagen con el cielo liso. El plan sigue con la
+  luna y las estrellas reales (decisión del 8-nov), con plan B si Gemini no
+  la da: cielo pintado y sin luna real. La estrella real fue un agregado sin
+  preguntar; la luna real, no.
+- 2026-11-11 — **La luna queda en un lugar fijo, con fase real, y solo
+  aparece si está sobre el horizonte.** Mirando al sur, que es donde está
+  la Cruz del Sur, la luna rara vez cae en cuadro (inferencia, no
+  calculada), así que la posición real no se puede mostrar. Supuesto
+  declarado: la escena mira al sur.
+- 2026-11-11 — **Atardecer y día quedan condicionados.** La prueba solo
+  tiene la pintura de noche. Variantes de Gemini o tinte según el paso 14d;
+  si ninguna se lee, queda la escena 2D de hoy. El orden de esfuerzo es
+  noche, atardecer, día.
+- 2026-11-11 — **Los leños por ciclo y el fuego consumido pasan a ser
+  condicionales**, como pedía `docs/escena-pintada.md`: sprites sueltos
+  sobre la pintura, o se descartan. La llama pintada solo se probó entre
+  0,94 y 1,05 de escala.
+- 2026-11-11 — **La pintura se importa desde `src/` y no se sirve desde
+  `public/`.** El service worker es cache-first para todo lo que no sea la
+  navegación; con nombre fijo, una pintura nueva no llegaría a quien ya
+  guardó la vieja.
+- 2026-11-11 — **Ajuste por ancho y suelo extendido, no "cubrir".** Cubrir
+  recortaría unos 50 px por lado en un iPhone 13 y se llevaría el poncho y
+  el anca del caballo. Las tarjetas suben sobre la escena fija: la cámara
+  no se mueve.
+
 ---
 
 ## Cómo retomar en una sesión nueva
@@ -564,9 +743,15 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
 Este archivo es el traspaso: alcanza para arrancar sin la conversación que
 lo armó. Orden de lectura: este plan, la skill de voz
 (`.claude/skills/voz/SKILL.md`) para cualquier texto visible, y después
-el paso 0. La Etapa A va en su propio PR; la B, en otro, después del
-checkpoint del paso 12.
+el paso 0. La Etapa A va en su propio PR. La Etapa B, en otro: empezar por
+`docs/escena-pintada.md` y `escena-pintada.html` (las medidas de la
+pintura), y no seguir del paso 12 hasta el OK de Bruno a la pintura de
+cielo liso.
 
-**Modelo por etapa** (ver `CLAUDE.md`): la Etapa A con Sonnet 5.5, en una
-sesión nueva; la Etapa B con Opus 5.5, en otra. Al cerrar la Etapa A, la
-sesión le avisa a Bruno que la B conviene abrirla con Opus.
+**Modelo por etapa** (ver `CLAUDE.md`): la Etapa A, hecha con Sonnet 5.5.
+La Etapa B, reescrita, se parte en dos sesiones. Pasos 12 a 14 con Sonnet
+5.5: tienen plan detallado y una verificación numérica por paso (el 12
+arranca con Bruno generando imágenes en Gemini). Pasos 15 a 17 con Opus
+5.5: dependen de criterio visual (leños, layout, contraste, lectura). El
+18 con Sonnet 5.5. Al cerrar cada tramo, la sesión le avisa a Bruno con
+qué modelo conviene abrir el siguiente.
