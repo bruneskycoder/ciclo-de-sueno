@@ -4,8 +4,8 @@
 entera con una pintura generada que pesa cientos de kB.
 **Estado:** Etapa A hecha (PR aparte); Etapa B reescrita tras la prueba de
 la escena pintada, pendiente
-**Última actualización:** 2026-11-12 (paso 16 cerrado: Bruno lo vio en el
-iPhone; sigue el 17)
+**Última actualización:** 2026-11-12 (paso 17 hecho: Lighthouse pasa
+tras arreglar el salto de la lista; sigue el 18)
 
 > El [plan de la v2](./PLAN.md) sigue valiendo como historia y como
 > criterio: los tres trabajos de la app y la regla "el recorte va sobre la
@@ -856,13 +856,58 @@ se rechazó y la pintura animada se aprobó.
           doble más: el corrimiento pasa de 0,45 a 0,8 (el `?canto=0.8`
           de las capturas). El temblor de los píxeles de la pintura en
           sí se sigue grabando en el paso 17.
-- [ ] 17. **QA.** Lighthouse ≥ 90 de performance y 100 de accesibilidad;
+- [x] 17. **QA.** Lighthouse ≥ 90 de performance y 100 de accesibilidad;
       cuadros por segundo con la CPU frenada 4 veces (meta: sostener 30;
       piso aceptable, propuesto: 24); peso total de la escena contra el
       presupuesto del paso 12d; sin temblor de píxeles en una grabación de
       10 segundos a 3 px por punto y a 2 px por punto — verificación: los
       números y las grabaciones. Si hay temblor, escalar por un número
       entero.
+      **Hecho 2026-11-12.** Todo medido sobre el build de producción
+      (`vite preview`), con Lighthouse 12.6 en modo teléfono (red y CPU
+      simuladas lentas).
+      - **Lighthouse, primera vuelta: 72 a 77 de rendimiento. No
+        pasaba.** El problema era un salto de la pantalla (CLS 0,65; bien
+        es menos de 0,1), no el peso. Dos causas, las dos arregladas:
+        - La clase `con-pintura`, que baja la lista para dejar ver el
+          fuego, la ponía el JavaScript de la app, y el navegador ya
+          había pintado la lista arriba: la lista bajaba 0,63 a la vista.
+          Pasó a un script de tres líneas en el `<head>` de
+          `index.html`, que corre antes de la primera pintada. El paso
+          16a lo había medido después de cargar y por eso no lo vio.
+        - La lista nace con una línea ("Un momento…") y al llenarse
+          empujaba el botón para abajo (0,12, en una de tres corridas).
+          El botón y los enlaces quedan invisibles, en su lugar, hasta
+          que la lista tiene sus horas (`lista-dibujada`).
+      - **Lighthouse, después, cinco corridas:** rendimiento 94, 94, 94,
+        99 y 99; accesibilidad 100 y buenas prácticas 100 en todas. CLS
+        entre 0 y 0,022 (lo que queda es la carga de las tipografías de
+        Google). Primera pintada entre 1,4 y 2,5 s.
+      - **Peso:** la pintura pesa 83,8 kB, contra 100 kB del presupuesto
+        del 12d. Todo lo que baja la primera vez, 177 KiB (medido por
+        Lighthouse): JavaScript 51,6 kB de la app (17,1 comprimido) y
+        31,2 kB de la escena (13,8 comprimido), CSS 22,7 kB (5
+        comprimido). `src/assets/escena/noche.webp` (95 kB) no entra al
+        build: solo lo usa `escena-pintada.html`, el prototipo.
+      - **Cuadros por segundo,** CPU frenada 4 veces, Chromium de
+        escritorio: quieta, 30; scrolleando, 40 con el canto de vidrio
+        en 0,8 y 44 sin él. Meta de 30 cumplida.
+      - **Temblor, grabación de 10 s** del viento en las copas, con la
+        interfaz oculta, a 3 px por punto (390 × 844, 196 cuadros) y a 2
+        (375 × 667, 218 cuadros): `docs/viento-3x-2x.webp`. Medido sobre
+        las capturas: **los bordes de los píxeles no se salen nunca de
+        la grilla** (0 en los dos casos): el viento corre de a píxeles
+        enteros y no hay medio píxel que tiemble. Lo que sí hay es ancho
+        desparejo, que es de la escala y no del movimiento: a 3 px por
+        punto, el 95% de los píxeles de la pintura miden 2 del teléfono y
+        el 5%, 3; a 2 px por punto, el 70% miden 1 y el 30%, 2. Un
+        detalle que se mueve con el viento cambia de ancho al pasar por
+        uno de esos. **No se escala por un entero:** a 3 px por punto,
+        Bruno lo vio en su iPhone y no tiembla; a 2 px por punto el único
+        entero posible es 1, que deja la pintura de 286 puntos de ancho
+        en una pantalla de 375. **Sin verificar a ojo:** un teléfono de 2
+        px por punto (iPhone SE, 8).
+      - 343 tests, lint y build en verde.
 - [ ] 18. **README y `docs/proceso.md`:** el capítulo de cómo los datos
       reales destaparon lo que los tests no veían; el de cómo un prototipo
       3D de peso alto se probó, se rechazó y se reemplazó por una pintura

@@ -17,6 +17,17 @@
         <meta name="apple-mobile-web-app-title" content="El Fogón" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
+        <!-- La pantalla con la pintura detrás (con-pintura) se arma antes de
+             la primera pintada: si esperara al JavaScript de la app, la
+             lista aparecería arriba y después bajaría al lugar que deja ver
+             el fuego (Lighthouse medía 0,63 de salto). main.js la saca si
+             la pintura no llega. -->
+        <script>
+            if (!(navigator.connection && navigator.connection.saveData)) {
+                document.documentElement.classList.add('con-pintura');
+            }
+        </script>
+
         <title>A la Luz del Fogón</title>
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
