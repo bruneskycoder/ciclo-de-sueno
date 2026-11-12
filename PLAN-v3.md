@@ -4,8 +4,8 @@
 entera con una pintura generada que pesa cientos de kB.
 **Estado:** Etapa A hecha (PR aparte); Etapa B reescrita tras la prueba de
 la escena pintada, pendiente
-**Última actualización:** 2026-11-12 (paso 16b: vidrio en los controles
-y canto de vidrio en la lista)
+**Última actualización:** 2026-11-12 (paso 16 cerrado: Bruno lo vio en el
+iPhone; sigue el 17)
 
 > El [plan de la v2](./PLAN.md) sigue valiendo como historia y como
 > criterio: los tres trabajos de la app y la regla "el recorte va sobre la
@@ -698,7 +698,7 @@ se rechazó y la pintura animada se aprobó.
         de los dos.
       - **Medido:** 332 tests (22 nuevos), lint y build en verde; el chunk
         de la escena pasó de 25 a 29 kB (13 kB comprimido).
-- [ ] 16. **La interfaz recibe la luz.** Pintura anclada arriba con el
+- [x] 16. **La interfaz recibe la luz.** Pintura anclada arriba con el
       ancho completo, suelo extendido hacia abajo, título y bajada sobre el
       cielo, tarjetas que arrancan debajo del fuego y suben al scrollear,
       luz del fuego en sus bordes con la misma función del tiempo que la
@@ -845,12 +845,13 @@ se rechazó y la pintura animada se aprobó.
           y sin canto; scrolleando, 39 con canto y 46 sin él. 349 tests
           (9 nuevos), lint y build en verde; el chunk de la escena pasó
           de 31 a 32 kB (14,3 kB comprimido) y el CSS a 22,7 kB.
-        - **No hecho:** el iPhone. Lo que hay que mirar: que el canto no
-          tiemble al scrollear con inercia (en iOS el scroll puede ir un
-          cuadro adelantado al canvas, y eso acá no se puede medir), y
-          si el vidrio de los controles se ve vidrio o se ve gris. Si el
-          canto tiembla o desentona, se saca B y la lista queda con el
-          velo parejo y el borde de A.
+        - **Cierre (2026-11-12):** publicado (PR #12) y Bruno lo miró en
+          su iPhone: "todo funciona bien". Con eso se dan por vistos el
+          16a y el 16b en el teléfono. **Lo que sigue abierto:** el OK no
+          dice nada específico del temblor del canto, del canvas al
+          esconderse las barras ni del valor de `?canto`, así que el
+          corrimiento queda en 0,45 y el temblor se mide con grabación
+          en el paso 17.
 - [ ] 17. **QA.** Lighthouse ≥ 90 de performance y 100 de accesibilidad;
       cuadros por segundo con la CPU frenada 4 veces (meta: sostener 30;
       piso aceptable, propuesto: 24); peso total de la escena contra el
