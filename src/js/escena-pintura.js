@@ -30,21 +30,6 @@ export const VIENTO = [
 // está el palenque, que no tiene que moverse.
 export const CAJA = { x0: 246, x1: 322, y0: 500, y1: 612 };
 
-// Estrellas provisorias: las posiciones de las que tenía la pintura con
-// cielo. El paso 14c las reemplaza por las del catálogo, proyectadas según
-// la hora y recortadas por el contorno del monte. Ritmo y fase de cada una
-// salen de su número, así ninguna titila al mismo tiempo que otra.
-export const ESTRELLAS = [
-    [328, 56], [353, 82], [301, 81], [526, 40], [144, 16], [557, 9],
-    [475, 58], [178, 107], [466, 103], [421, 127], [21, 135],
-    [218, 135], [478, 147], [244, 11], [417, 28], [176, 45],
-].map(([x, y], i) => ({
-    x,
-    y,
-    w: 0.9 + ((i * 37) % 17) / 8,
-    fase: (i * 2.399) % (Math.PI * 2),
-}));
-
 // Pseudoaleatorio fijo: mismas brasas en cada recarga, así una captura se
 // puede comparar con otra.
 export function rnd(s) {

@@ -8,14 +8,13 @@
 //
 // Las cuentas (viento, llama, titileo) están en escena-pintura.js y se
 // prueban sin navegador; acá queda lo que necesita un canvas.
-import imagenUrl from '../../assets/escena/noche-cielo-liso.webp';
+import contorno from '../../assets/escena/contorno-cielo.json';
 import {
     W,
     H,
     FUEGO,
     VIENTO,
     CAJA,
-    ESTRELLAS,
     CUADROS_LLAMA,
     rnd,
     viento,
@@ -25,6 +24,25 @@ import {
     armarCuadroLlama,
 } from '../escena-pintura.js';
 import { ocultarEscena2D } from './escena.js';
+import { currentTimeZone, getUbicacion } from '../storage.js';
+import { ubicacionVigente } from '../ubicacion.js';
+import { luna as calcularLuna, momentoDelDia } from '../cielo.js';
+import { LUNA, estrellasVisibles, mascaraLuna, visibilidadEstrellas } from '../estrellas.js';
+import { tinteDelCielo } from '../tinte.js';
+
+// Momentos del día en que se muestra la pintura. De noche es la pintura
+// tal cual. Para el atardecer, el amanecer y el día hay un tinte
+// (tinte.js), pero el plan lo deja afuera hasta que alguien que no la vio
+// diga qué momento del día es (paso 14d). Hasta entonces, en esos momentos
+// queda la escena 2D. Con ?cielo=2026-12-21T19:30-03:00 en la dirección se
+// ve el cielo de esa fecha, en cualquier momento, para mirar el tinte.
+export const MOMENTOS_PINTADOS = new Set(['noche']);
+
+function fechaDePrueba() {
+    const v = new URLSearchParams(location.search).get('cielo');
+    const d = v ? new Date(v) : null;
+    return d && !Number.isNaN(d.getTime()) ? d : null;
+}
 
 const DESCRIPCION =
     'Un gaucho sentado junto a un fogón, de noche. Atrás, su caballo atado a un palenque y tres vacas echadas del otro lado del alambrado.';
@@ -49,6 +67,14 @@ export async function montarEscenaPintada() {
     // Con el ahorro de datos prendido no se baja una imagen de decoración.
     if (navigator.connection?.saveData) return false;
 
+    // Si ahora no es un momento que la pintura sabe mostrar, ni se baja.
+    const prueba = fechaDePrueba();
+    const sitio = ubicacionVigente(getUbicacion(), currentTimeZone());
+    const cuando = () => prueba ?? new Date();
+    if (!prueba && !MOMENTOS_PINTADOS.has(momentoDelDia(cuando(), sitio.lat, sitio.lon).momento)) {
+        return false;
+    }
+
     const vista = document.createElement('canvas');
     vista.width = W;
     vista.height = H;
@@ -61,6 +87,9 @@ export async function montarEscenaPintada() {
 
     let img;
     try {
+        // Import diferido: el nombre con hash de la imagen sale del build y
+        // no se pide hasta saber que hace falta.
+        const { default: imagenUrl } = await import('../../assets/escena/noche-cielo-liso.webp');
         img = await cargar(imagenUrl);
     } catch {
         return false;
@@ -172,18 +201,94 @@ export async function montarEscenaPintada() {
         ctx.globalAlpha = 1;
     }
 
-    // Provisorias (ver ESTRELLAS en escena-pintura.js): un punto fijo y, a
-    // ratos, el brillo de cuatro puntas.
+    // ---------------- el cielo de esta noche -----------------------
+    // Se recalcula al arrancar y cada 30 segundos: el cielo gira 15° por
+    // hora, así que más seguido no se nota.
+    const capaCielo = document.createElement('canvas');
+    capaCielo.width = W;
+    capaCielo.height = H;
+    const capaCtx = capaCielo.getContext('2d');
+    const lunaImg = document.createElement('canvas');
+    const LADO_LUNA = 2 * LUNA.radio + 1;
+    lunaImg.width = lunaImg.height = LADO_LUNA;
+    const lunaCtx = lunaImg.getContext('2d');
+    let cielo = { estrellas: [], visibilidad: 0, lunaVisible: false, lunaAlpha: 0, lift: 0 };
+    let proximoCielo = 0;
+
+    function refrescarCielo() {
+        const ahora = cuando();
+        const { altura, luz } = momentoDelDia(ahora, sitio.lat, sitio.lon);
+        const visibilidad = visibilidadEstrellas(altura);
+        const l = calcularLuna(ahora, sitio.lat, sitio.lon);
+
+        // Cielo nuevo (atardecer, día, amanecer): un degradé por encima del
+        // contorno del monte.
+        const tinte = tinteDelCielo(altura);
+        capaCtx.clearRect(0, 0, W, H);
+        if (tinte.opacidad > 0) {
+            const g = capaCtx.createLinearGradient(0, 0, 0, 268);
+            g.addColorStop(0, `rgb(${tinte.arriba.join(',')})`);
+            g.addColorStop(1, `rgb(${tinte.horizonte.join(',')})`);
+            capaCtx.globalAlpha = tinte.opacidad;
+            capaCtx.fillStyle = g;
+            capaCtx.beginPath();
+            capaCtx.moveTo(0, 0);
+            capaCtx.lineTo(W, 0);
+            for (let x = W - 1; x >= 0; x--) capaCtx.lineTo(x + 1, contorno[x]);
+            capaCtx.closePath();
+            capaCtx.fill();
+            capaCtx.globalAlpha = 1;
+        }
+
+        if (l.visible) {
+            const m = mascaraLuna(LUNA.radio, l.fraccion, l.inclinacion);
+            const datos = lunaCtx.createImageData(LADO_LUNA, LADO_LUNA);
+            for (let i = 0; i < m.length; i++) {
+                if (!m[i]) continue;
+                const o = i * 4;
+                // Parte iluminada en crema; la oscura, apenas un azul de
+                // cielo (luz cenicienta) para que el disco no desaparezca.
+                const clara = m[i] === 2;
+                datos.data[o] = clara ? 232 : 40;
+                datos.data[o + 1] = clara ? 220 : 52;
+                datos.data[o + 2] = clara ? 196 : 82;
+                datos.data[o + 3] = clara ? 255 : 90;
+            }
+            lunaCtx.putImageData(datos, 0, 0);
+        }
+
+        cielo = {
+            estrellas: estrellasVisibles(ahora, sitio.lat, sitio.lon, contorno, { luna: l.visible }),
+            visibilidad,
+            lunaVisible: l.visible,
+            lunaAlpha: 1 - 0.6 * luz,
+            lift: tinte.lift,
+        };
+    }
+
+    // Las estrellas titilan cada una a su ritmo (sale de su número HIP).
+    // Las brillantes llevan cuatro puntas; las débiles, un punto.
     function dibujarEstrellas(t) {
-        for (const e of ESTRELLAS) {
-            ctx.fillStyle = 'rgba(232,220,196,0.55)';
-            ctx.fillRect(e.x, e.y, 1, 1);
-            if (Math.sin(t * e.w + e.fase) > 0.4) {
-                ctx.fillStyle = 'rgba(232,220,196,0.9)';
+        if (cielo.visibilidad <= 0) return;
+        ctx.fillStyle = '#e8dcc4';
+        for (const e of cielo.estrellas) {
+            const v = Math.sin(t * (0.9 + ((e.hip * 37) % 17) / 8) + ((e.hip * 2.399) % 6.2832));
+            const peso = e.mag < 1.6 ? 1 : e.mag < 2.6 ? 0.8 : 0.6;
+            ctx.globalAlpha = cielo.visibilidad * peso * (v > -0.5 ? 1 : 0.5);
+            ctx.fillRect(e.x, e.y, e.mag < 1.2 ? 2 : 1, e.mag < 1.2 ? 2 : 1);
+            if (e.mag < 2.6 && v > 0.4) {
                 ctx.fillRect(e.x - 2, e.y, 5, 1);
                 ctx.fillRect(e.x, e.y - 2, 1, 5);
             }
         }
+        ctx.globalAlpha = 1;
+    }
+
+    function dibujarLuna() {
+        if (!cielo.lunaVisible) return;
+        ctx.globalAlpha = cielo.lunaAlpha;
+        ctx.drawImage(lunaImg, LUNA.x - LUNA.radio, LUNA.y - LUNA.radio);
+        ctx.globalAlpha = 1;
     }
 
     let cuadroLlama = -1;
@@ -196,11 +301,22 @@ export async function montarEscenaPintada() {
         aplicarViento(t);
         ctx.globalCompositeOperation = 'source-over';
         ctx.drawImage(base, 0, 0);
+        ctx.drawImage(capaCielo, 0, 0);
+        if (cielo.lift > 0) {
+            // Levanta la luz del conjunto (atardecer y día).
+            ctx.globalCompositeOperation = 'screen';
+            ctx.fillStyle = `rgba(150,170,200,${cielo.lift})`;
+            ctx.fillRect(0, 0, W, H);
+            ctx.globalCompositeOperation = 'source-over';
+        }
         dibujarLuz(t);
         dibujarHumo(t);
         dibujarBrasas(t);
         dibujarEstrellas(t);
+        dibujarLuna();
     }
+
+    refrescarCielo();
 
     // Primer cuadro, y recién ahí se muestra y se saca la escena 2D: así
     // no hay un instante con las dos ni con ninguna.
@@ -224,6 +340,7 @@ export async function montarEscenaPintada() {
     function actualizar() {
         detener();
         const quieta = document.documentElement.dataset.tema === 'brasa' || reducido.matches;
+        refrescarCielo();
         if (quieta) {
             dibujar(0);
             return;
@@ -235,6 +352,10 @@ export async function montarEscenaPintada() {
             pedido = requestAnimationFrame(paso);
             if (ahora - ultimo < INTERVALO - 2) return;
             ultimo = ahora;
+            if (!prueba && ahora > proximoCielo) {
+                proximoCielo = ahora + 30000;
+                refrescarCielo();
+            }
             dibujar((ahora - inicio) / 1000);
         };
         pedido = requestAnimationFrame(paso);

@@ -4,7 +4,6 @@ import {
     H,
     CAJA,
     VIENTO,
-    ESTRELLAS,
     CUADROS_LLAMA,
     SECUENCIA_LLAMA,
     rnd,
@@ -153,20 +152,5 @@ describe('llama', () => {
         const a = armarCuadroLlama(src, CUADROS_LLAMA[1]);
         const b = armarCuadroLlama(src, CUADROS_LLAMA[1]);
         expect(Array.from(a.datos.slice(0, 400))).toEqual(Array.from(b.datos.slice(0, 400)));
-    });
-});
-
-describe('estrellas provisorias', () => {
-    it('están dentro de la pintura y por encima del monte', () => {
-        for (const e of ESTRELLAS) {
-            expect(e.x).toBeGreaterThanOrEqual(2);
-            expect(e.x).toBeLessThan(W - 2);
-            expect(e.y).toBeGreaterThanOrEqual(2);
-            expect(e.y).toBeLessThan(150);
-        }
-    });
-    it('no hay dos con el mismo ritmo y fase', () => {
-        const claves = new Set(ESTRELLAS.map((e) => `${e.w.toFixed(3)}-${e.fase.toFixed(3)}`));
-        expect(claves.size).toBe(ESTRELLAS.length);
     });
 });

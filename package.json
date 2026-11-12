@@ -20,5 +20,8 @@
     "prettier": "^3.9.6",
     "vite": "^8.2.2",
     "vitest": "^5.0.0"
+  },
+  "dependencies": {
+    "suncalc": "2.1.1"
   }
 }

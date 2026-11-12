@@ -30,6 +30,7 @@ import {
     recordKind,
     SOURCES,
 } from './sleep-session.js';
+import { leerUbicacionGuardada, redondearUbicacion } from './ubicacion.js';
 
 // storage.js NO importa ninguna vista. Antes sí: llamaba a mano a
 // renderHistory(), renderChart() y renderStatsPanels() después de cada
@@ -99,6 +100,25 @@ export function saveTheme(theme) {
     const valido = TEMAS.includes(theme) ? theme : 'fogon';
     localStorage.setItem(THEME_KEY, valido);
     return valido;
+}
+
+// Ubicación elegida con "Usar mi ubicación" (Ajustes). Es un dato personal:
+// se guarda redondeada a unos 10 km, solo en este navegador, y entra en
+// "Borrar todo". No viaja en el respaldo.
+const UBICACION_KEY = 'ubicacionPref';
+
+export function getUbicacion() {
+    return leerUbicacionGuardada(localStorage.getItem(UBICACION_KEY));
+}
+
+export function saveUbicacion(lat, lon) {
+    const redondeada = redondearUbicacion(lat, lon);
+    localStorage.setItem(UBICACION_KEY, JSON.stringify(redondeada));
+    return redondeada;
+}
+
+export function clearUbicacion() {
+    localStorage.removeItem(UBICACION_KEY);
 }
 
 const SLEEP_LOG_KEY = 'sleepLogReal';
@@ -227,6 +247,7 @@ export function startOpenSleep(now = new Date(), opciones = {}) {
 
 export function clearOpenSleep() {
     localStorage.removeItem(OPEN_SLEEP_KEY);
+    localStorage.removeItem(UBICACION_KEY);
     avisar();
 }
 

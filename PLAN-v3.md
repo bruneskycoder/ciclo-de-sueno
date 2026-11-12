@@ -565,7 +565,7 @@ se rechazó y la pintura animada se aprobó.
       cielo) hasta el 14c. Modo brasa: la pintura se oscurece con
       `brightness(0.6)`; el valor es una primera cuenta, no medida contra
       contraste. Con ahorro de datos prendido no se baja la pintura.
-- [ ] 14. **El cielo real.**
+- [~] 14. **El cielo real.**
       - a. *Ubicación.* Por zona horaria: Resistencia para cualquier zona
         argentina, incluidos los alias que devuelve Chromium
         (`America/Cordoba`, `America/Buenos_Aires`, `America/Argentina/*`);
@@ -589,6 +589,57 @@ se rechazó y la pintura animada se aprobó.
         momentos y la prueba de lectura con alguien que no las vio
         (*¿qué momento del día es?*). Si ninguna vía pasa, de día y al
         atardecer queda la escena 2D, y se anota acá.
+      **Estado 2026-11-12: 14a, 14b y 14c hechos; 14d hecho a medias.**
+      - *14a.* `src/js/ubicacion.js`: cualquier zona argentina (incluidos
+        `America/Cordoba` y `America/Buenos_Aires`) da Resistencia; 33
+        ciudades de referencia (Auckland entre ellas); una zona que no
+        está en la tabla cae en Resistencia y Ajustes lo dice. **Usar mi
+        ubicación** en Ajustes guarda la posición redondeada a 0,1°
+        (unos 10 km) solo en el navegador; entra en "Borrar todo" y no
+        viaja en el respaldo. 24 tests. Probado en navegador con
+        geolocalización simulada (Christchurch → guarda -43,5 / 172,6),
+        volver a la zona, y permiso denegado.
+      - *14b.* `suncalc` 2.1.1 fijada. Contra la API del Observatorio
+        Naval de EE.UU. (aa.usno.navy.mil, consultada hoy; **no** contra
+        timeanddate.com, que devuelve 403 desde acá): amanecer y
+        atardecer dentro de 1 minuto en Resistencia (21-dic, 21-jun,
+        20-mar) y Auckland (21-jun); fracción iluminada de la luna dentro
+        de 1 punto (91, 47, 3 y 41%). 16 tests.
+      - *14c.* 288 estrellas de magnitud 3,5 o menos (Hipparcos vía
+        d3-celestial, BSD-3), generadas por `scripts/generar-estrellas.py`
+        (10,6 kB sin comprimir). La proyección es una ventana hacia el
+        sur, no una carta exacta. **Verificación contra astropy** (no
+        contra una carta celeste, que no tengo): 15 combinaciones de 5
+        estrellas (Acrux, Gacrux, Canopus, Sirio, Antares) y tres noches
+        dan alturas dentro de 0,6° y azimuts dentro de 0,8°; la cuenta
+        no corrige precesión (unos 0,36° en 26 años, 1 a 2 píxeles). Las
+        estrellas no caen delante del monte ni sobre la luna (tests sobre
+        el contorno real). La luna sale con su fase y su inclinación
+        (`angle - parallacticAngle`) y solo si está sobre el horizonte.
+        **No verificado:** el sentido de la inclinación (qué lado mira la
+        parte iluminada) está razonado y probado contra la convención, no
+        contra una foto de la luna de una noche conocida. Hace falta que
+        Bruno mire la luna una noche y diga si coincide.
+      - *14d.* El momento sale de la altura real del sol: día desde 6°,
+        noche por debajo de -8°, atardecer o amanecer entre medio según
+        suba o baje (umbrales elegidos por mí, no estándar). `tinte.js`
+        reemplaza el cielo por un degradé y levanta la luz. **Se probó la
+        vía del tinte y se ve mal:** el borde contra el monte es una
+        recta con escalones, el horizonte pintado no se acopla, y el día
+        se lee como "una noche con filtro" (el monte sigue azul de luna).
+        Es mi lectura, no la prueba del plan: **la prueba de lectura con
+        alguien que no las vio no se hizo.** Por eso
+        `MOMENTOS_PINTADOS` es solo `noche`: de día, al atardecer y al
+        amanecer queda la escena 2D y ni se baja la imagen (comprobado
+        con la fecha forzada). Las capturas se miran abriendo la app con
+        `?cielo=2026-12-21T19:30-03:00`. La vía de las variantes (que
+        Bruno pida a Gemini atardecer y día sobre la misma imagen) no se
+        intentó. Un caso a mirar: si la app queda abierta pasando del
+        atardecer a la noche, no cambia sola a la pintura hasta recargar.
+      - **Medido:** el chunk de la escena pasó a 25 kB (11 kB comprimido)
+        por el catálogo y suncalc; la imagen sigue aparte con hash. 310
+        tests, lint y build en verde.
+
 - [ ] 15. **Contar la noche.**
       - a. *Fuego consumido:* llama, resplandor y brasas bajan con la noche
         en curso — verificación: capturas con la noche al 25%, 60% y 100%.
