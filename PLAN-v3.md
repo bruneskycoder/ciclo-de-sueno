@@ -481,7 +481,22 @@ se rechazó y la pintura animada se aprobó.
         cambió la imagen fuera del cielo; gaucho, caballo, fuego, vacas y
         alambrado tienen que quedar en el mismo lugar. Tres intentos; si
         no, plan B: se queda el cielo pintado y se pierden la luna y las
-        estrellas reales. Lo demás del plan no cambia.
+        estrellas reales. Lo demás del plan no cambia. **Hecho
+        2026-11-12, primer intento.** Gemini devolvió 1116 × 2000 (JPEG,
+        pasado por el chat); se bajó a 572 × 1024 con filtro bilineal, el
+        que más se parece a `noche.png` (diferencia media 5,9 sobre 255,
+        contra 6,2 a 6,9 de los otros). Se midió: corrimiento global
+        (0, 0) píxeles, o sea que nada se movió; la diferencia que queda
+        (5 a 6 sobre 255 en todas las zonas, 1 a 2% de píxeles con más
+        de 40) cae en los bordes, y es re-escalado más compresión, no
+        elementos movidos. Gaucho, caballo, fuego, vacas y alambrado en el
+        mismo lugar, mirado a ojo y en el mapa de diferencias. Quedaba una
+        estrella suelta de 2 píxeles en (497, 116): se tapó con el cielo
+        de al lado. Se guarda en `docs/fuentes/noche-cielo-liso.png` y
+        `src/assets/escena/noche-cielo-liso.webp` (84 kB, calidad 90).
+        Salvedad: el JPEG del chat ya viene comprimido; si Bruno tiene el
+        PNG original de Gemini, conviene reemplazar la fuente y repetir
+        la reducción.
       - c. *Contorno del monte.* Para cada columna de la pintura, la
         altura donde termina el cielo, para que las estrellas no se
         dibujen delante de los árboles ni del cardón — verificación:
@@ -489,7 +504,11 @@ se rechazó y la pintura animada se aprobó.
         prueba. **Herramienta hecha** (`scripts/contorno-cielo.py`, usa
         Pillow) y probada sobre la pintura de hoy: sigue la copa de la
         izquierda y el cardón, y toma la bruma del horizonte como cielo.
-        Falta correrla sobre la de cielo liso y guardar el resultado.
+        **Hecho 2026-11-12:** corrida sobre la de cielo liso, 572
+        columnas, el contorno cae entre la fila 192 y la 273; guardado en
+        `src/assets/escena/contorno-cielo.json`. Sobre la pintura vieja
+        daba entre la 178 y la 268: la luna y las estrellas la
+        confundían. Captura del contorno revisada a ojo.
       - d. *Peso.* Probar PNG con paleta y WebP sin pérdida y quedarse con
         el más chico que no cambie ningún píxel a ojo. Fijar acá el
         presupuesto de las imágenes (punto de partida, estimado: la mitad
