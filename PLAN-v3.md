@@ -531,7 +531,7 @@ se rechazó y la pintura animada se aprobó.
         tu OK. Es tu decisión si el cielo real vale más que el cielo
         pintado que ya te gustó; el supuesto por defecto es que sí, por la
         decisión del 8-nov de que la escena cuente la noche.
-- [ ] 13. **Integrarla.** El código de `escena-pintada.html` pasa al build
+- [x] 13. **Integrarla.** El código de `escena-pintada.html` pasa al build
       como módulo propio, con la pintura de fondo de pantalla completa
       detrás de la interfaz de hoy (sin tocar las tarjetas todavía). Carga
       diferida: arranca cuando la lista ya se dibujó. Respaldo: `escena.js`
@@ -541,6 +541,30 @@ se rechazó y la pintura animada se aprobó.
       aparece antes que la escena (medido), con la imagen bloqueada se ve
       la escena 2D y la app sigue andando, el CLS no empeora respecto de
       hoy, y los 219 tests, lint y build en verde.
+      **Hecho 2026-11-12.** Código en `src/js/escena-pintura.js` (cuentas
+      puras, con tests) y `src/js/ui/escena-pintada.js` (el canvas); se
+      carga con `import()` desde `main.js` en un momento ocioso, y el
+      chunk sale aparte (5 kB) junto con la imagen con hash
+      (`dist/assets/noche-cielo-liso-CzVJVMKi.webp`, 84 kB). Medido con
+      Playwright sobre `vite preview`, 390 × 844, sin frenar red ni CPU,
+      5 corridas: la lista se dibuja a los 51–64 ms y la pintura a los
+      114–145 ms (después, en todas). Con los `.webp` bloqueados: la
+      escena 2D queda a la vista, 7 filas de horas, Ajustes abre, 0
+      errores de página. CLS 0,0284 con la pintura contra 0,0273–0,0308
+      de la versión anterior (igual, dentro del ruido). Movimiento: 6
+      cuadros distintos de 6 en uso normal; 1 de 6 con "reducir
+      movimiento", en modo brasa y con la pestaña en segundo plano; vuelve
+      a moverse al salir de brasa. 237 tests, lint y build en verde.
+      Un error apareció en el navegador y no en los tests: el primer
+      cuadro de animación traía un tiempo negativo y el cuadro de llama
+      quedaba fuera de la secuencia. Corregido y con test.
+      **Estado visual, a propósito:** la pintura va fija detrás de todo y
+      las tarjetas la tapan; el título y la bajada caen sobre los árboles y
+      el fuego queda bajo la primera lista. Eso lo resuelve el paso 16. Las
+      estrellas son provisorias (las posiciones de las de la pintura con
+      cielo) hasta el 14c. Modo brasa: la pintura se oscurece con
+      `brightness(0.6)`; el valor es una primera cuenta, no medida contra
+      contraste. Con ahorro de datos prendido no se baja la pintura.
 - [ ] 14. **El cielo real.**
       - a. *Ubicación.* Por zona horaria: Resistencia para cualquier zona
         argentina, incluidos los alias que devuelve Chromium

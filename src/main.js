@@ -43,6 +43,20 @@ function init() {
 
     renderHome();
     renderEscena();
+    performance.mark('lista-dibujada');
+    cargarEscenaPintada();
+}
+
+// La pintura de fondo llega después de que la lista ya se dibujó y el
+// navegador tiene un respiro. Si no llega, la escena 2D ya está a la vista
+// y la app no se entera.
+function cargarEscenaPintada() {
+    const arrancar = () =>
+        import('./js/ui/escena-pintada.js')
+            .then((m) => m.montarEscenaPintada())
+            .catch(() => {});
+    if ('requestIdleCallback' in window) requestIdleCallback(arrancar, { timeout: 2000 });
+    else setTimeout(arrancar, 300);
 }
 
 document.addEventListener('DOMContentLoaded', init);

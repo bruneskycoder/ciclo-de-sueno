@@ -15,6 +15,32 @@
     border-radius: var(--radio);
 }
 
+/* La pintura de fondo (escena-pintada.js). Va fija detrás de todo, a lo
+   ancho de la pantalla y pegada arriba; si la pantalla es más alta que
+   9:16, abajo sigue el fondo de la página y el borde se difumina para que
+   no se vea el empalme. Cuando está a la vista, la escena 2D se esconde
+   pero conserva su lugar: si lo perdiera, el título saltaría. */
+.escena-fondo {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    z-index: -1;
+    width: min(100vw, calc(100dvh * 572 / 1024));
+    height: auto;
+    aspect-ratio: 572 / 1024;
+    transform: translateX(-50%);
+    pointer-events: none;
+    image-rendering: pixelated;
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+}
+:root[data-tema='brasa'] .escena-fondo {
+    filter: brightness(0.6);
+}
+.escena-pintada .escena {
+    visibility: hidden;
+}
+
 /* ============ BOTONES ============ */
 /* Los dos iconos se apoyan sobre la escena, que de día es clara y de
    noche oscura. Sin un fondo propio quedaban invisibles contra el cielo
