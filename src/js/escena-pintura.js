@@ -57,8 +57,7 @@ export function corrimientoViento(zona, y, t) {
 // Titileo del fuego: sube y baja de a saltos, no suave. Devuelve uno de
 // siete niveles entre -1 y 1 (redondea a tercios).
 export function titileo(t) {
-    const n =
-        Math.sin(t * 11) * 0.5 + Math.sin(t * 17.3 + 1) * 0.3 + Math.sin(t * 5.1 + 2) * 0.2;
+    const n = Math.sin(t * 11) * 0.5 + Math.sin(t * 17.3 + 1) * 0.3 + Math.sin(t * 5.1 + 2) * 0.2;
     return Math.round(n * 3) / 3;
 }
 
@@ -81,29 +80,214 @@ export function cuadroDeLlama(t) {
     return SECUENCIA_LLAMA[Math.floor(Math.max(0, t) * 8) % SECUENCIA_LLAMA.length];
 }
 
+// Base de la llama: de acá para abajo están los leños, que no se mueven.
+export const BASE_LLAMA = 590;
+
+// ¿Este píxel de (x, y) es fuego? Tres casos, con umbrales medidos sobre
+// la pintura fila por fila en la caja de la llama:
+// - el centro blanco amarillento (rojo y verde muy altos);
+// - naranja claro, o el contorno naranja oscuro de las lenguas (rojo
+//   alto, casi nada de azul);
+// - las lenguas finas de arriba, que la pintura hace semitransparentes:
+//   solo entre y 512 y 566 y lejos de los bordes de la caja, donde el
+//   fondo es suelo azulado (#5b3b2f) y no pasto iluminado.
+// El suelo iluminado de abajo (#8f5230, #ae5725) queda afuera.
+export function esFuego(v, x = FUEGO.x, y = 540) {
+    const r = v & 255;
+    const g = (v >> 8) & 255;
+    const b = (v >> 16) & 255;
+    if (r > 0xe0 && g > 0xa0) return true;
+    if ((r > 0xc8 && g > 0x55 && r - b > 0x70) || (r > 0x70 && b < 0x18)) return true;
+    return y >= 512 && y < 566 && x >= 256 && x < 318 && r > 0x88 && r - b > 0x40;
+}
+
+/**
+ * Separa la llama del fondo para poder achicarla (paso 15a). Devuelve:
+ * - `mascara`: 1 donde la pintura es fuego, dentro de la caja (también el
+ *   que se ve entre los leños);
+ * - `fondo`: la pintura con la llama borrada. Lo que tapaba la llama se
+ *   rellena fila por fila, mezclando el primer píxel que no es fuego a
+ *   cada lado. El fondo detrás del fuego son bandas de suelo
+ *   horizontales, así que el relleno por fila no deja costura.
+ */
+export function separarLlama(src) {
+    const mascara = new Uint8Array(W * H);
+    const fondo = new Uint32Array(src);
+    for (let y = CAJA.y0; y < CAJA.y1; y++) {
+        for (let x = CAJA.x0; x < CAJA.x1; x++) {
+            if (esFuego(src[y * W + x], x, y)) mascara[y * W + x] = 1;
+        }
+    }
+    // Un píxel de margen: el borde de la llama viene mezclado con el fondo
+    // y, si se deja, queda dibujando el contorno de la llama grande.
+    const crudo = mascara.slice();
+    for (let y = CAJA.y0; y < CAJA.y1; y++) {
+        for (let x = CAJA.x0; x < CAJA.x1; x++) {
+            const i = y * W + x;
+            if (crudo[i]) continue;
+            if (
+                (x > CAJA.x0 && crudo[i - 1]) ||
+                (x < CAJA.x1 - 1 && crudo[i + 1]) ||
+                (y > CAJA.y0 && crudo[i - W]) ||
+                (y < CAJA.y1 - 1 && crudo[i + W])
+            ) {
+                mascara[i] = 1;
+            }
+        }
+    }
+    for (let y = CAJA.y0; y < CAJA.y1; y++) {
+        let x = CAJA.x0;
+        while (x < CAJA.x1) {
+            if (!mascara[y * W + x]) {
+                x++;
+                continue;
+            }
+            const desde = x;
+            while (x < CAJA.x1 && mascara[y * W + x]) x++;
+            // El tramo de fuego va de `desde` a x-1. Sus vecinos limpios:
+            const a = src[y * W + Math.max(CAJA.x0 - 1, desde - 1)];
+            const b = src[y * W + Math.min(CAJA.x1, x)];
+            const largo = x - desde + 1;
+            for (let i = desde; i < x; i++) {
+                const t = (i - desde + 1) / largo;
+                fondo[y * W + i] = mezclar(a, b, t);
+            }
+        }
+    }
+    return { mascara, fondo };
+}
+
+function mezclar(a, b, t) {
+    let v = 0;
+    for (let k = 0; k < 32; k += 8) {
+        const ca = (a >>> k) & 255;
+        const cb = (b >>> k) & 255;
+        v |= Math.round(ca + (cb - ca) * t) << k;
+    }
+    return v >>> 0;
+}
+
 // Arma un cuadro de llama sobre `src` (la pintura como Uint32Array de
 // W × H píxeles RGBA). Devuelve los bytes de una imagen del tamaño de CAJA.
-export function armarCuadroLlama(src, { s, inclina, fase }) {
+//
+// Con `capas` (lo que devuelve separarLlama) y `escala` menor que 1, la
+// llama se achica hacia su base y se angosta hacia el centro, y lo que
+// deja libre muestra el fondo sin fuego. Sin `capas`, el cuadro sale como
+// en el paso 13: la caja entera se deforma.
+export function armarCuadroLlama(src, { s, inclina, fase }, capas = null, escala = 1) {
     const w = CAJA.x1 - CAJA.x0;
     const h = CAJA.y1 - CAJA.y0;
     const datos = new Uint8ClampedArray(w * h * 4);
     const px = new Uint32Array(datos.buffer);
+    // 1 en los píxeles que son llama en este cuadro: la escena los vuelve
+    // a dibujar encima de la sombra que apaga la luz pintada, porque el
+    // fuego es la fuente de luz y no se oscurece.
+    const llama = new Uint8Array(w * h);
+    // Al achicarse, la llama también se angosta, pero menos que lo que
+    // baja: un fuego chico sigue siendo ancho de base.
+    const ancho = 0.55 + 0.45 * escala;
     for (let y = CAJA.y0; y < CAJA.y1; y++) {
         // 0 en la base de la llama (los leños no se mueven), 1 en la punta.
-        const alto = limitar((590 - y) / 72, 0, 1);
+        const alto = limitar((BASE_LLAMA - y) / 72, 0, 1);
         const arriba = limitar((y - CAJA.y0) / 20, 0, 1);
-        const sEf = 1 + (s - 1) * arriba;
-        const ySrc = Math.round(y < 590 ? 590 - (590 - y) * sEf : y);
+        const sEf = (1 + (s - 1) * arriba) / escala;
+        const ySrc = Math.round(y < BASE_LLAMA ? BASE_LLAMA - (BASE_LLAMA - y) * sEf : y);
         const corrim = Math.round(
-            2.6 * Math.pow(alto, 1.1) * Math.sin(fase + y * 0.13) + inclina * alto * alto,
+            (2.6 * Math.pow(alto, 1.1) * Math.sin(fase + y * 0.13) + inclina * alto * alto) *
+                Math.sqrt(escala),
         );
         for (let x = CAJA.x0; x < CAJA.x1; x++) {
             // El corrimiento se apaga hacia los bordes de la caja para que
             // no quede un escalón contra lo de afuera.
             const peso = limitar(Math.min(x - CAJA.x0, CAJA.x1 - x) / 10, 0, 1);
-            const xSrc = limitar(x - Math.round(corrim * peso), CAJA.x0, CAJA.x1 - 1);
-            px[(y - CAJA.y0) * w + (x - CAJA.x0)] = src[ySrc * W + xSrc];
+            const i = (y - CAJA.y0) * w + (x - CAJA.x0);
+            if (!capas) {
+                const xSrc = limitar(x - Math.round(corrim * peso), CAJA.x0, CAJA.x1 - 1);
+                px[i] = src[ySrc * W + xSrc];
+                continue;
+            }
+            // Entre los leños el fuego también se angosta, pero no baja ni
+            // se mueve: si no, queda un escalón a la altura de la base.
+            const xSrc =
+                Math.round(FUEGO.x + (x - FUEGO.x) / ancho) -
+                (y < BASE_LLAMA ? Math.round(corrim * peso) : 0);
+            const dentro = ySrc >= CAJA.y0 && xSrc >= CAJA.x0 && xSrc < CAJA.x1;
+            // Abajo de la base, la llama solo entra donde ya había fuego:
+            // nunca tapa un leño ni una piedra.
+            const libre = y < BASE_LLAMA || capas.mascara[y * W + x];
+            if (dentro && libre && capas.mascara[ySrc * W + xSrc]) {
+                px[i] = enrojecer(src[ySrc * W + xSrc], escala);
+                llama[i] = 1;
+            } else if (y >= BASE_LLAMA && !capas.mascara[y * W + x]) {
+                // Leños y piedras: quietos.
+                px[i] = src[y * W + x];
+            } else {
+                px[i] = capas.fondo[y * W + x];
+            }
         }
     }
-    return { datos, w, h };
+    return { datos, w, h, llama };
 }
+
+// Un fuego que se apaga pierde el amarillo: baja el verde y el azul y
+// queda naranja y rojo, como brasa. Con escala 1, el píxel no cambia.
+export function enrojecer(v, escala) {
+    if (escala >= 1) return v;
+    const r = v & 255;
+    const g = Math.round(((v >> 8) & 255) * (0.55 + 0.45 * escala));
+    const b = Math.round(((v >> 16) & 255) * (0.35 + 0.65 * escala));
+    return ((v & 0xff000000) | (b << 16) | (g << 8) | r) >>> 0;
+}
+
+// ---------------- la leña al lado del fogón (paso 15b) ----------------
+//
+// Leños vistos de punta, apilados en pirámide a la derecha del círculo de
+// piedras, sobre suelo libre (entre la pava y las patas del caballo). Se
+// eligió de punta porque un leño de costado al lado de otro se lee como
+// uno solo más largo; los cortes se cuentan. La cámara mira desde arriba,
+// así que de cada leño se ve el corte y, detrás, la corteza de arriba.
+// Del tamaño de los leños del fogón (unos 9 píxeles de grueso). Colores:
+// corteza como la de los leños pintados; el corte, más claro que el suelo
+// iluminado para que se despegue de él.
+export const LENA = { x: 410, y: 656 };
+
+// k contorno, c corte, a anillo, m centro, b corteza, l corteza del lado
+// del fuego.
+export const PALETA_LENA = {
+    k: '#22140c',
+    c: '#c99a62',
+    a: '#9a6a40',
+    m: '#7a4a2a',
+    b: '#4e2e1c',
+    l: '#8a4a26',
+};
+
+export const SPRITE_LENO = [
+    '...kkkkk...',
+    '..klbbbbk..',
+    '.kllbbbbbk.',
+    'kllbbbbbbbk',
+    'kllbbbbbbbk',
+    'klkkkkkkkbk',
+    'kkccccccckk',
+    'kccaaaaacck',
+    'kcaacccaack',
+    'kcacmmmcack',
+    'kcaacccaack',
+    'kccaaaaacck',
+    'kkccccccckk',
+    '.kkkkkkkkk.',
+];
+
+// Dónde va cada leño, en orden: primero la fila de abajo (tres), después
+// dos encima, y uno arriba. Esquina superior izquierda, relativa a LENA
+// (que es el pie de la pila). Los vecinos comparten la columna del
+// contorno, y cada corte de arriba apoya sobre los dos de abajo.
+export const PILA_LENA = [
+    [0, -14],
+    [10, -14],
+    [20, -14],
+    [5, -22],
+    [15, -22],
+    [10, -30],
+];

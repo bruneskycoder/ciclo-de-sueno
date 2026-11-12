@@ -652,7 +652,7 @@ se rechazó y la pintura animada se aprobó.
         por el catálogo y suncalc; la imagen sigue aparte con hash. 310
         tests, lint y build en verde.
 
-- [ ] 15. **Contar la noche.**
+- [x] 15. **Contar la noche.**
       - a. *Fuego consumido:* llama, resplandor y brasas bajan con la noche
         en curso — verificación: capturas con la noche al 25%, 60% y 100%.
         Escalar la llama pintada a la mitad no está probado; si se
@@ -662,6 +662,42 @@ se rechazó y la pintura animada se aprobó.
         verificación: capturas con 3 y con 6 ciclos y prueba de lectura.
         Lo que alguien que no la vio no cuenta, o desentona, se saca.
       - c. *De día, fuego chico,* si el paso 14d dejó una vía para el día.
+      **Estado 2026-11-12: 15a, 15b y 15c hechos; falta la prueba de
+      lectura del 15b.** Capturas: `docs/fuego-noche.webp`; en la app,
+      `?noche=0.6` simula el 60% de la noche y `?lena=4` pone cuatro leños.
+      - *15a.* El plan B (pintura de brasas en Gemini) no hizo falta.
+        Achicar la llama tal cual arrastraba el fondo, así que primero se
+        separa: `separarLlama` marca qué píxeles son fuego (umbrales
+        medidos fila por fila sobre la pintura, más un píxel de margen) y
+        rellena lo que tapaba con el suelo de los costados, fila por fila.
+        La llama baja hacia los leños, se angosta menos de lo que baja, se
+        pone roja (pierde verde y azul) y nunca tapa un leño ni una
+        piedra. La luz pintada del suelo se apaga con seis anillos que
+        oscurecen y enfrían; el resplandor, las chispas y la altura del
+        humo bajan con el fuego. Fuerza: 1 al acostarse, 0,3 a la hora de
+        despertar (no llega a 0 a propósito). La hora planeada es la que
+        elegiste en la lista; si no elegiste, tu hora de levantarte de
+        siempre. **Mi lectura:** al 25, 60 y 100% se ve un fuego que se
+        consume y no una llama deformada. Al 100%, ampliado, el borde
+        izquierdo de la llama queda recto; a tamaño de pantalla no lo veo.
+      - *15b.* Leños vistos de punta, en pirámide (3, 2, 1) a la derecha
+        del círculo de piedras, con sombra en el suelo. De costado se
+        probó en la cabeza y no en pantalla: dos leños uno al lado del
+        otro se leerían como uno largo. Primer intento, de 9 × 8 píxeles:
+        se leía como cajitas; quedó del grueso de los leños del fogón. Al
+        tocar una hora aparecen tantos como ciclos (home.js lo pasa por
+        `data-lena`); con una noche en curso, **decisión mía, no del
+        plan:** quedan los ciclos que faltan hasta la hora planeada
+        (probado: 4 h adentro de una noche de 7,5 h, 3 leños de 5). A
+        390 × 844 la pila mide unos 21 × 25 puntos y hoy cae debajo de la
+        primera tarjeta; el paso 16 la deja a la vista. **No hecho:** la
+        prueba de lectura con alguien que no la vio (*¿qué hay al lado del
+        fuego? ¿cuántos?*). Si no se cuentan o desentonan, se saca la
+        pila y la cantidad queda en la tarjeta.
+      - *15c.* De día, fuego al 45%. Una siesta de día toma el más chico
+        de los dos.
+      - **Medido:** 332 tests (22 nuevos), lint y build en verde; el chunk
+        de la escena pasó de 25 a 29 kB (13 kB comprimido).
 - [ ] 16. **La interfaz recibe la luz.** Pintura anclada arriba con el
       ancho completo, suelo extendido hacia abajo, título y bajada sobre el
       cielo, tarjetas que arrancan debajo del fuego y suben al scrollear,
@@ -913,6 +949,10 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
   (A) y refracción propia en píxeles enteros sobre la lista, como
   prototipo (B). Descartado: librerías de vidrio (no andan sobre un
   canvas en iPhone o suman WebGL y 93 kB).
+- 2026-11-12 — **El fuego se achica separando la llama del fondo**
+  (paso 15a), no con una pintura de brasas aparte. **Con una noche en
+  curso, la leña cuenta los ciclos que faltan** (15b), decisión mía que
+  el plan no pedía.
 
 ---
 

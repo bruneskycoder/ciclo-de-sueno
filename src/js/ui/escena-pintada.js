@@ -22,9 +22,23 @@ import {
     titileo,
     cuadroDeLlama,
     armarCuadroLlama,
+    separarLlama,
+    LENA,
+    PALETA_LENA,
+    SPRITE_LENO,
+    PILA_LENA,
 } from '../escena-pintura.js';
+import { consumoDeLaNoche, fuerzaDelFuego, lenosAlLado, proximaHora } from '../fuego.js';
+import { usualClock } from '../horas-sugeridas.js';
 import { ocultarEscena2D } from './escena.js';
-import { currentTimeZone, getUbicacion } from '../storage.js';
+import {
+    currentTimeZone,
+    getCycleLength,
+    getOpenSleep,
+    getSleepLogs,
+    getUbicacion,
+    onChange,
+} from '../storage.js';
 import { ubicacionVigente } from '../ubicacion.js';
 import { luna as calcularLuna, momentoDelDia } from '../cielo.js';
 import { LUNA, estrellasVisibles, mascaraLuna, visibilidadEstrellas } from '../estrellas.js';
@@ -49,6 +63,15 @@ function fechaDePrueba() {
     const v = new URLSearchParams(location.search).get('cielo');
     const d = v ? new Date(v) : null;
     return d && !Number.isNaN(d.getTime()) ? d : null;
+}
+
+// Para las capturas del paso 15: ?noche=0.6 hace de cuenta que pasó el 60%
+// de la noche planeada, y ?lena=4 pone cuatro leños. Sin eso, salen de la
+// noche en curso y de la hora elegida en la lista.
+function numeroDePrueba(nombre, min, max) {
+    const v = new URLSearchParams(location.search).get(nombre);
+    if (v === null || v === '' || Number.isNaN(Number(v))) return null;
+    return Math.min(max, Math.max(min, Number(v)));
 }
 
 const DESCRIPCION =
@@ -122,10 +145,32 @@ export async function montarEscenaPintada() {
     const salida = new ImageData(new Uint8ClampedArray(original.data), W, H);
     const dst = new Uint32Array(salida.data.buffer);
 
-    const llama = CUADROS_LLAMA.map((params) => {
-        const { datos, w, h } = armarCuadroLlama(src, params);
-        return new ImageData(datos, w, h);
-    });
+    // La llama se arma en cuatro cuadros por cada tamaño. El tamaño baja
+    // de a escalones de 5%: cada escalón son cuatro cuadros nuevos (unos
+    // 8.500 píxeles cada uno), y en una noche se pasa por unos catorce.
+    const capas = separarLlama(src);
+    let llama = [];
+    let llamaSola = [];
+    let escalaLlama = -1;
+    function prepararLlama(escala) {
+        const e = Math.round(escala * 20) / 20;
+        if (e === escalaLlama) return;
+        escalaLlama = e;
+        const cuadros = CUADROS_LLAMA.map((params) => armarCuadroLlama(src, params, capas, e));
+        llama = cuadros.map(({ datos, w, h }) => new ImageData(datos, w, h));
+        // La misma llama sin fondo, en un canvas, para pintarla encima de
+        // la sombra (ver apagarLuzPintada).
+        llamaSola = cuadros.map(({ datos, w, h, llama: es }) => {
+            const solo = new Uint8ClampedArray(datos);
+            for (let i = 0; i < es.length; i++) if (!es[i]) solo[i * 4 + 3] = 0;
+            const c = document.createElement('canvas');
+            c.width = w;
+            c.height = h;
+            c.getContext('2d').putImageData(new ImageData(solo, w, h), 0, 0);
+            return c;
+        });
+        cuadroLlama = -1;
+    }
     const ultimoViento = VIENTO.map(() => new Int8Array(H));
 
     function aplicarViento(t) {
@@ -160,11 +205,12 @@ export async function montarEscenaPintada() {
     // luz cae sobre el suelo) que se suman a lo pintado.
     function dibujarLuz(t) {
         const n = titileo(t);
+        const f = fuego.fuerza;
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         for (let k = 0; k < 6; k++) {
-            const rx = Math.round(((60 + k * 28) * (1 + 0.04 * n)) / 2) * 2;
-            ctx.fillStyle = `rgba(255,140,40,${0.03 * (1 + 0.25 * n)})`;
+            const rx = Math.round(((60 + k * 28) * (0.6 + 0.4 * f) * (1 + 0.04 * n)) / 2) * 2;
+            ctx.fillStyle = `rgba(255,140,40,${0.03 * f * (1 + 0.25 * n)})`;
             ctx.beginPath();
             ctx.ellipse(FUEGO.x, 592, rx, rx * 0.62, 0, 0, Math.PI * 2);
             ctx.fill();
@@ -174,11 +220,13 @@ export async function montarEscenaPintada() {
 
     // Cada brasa es función pura del tiempo: no guarda estado, y por eso el
     // mismo instante da siempre el mismo cuadro.
+    // Con el fuego bajo saltan menos chispas y llegan menos alto.
     function dibujarBrasas(t) {
-        for (let i = 0; i < 16; i++) {
+        const cuantas = Math.round(16 * (0.25 + 0.75 * fuego.fuerza));
+        for (let i = 0; i < cuantas; i++) {
             const periodo = 2.2 + rnd(i + 1) * 2.4;
             const u = (t / periodo + rnd(i + 50)) % 1;
-            const alto = 70 + rnd(i + 9) * 85;
+            const alto = (70 + rnd(i + 9) * 85) * (0.4 + 0.6 * fuego.fuerza);
             const x =
                 FUEGO.x +
                 (rnd(i + 20) - 0.5) * 22 +
@@ -199,7 +247,7 @@ export async function montarEscenaPintada() {
             const u = (t / periodo + i / 5) % 1;
             const cx =
                 FUEGO.x + 4 + u * 34 + Math.sin(t * 0.8 + i * 2) * 5 + viento(t, 0.4) * 10 * u;
-            const cy = FUEGO.yPunta - 4 - u * 120;
+            const cy = FUEGO.yBase - (FUEGO.yBase - FUEGO.yPunta) * fuego.fuerza - 4 - u * 120;
             const r = 4 + u * 15;
             ctx.globalAlpha = 0.2 * Math.min(1, u * 5) * (1 - u);
             ctx.fillStyle = '#7d93b0';
@@ -214,6 +262,82 @@ export async function montarEscenaPintada() {
             }
         }
         ctx.globalAlpha = 1;
+    }
+
+    // ---------------- el fuego de esta noche (paso 15) ----------------
+    // La fuerza del fuego y los leños salen de la noche en curso, de la
+    // hora elegida en la lista (que home.js deja en data-lena) y de la
+    // hora del día. Se recalculan con el cielo, al cambiar los datos y al
+    // elegir una hora.
+    let fuego = { fuerza: 1, lenos: 0 };
+
+    function refrescarFuego(momento) {
+        const ahora = cuando();
+        const abierta = getOpenSleep();
+        const despertar = abierta?.intendedWaketime ?? usualClock(getSleepLogs(), 'waketimeActual');
+        let consumo = numeroDePrueba('noche', 0, 1) ?? consumoDeLaNoche(abierta, despertar, ahora);
+        let ciclosPlaneados = 0;
+        if (consumo !== null && abierta) {
+            const inicio = Date.parse(abierta.startedAt);
+            const fin = proximaHora(new Date(inicio), despertar).getTime();
+            ciclosPlaneados = Math.round((fin - inicio) / 60000 / getCycleLength());
+        }
+        const elegidos = Number(document.documentElement.dataset.lena) || 0;
+        const forzados = numeroDePrueba('lena', 0, 6);
+        fuego = {
+            fuerza: fuerzaDelFuego({ consumo, momento }),
+            lenos: forzados ?? lenosAlLado({ consumo, ciclosPlaneados, ciclosElegidos: elegidos }),
+        };
+        prepararLlama(fuego.fuerza);
+    }
+
+    const lenoImg = document.createElement('canvas');
+    lenoImg.width = SPRITE_LENO[0].length;
+    lenoImg.height = SPRITE_LENO.length;
+    const lenoCtx = lenoImg.getContext('2d');
+    SPRITE_LENO.forEach((fila, y) => {
+        for (let x = 0; x < fila.length; x++) {
+            const color = PALETA_LENA[fila[x]];
+            if (!color) continue;
+            lenoCtx.fillStyle = color;
+            lenoCtx.fillRect(x, y, 1, 1);
+        }
+    });
+
+    function dibujarLena() {
+        if (fuego.lenos === 0) return;
+        // Sombra en el suelo, como la de las piedras y la pava: sin ella la
+        // pila parece pegada encima de la pintura.
+        const ancho = fuego.lenos === 1 ? 7 : fuego.lenos === 2 ? 12 : 17;
+        ctx.fillStyle = 'rgba(20,10,5,0.4)';
+        ctx.beginPath();
+        ctx.ellipse(LENA.x + ancho - 1, LENA.y - 1, ancho + 2, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        for (let i = 0; i < fuego.lenos; i++) {
+            const [dx, dy] = PILA_LENA[i];
+            ctx.drawImage(lenoImg, LENA.x + dx, LENA.y + dy);
+        }
+    }
+
+    // Lo pintado trae la luz de un fuego grande. Cuando el fuego baja, esa
+    // luz se apaga con anillos que oscurecen y enfrían (multiplicar por un
+    // azul de noche), más fuerte cerca del fogón, de a escalones como el
+    // resplandor.
+    function apagarLuzPintada() {
+        const falta = 1 - fuego.fuerza;
+        if (falta <= 0) return;
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = 'rgb(70,82,128)';
+        ctx.globalAlpha = 0.22 * falta;
+        for (let k = 0; k < 6; k++) {
+            const rx = 220 - k * 32;
+            ctx.beginPath();
+            ctx.ellipse(FUEGO.x, 585, rx, rx * 0.7, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+        ctx.drawImage(llamaSola[cuadroLlama], CAJA.x0, CAJA.y0);
     }
 
     // ---------------- el cielo de esta noche -----------------------
@@ -232,7 +356,8 @@ export async function montarEscenaPintada() {
 
     function refrescarCielo() {
         const ahora = cuando();
-        const { altura, luz } = momentoDelDia(ahora, sitio.lat, sitio.lon);
+        const { altura, luz, momento } = momentoDelDia(ahora, sitio.lat, sitio.lon);
+        refrescarFuego(momento);
         const visibilidad = visibilidadEstrellas(altura);
         const l = calcularLuna(ahora, sitio.lat, sitio.lon);
 
@@ -324,6 +449,7 @@ export async function montarEscenaPintada() {
         aplicarViento(t);
         ctx.globalCompositeOperation = 'source-over';
         ctx.drawImage(base, 0, 0);
+        dibujarLena();
         ctx.drawImage(capaCielo, 0, 0);
         if (cielo.lift > 0) {
             // Levanta la luz del conjunto (atardecer y día).
@@ -332,6 +458,7 @@ export async function montarEscenaPintada() {
             ctx.fillRect(0, 0, W, H);
             ctx.globalCompositeOperation = 'source-over';
         }
+        apagarLuzPintada();
         dibujarLuz(t);
         dibujarHumo(t);
         dibujarBrasas(t);
@@ -388,8 +515,10 @@ export async function montarEscenaPintada() {
     reducido.addEventListener('change', actualizar);
     new MutationObserver(actualizar).observe(document.documentElement, {
         attributes: true,
-        attributeFilter: ['data-tema'],
+        attributeFilter: ['data-tema', 'data-lena'],
     });
+    // Empezar o terminar la noche cambia el fuego.
+    onChange(actualizar);
     actualizar();
     return true;
 }

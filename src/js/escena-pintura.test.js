@@ -12,6 +12,14 @@ import {
     titileo,
     cuadroDeLlama,
     armarCuadroLlama,
+    FUEGO,
+    BASE_LLAMA,
+    esFuego,
+    separarLlama,
+    enrojecer,
+    SPRITE_LENO,
+    PALETA_LENA,
+    PILA_LENA,
 } from './escena-pintura.js';
 
 // Una "pintura" sintética: cada píxel guarda su propia posición, así se
@@ -152,5 +160,85 @@ describe('llama', () => {
         const a = armarCuadroLlama(src, CUADROS_LLAMA[1]);
         const b = armarCuadroLlama(src, CUADROS_LLAMA[1]);
         expect(Array.from(a.datos.slice(0, 400))).toEqual(Array.from(b.datos.slice(0, 400)));
+    });
+});
+
+describe('la llama que se consume (paso 15a)', () => {
+    // Pintura sintética: fondo azul de noche y, dentro de la caja, una
+    // llama naranja del ancho de la caja menos 20 píxeles por lado.
+    const AZUL = (0xff << 24) | (0x40 << 16) | (0x30 << 8) | 0x25;
+    const NARANJA = (0xff << 24) | (0x20 << 16) | (0x90 << 8) | 0xf0;
+    function conLlama() {
+        const src = new Uint32Array(W * H).fill(AZUL >>> 0);
+        for (let y = 520; y < BASE_LLAMA; y++) {
+            for (let x = CAJA.x0 + 20; x < CAJA.x1 - 20; x++) src[y * W + x] = NARANJA >>> 0;
+        }
+        return src;
+    }
+    const quieto = { s: 1, inclina: 0, fase: 0 };
+
+    it('esFuego distingue la llama del suelo pintado', () => {
+        const rgb = (r, g, b) => ((0xff << 24) | (b << 16) | (g << 8) | r) >>> 0;
+        expect(esFuego(rgb(0xff, 0xf0, 0x94))).toBe(true); // centro blanco
+        expect(esFuego(rgb(0xe1, 0x7a, 0x39))).toBe(true); // naranja
+        expect(esFuego(rgb(0x5b, 0x3b, 0x2f))).toBe(false); // suelo
+        expect(esFuego(rgb(0xae, 0x57, 0x25), FUEGO.x, 588)).toBe(false); // suelo iluminado
+    });
+
+    it('el fondo no tiene fuego: lo que tapaba la llama se rellena', () => {
+        const { mascara, fondo } = separarLlama(conLlama());
+        expect(mascara[540 * W + FUEGO.x]).toBe(1);
+        expect(esFuego(fondo[540 * W + FUEGO.x])).toBe(false);
+    });
+
+    it('con escala 1 la llama ocupa lo mismo que la pintada', () => {
+        const src = conLlama();
+        const { llama, w } = armarCuadroLlama(src, quieto, separarLlama(src), 1);
+        const filasConLlama = new Set();
+        llama.forEach((v, i) => v && filasConLlama.add(Math.floor(i / w)));
+        // 519 y no 520: la máscara lleva un píxel de margen.
+        expect(Math.min(...filasConLlama) + CAJA.y0).toBe(519);
+    });
+
+    it('con escala 0,3 la punta baja y arriba queda fondo', () => {
+        const src = conLlama();
+        const capas = separarLlama(src);
+        const { datos, llama, w } = armarCuadroLlama(src, quieto, capas, 0.3);
+        const px = new Uint32Array(datos.buffer);
+        const filas = [];
+        llama.forEach((v, i) => v && filas.push(Math.floor(i / w) + CAJA.y0));
+        const punta = Math.min(...filas);
+        // 70 filas de llama al 30% son unas 21.
+        expect(BASE_LLAMA - punta).toBeLessThanOrEqual(23);
+        expect(BASE_LLAMA - punta).toBeGreaterThanOrEqual(19);
+        expect(px[(530 - CAJA.y0) * w + (FUEGO.x - CAJA.x0)]).toBe(capas.fondo[530 * W + FUEGO.x]);
+    });
+
+    it('enrojecer no toca el píxel con escala 1 y baja el verde y el azul después', () => {
+        const v = 0xff2090f0;
+        expect(enrojecer(v, 1)).toBe(v);
+        const r = enrojecer(v, 0.3);
+        expect(r & 255).toBe(0xf0);
+        expect((r >> 8) & 255).toBeLessThan(0x90);
+        expect((r >> 16) & 255).toBeLessThan(0x20);
+    });
+});
+
+describe('la leña (paso 15b)', () => {
+    it('el sprite es parejo y usa solo colores de la paleta', () => {
+        for (const fila of SPRITE_LENO) {
+            expect(fila.length).toBe(SPRITE_LENO[0].length);
+            for (const c of fila) expect(c === '.' || c in PALETA_LENA).toBe(true);
+        }
+    });
+    it('hay lugar para seis leños y ninguno pisa a otro en la misma fila', () => {
+        expect(PILA_LENA.length).toBe(6);
+        const ancho = SPRITE_LENO[0].length;
+        for (const [x1, y1] of PILA_LENA) {
+            for (const [x2, y2] of PILA_LENA) {
+                if (y1 === y2 && x1 !== x2)
+                    expect(Math.abs(x1 - x2)).toBeGreaterThanOrEqual(ancho - 1);
+            }
+        }
     });
 });
