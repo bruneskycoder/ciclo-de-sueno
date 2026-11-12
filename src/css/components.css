@@ -15,30 +15,46 @@
     border-radius: var(--radio);
 }
 
-/* La pintura de fondo (escena-pintada.js). Va fija detrás de todo, a lo
-   ancho de la pantalla y pegada arriba; si la pantalla es más alta que
-   9:16, abajo sigue el fondo de la página y el borde se difumina para que
-   no se vea el empalme. Cuando está a la vista, la escena 2D se esconde
-   pero conserva su lugar: si lo perdiera, el título saltaría. */
+/* La pintura de fondo (escena-pintada.js). Va fija detrás de todo, pegada
+   arriba y con el ancho completo de la pantalla, sin recortar nada. Si la
+   pantalla es más alta que 9:16, el canvas viene más alto que la pintura y
+   abajo sigue el suelo, que es liso (ver escena-pintada.js). En una
+   pantalla apaisada manda el alto y la pintura queda centrada. La cámara
+   no se mueve: es el contenido el que sube al scrollear. */
+:root {
+    --ancho-pintura: min(100vw, calc(100dvh * 572 / 1024));
+}
 .escena-fondo {
     position: fixed;
     top: 0;
     left: 50%;
     z-index: -1;
-    width: min(100vw, calc(100dvh * 572 / 1024));
+    width: var(--ancho-pintura);
     height: auto;
-    aspect-ratio: 572 / 1024;
     transform: translateX(-50%);
     pointer-events: none;
     image-rendering: pixelated;
-    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
-    mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
 }
 :root[data-tema='brasa'] .escena-fondo {
     filter: brightness(0.6);
 }
 .escena-pintada .escena {
     visibility: hidden;
+}
+
+/* La pantalla con la pintura detrás. El título y la bajada van arriba,
+   sobre el cielo; el resto de la cabecera es un hueco por donde se ve la
+   escena, y lo que sigue arranca debajo de las piedras del fogón, que
+   terminan en y = 663 de la pintura (medido). Se arma con con-pintura y no con
+   escena-pintada, que llega después: así la lista ya está en su lugar
+   cuando la pintura aparece. Mientras carga, la escena 2D ocupa el hueco. */
+.con-pintura .cabecera {
+    justify-content: flex-start;
+    padding-top: 56px;
+    min-height: calc(var(--ancho-pintura) * 668 / 572 - var(--esp-3) - var(--esp-4));
+}
+.con-pintura .cabecera .escena {
+    order: 1;
 }
 
 /* Con la pintura detrás, las tarjetas son un velo y no una pared: se ve
@@ -73,6 +89,160 @@
         0 0 1px rgb(5 8 10),
         0 0 2px rgb(5 8 10),
         0 0 4px rgb(5 8 10 / 0.8);
+}
+/* La lista es una sola tarjeta con su título arriba y el pie abajo: sueltos
+   sobre la escena, los dos pasan por encima del fuego al scrollear, y ahí
+   no hay halo que alcance (el pie medía 1,3:1). Cada banda lleva el mismo
+   velo que las filas. */
+.escena-pintada .resultado-titulo,
+.escena-pintada .resultado-pie {
+    margin: 0;
+    padding: 10px var(--esp-3);
+    background: var(--noche-alta);
+    border: 1px solid var(--noche-borde);
+}
+.escena-pintada .resultado-titulo {
+    border-bottom: 1px solid rgb(232 220 196 / 0.08);
+    border-radius: var(--radio) var(--radio) 0 0;
+}
+.escena-pintada .resultado-pie {
+    border-top: 1px solid rgb(232 220 196 / 0.08);
+    border-radius: 0 0 var(--radio) var(--radio);
+}
+.escena-pintada .resultado-pie:empty {
+    display: none;
+}
+.escena-pintada .resultado-filas {
+    border-top: none;
+    border-bottom: none;
+    border-radius: 0;
+}
+.escena-pintada .resultado:has(.resultado-pie:empty) .resultado-filas {
+    border-bottom: 1px solid var(--noche-borde);
+    border-radius: 0 0 var(--radio) var(--radio);
+}
+
+/* Los textos que van sueltos, sin tarjeta: el título y la bajada sobre el
+   cielo, y los que al scrollear pueden pasar por encima del fuego. Sin
+   velo detrás, el halo es más ancho y más cerrado. */
+.escena-pintada
+    :is(
+        .cabecera h1,
+        .bajada,
+        .resultado-titulo,
+        .resultado-pie,
+        .accion-detalle,
+        .form-despertar > label
+    ) {
+    text-shadow:
+        0 0 1px rgb(5 8 10),
+        0 0 2px rgb(5 8 10),
+        0 0 3px rgb(5 8 10),
+        0 0 6px rgb(5 8 10 / 0.9),
+        0 0 10px rgb(5 8 10 / 0.7);
+}
+
+/* La luz del fuego en los bordes. escena-pintada.js pone --luz-arriba y
+   --luz-abajo (de 0 a 1) según lo cerca que está cada borde del fogón y
+   el titileo de la llama: el borde que mira al fuego se calienta. */
+.escena-pintada :is(.tarjeta-anoche, .accion, .enlaces) {
+    --borde-apagado: var(--noche-borde);
+    border-top-color: color-mix(
+        in srgb,
+        var(--brasa-viva) calc(var(--luz-arriba, 0) * 90%),
+        var(--borde-apagado)
+    );
+    border-bottom-color: color-mix(
+        in srgb,
+        var(--brasa-viva) calc(var(--luz-abajo, 0) * 90%),
+        var(--borde-apagado)
+    );
+    box-shadow:
+        0 -4px 14px -6px rgb(221 159 69 / calc(var(--luz-arriba, 0) * 0.55)),
+        0 4px 14px -6px rgb(221 159 69 / calc(var(--luz-abajo, 0) * 0.55));
+}
+.escena-pintada .tarjeta-anoche {
+    --borde-apagado: var(--cuero-claro);
+}
+/* Además del borde, la luz entra unos píxeles en la tarjeta, como pega en
+   el canto de una tabla. */
+.escena-pintada :is(.tarjeta-anoche, .accion, .enlaces, .resultado-titulo, .resultado-pie) {
+    background-image:
+        linear-gradient(
+            to bottom,
+            rgb(221 159 69 / calc(var(--luz-arriba, 0) * 0.2)),
+            transparent 14px
+        ),
+        linear-gradient(to top, rgb(221 159 69 / calc(var(--luz-abajo, 0) * 0.2)), transparent 14px);
+}
+.escena-pintada .resultado-titulo {
+    --luz-abajo: 0;
+}
+.escena-pintada .resultado-pie {
+    --luz-arriba: 0;
+}
+/* En la lista, el borde de arriba es el del título y el de abajo, el del
+   pie (o el de la última fila, si no hay pie). Las variables las pone
+   escena-pintada.js en .resultado y bajan por herencia. */
+.escena-pintada .resultado {
+    border-radius: var(--radio);
+    box-shadow:
+        0 -4px 14px -6px rgb(221 159 69 / calc(var(--luz-arriba, 0) * 0.55)),
+        0 4px 14px -6px rgb(221 159 69 / calc(var(--luz-abajo, 0) * 0.55));
+}
+.escena-pintada .resultado-titulo {
+    border-top-color: color-mix(
+        in srgb,
+        var(--brasa-viva) calc(var(--luz-arriba, 0) * 90%),
+        var(--noche-borde)
+    );
+}
+.escena-pintada .resultado-pie,
+.escena-pintada .resultado:has(.resultado-pie:empty) .resultado-filas {
+    border-bottom-color: color-mix(
+        in srgb,
+        var(--brasa-viva) calc(var(--luz-abajo, 0) * 90%),
+        var(--noche-borde)
+    );
+}
+
+/* El título y la bajada van sobre el cielo, que abajo se aclara y trae
+   estrellas: alguna cae entre las letras. Una sombra suave detrás de los
+   dos la apaga sin tapar el cielo (la bajada medía 3,4:1 sin ella). */
+.escena-pintada .cabecera::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: 30px;
+    left: 50%;
+    width: min(100vw, 460px);
+    height: 190px;
+    transform: translateX(-50%);
+    background: radial-gradient(
+        closest-side,
+        rgb(5 8 10 / var(--sombra-centro)),
+        rgb(5 8 10 / var(--sombra-medio)) 60%,
+        transparent
+    );
+    pointer-events: none;
+    /* De día el cielo es claro y la sombra tiene que ser más cerrada;
+       escena-pintada.js pone --luz-sol (0 de noche, 1 de día). */
+    --sombra-centro: calc(0.6 + 0.32 * var(--luz-sol, 0));
+    --sombra-medio: calc(0.4 + 0.42 * var(--luz-sol, 0));
+}
+:root[data-tema='brasa'] .cabecera::before {
+    --sombra-centro: 0.75;
+    --sombra-medio: 0.6;
+}
+
+/* El botón principal y la hora a mano van en otra tarjeta: en una
+   pantalla baja, el texto de abajo del botón y el rótulo de la hora pasan
+   por encima del fuego al scrollear (medían 1,3:1 sueltos). */
+.escena-pintada .accion {
+    padding: var(--esp-3);
+    background: var(--noche-alta);
+    border: 1px solid var(--noche-borde);
+    border-radius: var(--radio);
 }
 
 /* ============ BOTONES ============ */

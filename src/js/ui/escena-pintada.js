@@ -27,6 +27,9 @@ import {
     PALETA_LENA,
     SPRITE_LENO,
     PILA_LENA,
+    SUELO,
+    altoDelLienzo,
+    luzDeBorde,
 } from '../escena-pintura.js';
 import { consumoDeLaNoche, fuerzaDelFuego, lenosAlLado, proximaHora } from '../fuego.js';
 import { usualClock } from '../horas-sugeridas.js';
@@ -81,6 +84,25 @@ const DESCRIPCION =
 // teléfono gasta menos batería.
 const INTERVALO = 1000 / 30;
 
+// En el iPhone el alto de la ventana cambia cuando se esconden las barras
+// al scrollear. El canvas toma el mayor alto visto para ese ancho: si
+// achicara cada vez, se borraría y redibujaría a mitad del scroll.
+let anchoVisto = 0;
+let altoVisto = 0;
+function altoDeLaPantalla() {
+    const ancho = window.innerWidth;
+    const alto = Math.max(window.innerHeight, document.documentElement.clientHeight);
+    if (ancho !== anchoVisto) {
+        anchoVisto = ancho;
+        altoVisto = 0;
+    }
+    altoVisto = Math.max(altoVisto, alto);
+    return altoDelLienzo(ancho, altoVisto);
+}
+
+// Lo que recibe la luz del fuego en el borde (paso 16).
+const TARJETAS = '.tarjeta-anoche, .resultado, .accion, .enlaces';
+
 function cargar(url) {
     return new Promise((ok, mal) => {
         const img = new Image();
@@ -107,7 +129,7 @@ export async function montarEscenaPintada() {
 
     const vista = document.createElement('canvas');
     vista.width = W;
-    vista.height = H;
+    vista.height = altoDeLaPantalla();
     vista.className = 'escena-fondo';
     vista.setAttribute('role', 'img');
     vista.setAttribute('aria-label', DESCRIPCION);
@@ -370,6 +392,8 @@ export async function montarEscenaPintada() {
             '--velo',
             String(VELO_NOCHE + (VELO_DIA - VELO_NOCHE) * luz),
         );
+        // Y cuánto oscurece la sombra detrás del título (components.css).
+        document.documentElement.style.setProperty('--luz-sol', luz.toFixed(2));
         capaCtx.clearRect(0, 0, W, H);
         if (tinte.opacidad > 0) {
             const g = capaCtx.createLinearGradient(0, 0, 0, 268);
@@ -449,13 +473,17 @@ export async function montarEscenaPintada() {
         aplicarViento(t);
         ctx.globalCompositeOperation = 'source-over';
         ctx.drawImage(base, 0, 0);
+        if (vista.height > H) {
+            ctx.fillStyle = SUELO;
+            ctx.fillRect(0, H, W, vista.height - H);
+        }
         dibujarLena();
         ctx.drawImage(capaCielo, 0, 0);
         if (cielo.lift > 0) {
             // Levanta la luz del conjunto (atardecer y día).
             ctx.globalCompositeOperation = 'screen';
             ctx.fillStyle = `rgba(150,170,200,${cielo.lift})`;
-            ctx.fillRect(0, 0, W, H);
+            ctx.fillRect(0, 0, W, vista.height);
             ctx.globalCompositeOperation = 'source-over';
         }
         apagarLuzPintada();
@@ -464,6 +492,32 @@ export async function montarEscenaPintada() {
         dibujarBrasas(t);
         dibujarEstrellas(t);
         dibujarLuna();
+        alumbrarTarjetas(t);
+    }
+
+    // ---------------- la luz en los bordes de las tarjetas -------------
+    // El borde de cada tarjeta que mira al fuego se enciende con el mismo
+    // titileo que el resplandor, y más cuanto más cerca está. El valor va
+    // en --luz-arriba y --luz-abajo y el color lo pone components.css. En
+    // modo brasa no hay resplandor y los bordes quedan apagados.
+    const luzPuesta = new WeakMap();
+    function alumbrarTarjetas(t) {
+        const brasa = document.documentElement.dataset.tema === 'brasa';
+        const r = vista.getBoundingClientRect();
+        const escala = r.width / W;
+        const fy = r.top + (FUEGO.yBase - 20) * escala;
+        const alcance = 240 * escala;
+        const n = titileo(t);
+        for (const el of document.querySelectorAll(TARJETAS)) {
+            const b = el.getBoundingClientRect();
+            const arriba = brasa ? 0 : luzDeBorde(b.top - fy, alcance, fuego.fuerza, n);
+            const abajo = brasa ? 0 : luzDeBorde(b.bottom - fy, alcance, fuego.fuerza, n);
+            const antes = luzPuesta.get(el);
+            if (antes && antes[0] === arriba && antes[1] === abajo) continue;
+            luzPuesta.set(el, [arriba, abajo]);
+            el.style.setProperty('--luz-arriba', String(arriba));
+            el.style.setProperty('--luz-abajo', String(abajo));
+        }
     }
 
     refrescarCielo();
@@ -510,6 +564,31 @@ export async function montarEscenaPintada() {
         };
         pedido = requestAnimationFrame(paso);
     }
+
+    // Con la escena quieta (movimiento reducido) no hay cuadros, pero al
+    // scrollear las tarjetas se acercan o se alejan del fuego.
+    let pedidoScroll = 0;
+    window.addEventListener(
+        'scroll',
+        () => {
+            if (pedido || pedidoScroll) return;
+            pedidoScroll = requestAnimationFrame(() => {
+                pedidoScroll = 0;
+                alumbrarTarjetas(0);
+            });
+        },
+        { passive: true },
+    );
+
+    // Si la pantalla cambia de tamaño (girar el teléfono), el canvas toma
+    // el alto nuevo. Cambiarle el alto lo borra y le resetea el suavizado.
+    window.addEventListener('resize', () => {
+        const alto = altoDeLaPantalla();
+        if (alto === vista.height) return;
+        vista.height = alto;
+        ctx.imageSmoothingEnabled = false;
+        actualizar();
+    });
 
     document.addEventListener('visibilitychange', actualizar);
     reducido.addEventListener('change', actualizar);

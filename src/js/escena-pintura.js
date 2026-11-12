@@ -11,6 +11,32 @@ export const H = 1024;
 
 export const FUEGO = { x: 292, yBase: 606, yPunta: 518 };
 
+// Color del suelo de la fila 860 para abajo: es uno solo, sin variación
+// (medido sobre noche-cielo-liso). Con él se extiende la pintura en una
+// pantalla más alta que 9:16, sin que se vea el empalme.
+export const SUELO = 'rgb(30,20,23)';
+
+// Alto del canvas para una pantalla de ancho × alto: la pintura entra a lo
+// ancho y, si sobra pantalla abajo, el canvas crece con suelo. En una
+// pantalla más ancha que 9:16 manda el alto y el canvas queda como la
+// pintura.
+export function altoDelLienzo(ancho, alto) {
+    if (!(ancho > 0) || !(alto > 0)) return H;
+    return Math.max(H, Math.ceil((W * alto) / ancho));
+}
+
+// Cuánto alumbra el fuego el borde de una tarjeta, de 0 a 1: más cerca,
+// más luz; con el fuego bajo, menos. `n` es el titileo del mismo instante
+// (el mismo que mueve el resplandor), así el borde late con la llama. Va
+// de a escalones de 0,05: cada cambio repinta la tarjeta, y de a poco no
+// se nota la diferencia.
+export function luzDeBorde(distancia, alcance, fuerza, n) {
+    if (!(alcance > 0)) return 0;
+    const cerca = Math.max(0, 1 - Math.abs(distancia) / alcance);
+    const v = fuerza * (0.8 + 0.2 * n) * cerca;
+    return Math.max(0, Math.min(1, Math.round(v * 20) / 20));
+}
+
 // Zonas que se mueven con el viento. `punta` es lo más alto de la copa o
 // del pasto y `base` donde se agarra al suelo: el desplazamiento vale cero
 // en la base y crece hacia la punta, para que troncos y suelo no resbalen.

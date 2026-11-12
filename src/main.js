@@ -48,13 +48,25 @@ function init() {
 }
 
 // La pintura de fondo llega después de que la lista ya se dibujó y el
-// navegador tiene un respiro. Si no llega, la escena 2D ya está a la vista
-// y la app no se entera.
+// navegador tiene un respiro. Mientras tanto, y si no llega, está a la
+// vista la escena 2D.
+//
+// La clase con-pintura se pone ya, antes de que llegue la imagen: arma la
+// pantalla con el hueco donde va a estar el fuego, y así la lista no salta
+// cuando la pintura aparece. Si no llega, se saca y la pantalla vuelve a
+// la de siempre, con la escena 2D arriba.
 function cargarEscenaPintada() {
+    const raiz = document.documentElement;
+    // Con el ahorro de datos prendido no se baja una imagen de decoración.
+    if (navigator.connection?.saveData) return;
+    raiz.classList.add('con-pintura');
     const arrancar = () =>
         import('./js/ui/escena-pintada.js')
             .then((m) => m.montarEscenaPintada())
-            .catch(() => {});
+            .catch(() => false)
+            .then((ok) => {
+                if (!ok) raiz.classList.remove('con-pintura');
+            });
     if ('requestIdleCallback' in window) requestIdleCallback(arrancar, { timeout: 2000 });
     else setTimeout(arrancar, 300);
 }

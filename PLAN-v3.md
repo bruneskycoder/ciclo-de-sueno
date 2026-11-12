@@ -713,6 +713,55 @@ se rechazó y la pintura animada se aprobó.
       0,6 de velo daba 2,5:1. **Sigue sin resolver acá:** el pie de la
       lista ("Entre la siesta corta…") va suelto sobre el fuego y da 1:1.
       Las otras dos medidas de pantalla, pendientes.
+      - a. **Hecho 2026-11-12 (sin el vidrio, que es el 16b).** Capturas en
+        `docs/paso16.webp`: de noche en reposo, scrolleada y de día, a los
+        tres tamaños.
+        - *Layout.* El título y la bajada van arriba, sobre el cielo; lo
+          que sigue arranca debajo de las piedras del fogón (y = 663 de la
+          pintura, medido), así que en reposo se ven el gaucho, el fuego y
+          la leña enteros. La pantalla se arma con la clase `con-pintura`,
+          que se pone al abrir y no cuando llega la imagen: medido, la
+          lista arranca en el mismo lugar (455 puntos a 390 × 844) antes y
+          después de que aparezca la pintura. Si la imagen no llega, la
+          clase se saca y vuelve la pantalla de siempre.
+        - *Suelo extendido.* De la fila 860 para abajo la pintura es un
+          solo color, `rgb(30,20,23)` (medido, sin variación). El canvas
+          crece con ese color hasta el alto de la pantalla y toma el mayor
+          alto visto para ese ancho, para no redibujarse cuando el iPhone
+          esconde las barras al scrollear. Ya no hay difuminado abajo.
+        - *Costo, a la vista:* a 375 × 667 en reposo se ven el título de la
+          lista y tres horas; las recomendadas (4 a 6 ciclos) quedan abajo
+          y hay que scrollear. A 390 × 844 se ve la primera recomendada.
+        - *La lista es una sola tarjeta:* el título ("Si te dormís
+          ahora…") y el pie van adentro, cada uno con el mismo velo que las
+          filas. Sueltos, al pasar sobre el fuego medían 1,1 y 1,3:1. Lo
+          mismo con el botón principal y la hora a mano: a 375 × 667 el
+          texto de abajo del botón y el rótulo pasaban sobre el fuego con
+          1,3:1.
+        - *Detrás del título y la bajada,* una sombra suave que se cierra
+          de día (`--luz-sol`, que pone la escena). Sin ella, la bajada
+          medía 3,4:1 de noche (una estrella cae entre las letras) y 1,8:1
+          de día.
+        - *Luz del fuego en los bordes:* el borde de cada tarjeta que mira
+          al fogón se calienta y la luz entra unos 14 píxeles, según la
+          distancia al fuego, la fuerza del fuego y el mismo `titileo(t)`
+          del resplandor (`luzDeBorde`, con tests). Va de a escalones de
+          0,05: medido, cambia unas 10 veces por segundo. En modo brasa,
+          apagada. **Mi lectura:** se nota sin llamar la atención; a
+          revisar en el teléfono.
+        - **Contraste medido** con `scripts/contraste.cjs` (queda en el
+          repo para el 16b): percentil 2 en el borde de las letras, la
+          peor posición de scroll, a 375 × 667, 390 × 844 y 430 × 932, de
+          noche, al atardecer, de día y en brasa. Todo el texto chico da
+          4,5:1 o más; lo más justo es "Poner alarma" en brasa (4,52) y
+          la bajada de día a 375 (4,54). El título, que es letra grande
+          (AA pide 3:1), da 4,36 de día. Con la escena quieta: el titileo
+          mueve la luz hasta un 25% y eso no está medido.
+        - **No hecho:** verlo en el iPhone de Bruno (que el canvas no
+          salte al esconderse las barras, y que la sombra de la cabecera
+          no se lea como una mancha de día).
+        - **Medido:** 340 tests (8 nuevos), lint y build en verde; el
+          chunk de la escena pasó de 29 a 31 kB (13,7 kB comprimido).
       - b. *Vidrio (pedido de Bruno, 2026-11-12).* Dos partes, en este
         orden y dentro del 16, porque el 16 mueve las tarjetas y hacerlo
         antes sería rehacerlo. Referencias revisadas (todas MIT): la guía

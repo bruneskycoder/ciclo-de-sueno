@@ -18,6 +18,8 @@ import {
     separarLlama,
     enrojecer,
     SPRITE_LENO,
+    altoDelLienzo,
+    luzDeBorde,
     PALETA_LENA,
     PILA_LENA,
 } from './escena-pintura.js';
@@ -240,5 +242,51 @@ describe('la leña (paso 15b)', () => {
                     expect(Math.abs(x1 - x2)).toBeGreaterThanOrEqual(ancho - 1);
             }
         }
+    });
+});
+
+describe('la pintura en la pantalla (paso 16)', () => {
+    it('en una pantalla de 9:16 o más ancha, el canvas es la pintura', () => {
+        expect(altoDelLienzo(572, 1024)).toBe(H);
+        expect(altoDelLienzo(1280, 800)).toBe(H);
+    });
+    it('en un iPhone 13 el canvas crece con suelo hasta llenar el alto', () => {
+        // 390 × 844: la pintura a lo ancho mide 698 puntos; faltan 146.
+        const alto = altoDelLienzo(390, 844);
+        expect(alto).toBe(Math.ceil((W * 844) / 390));
+        expect((alto * 390) / W).toBeGreaterThanOrEqual(844);
+    });
+    it('sin medidas válidas, se queda con la pintura', () => {
+        expect(altoDelLienzo(0, 844)).toBe(H);
+        expect(altoDelLienzo(390, NaN)).toBe(H);
+    });
+});
+
+describe('la luz del fuego en los bordes', () => {
+    it('pegado al fuego alumbra más que lejos, y fuera del alcance nada', () => {
+        expect(luzDeBorde(0, 200, 1, 0)).toBeGreaterThan(luzDeBorde(150, 200, 1, 0));
+        expect(luzDeBorde(200, 200, 1, 0)).toBe(0);
+        expect(luzDeBorde(-500, 200, 1, 0)).toBe(0);
+    });
+    it('da lo mismo arriba que abajo del fuego', () => {
+        expect(luzDeBorde(-60, 200, 1, 0.3)).toBe(luzDeBorde(60, 200, 1, 0.3));
+    });
+    it('con el fuego bajo alumbra menos, y apagado nada', () => {
+        expect(luzDeBorde(50, 200, 0.4, 0)).toBeLessThan(luzDeBorde(50, 200, 1, 0));
+        expect(luzDeBorde(50, 200, 0, 1)).toBe(0);
+    });
+    it('late con el titileo y va de a escalones de 0,05, entre 0 y 1', () => {
+        expect(luzDeBorde(0, 200, 1, 1)).toBeGreaterThan(luzDeBorde(0, 200, 1, -1));
+        for (const n of [-1, -1 / 3, 0, 1 / 3, 1]) {
+            for (const d of [0, 37, 120, 199]) {
+                const v = luzDeBorde(d, 200, 0.83, n);
+                expect(v).toBeGreaterThanOrEqual(0);
+                expect(v).toBeLessThanOrEqual(1);
+                expect(Math.round(v * 20)).toBeCloseTo(v * 20, 9);
+            }
+        }
+    });
+    it('sin alcance no alumbra', () => {
+        expect(luzDeBorde(0, 0, 1, 0)).toBe(0);
     });
 });

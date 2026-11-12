@@ -27,6 +27,16 @@ export default [
         },
     },
     {
+        // Herramientas de medición: corren en Node, fuera de la app.
+        files: ['scripts/**/*.cjs'],
+        languageOptions: {
+            sourceType: 'commonjs',
+            globals: {
+                ...globals.node,
+            },
+        },
+    },
+    {
         ignores: ['dist/**', 'node_modules/**'],
     },
 ];
