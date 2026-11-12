@@ -2,11 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
     FUERZA_MINIMA,
     FUERZA_DE_DIA,
-    LENOS_MAX,
     proximaHora,
     consumoDeLaNoche,
     fuerzaDelFuego,
-    lenosAlLado,
 } from './fuego.js';
 
 const noche = (inicio, extra = {}) => ({
@@ -64,25 +62,5 @@ describe('fuerzaDelFuego', () => {
     it('una siesta de día: gana el más chico', () => {
         expect(fuerzaDelFuego({ momento: 'dia', consumo: 0.1 })).toBe(FUERZA_DE_DIA);
         expect(fuerzaDelFuego({ momento: 'dia', consumo: 1 })).toBeCloseTo(FUERZA_MINIMA);
-    });
-});
-
-describe('lenosAlLado', () => {
-    it('sin noche, los ciclos de la hora elegida', () => {
-        expect(lenosAlLado({ ciclosElegidos: 5 })).toBe(5);
-        expect(lenosAlLado()).toBe(0);
-    });
-    it('con noche, los ciclos que faltan, redondeando para arriba', () => {
-        expect(lenosAlLado({ consumo: 0, ciclosPlaneados: 5 })).toBe(5);
-        expect(lenosAlLado({ consumo: 0.5, ciclosPlaneados: 5 })).toBe(3);
-        expect(lenosAlLado({ consumo: 0.8, ciclosPlaneados: 5 })).toBe(1);
-        expect(lenosAlLado({ consumo: 1, ciclosPlaneados: 5 })).toBe(0);
-    });
-    it('con noche, la hora elegida no cuenta', () => {
-        expect(lenosAlLado({ consumo: 0.5, ciclosPlaneados: 4, ciclosElegidos: 6 })).toBe(2);
-    });
-    it('nunca más de los que entran en la pila', () => {
-        expect(lenosAlLado({ ciclosElegidos: 9 })).toBe(LENOS_MAX);
-        expect(lenosAlLado({ ciclosElegidos: -2 })).toBe(0);
     });
 });

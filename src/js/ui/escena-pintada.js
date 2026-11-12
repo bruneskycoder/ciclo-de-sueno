@@ -23,21 +23,16 @@ import {
     cuadroDeLlama,
     armarCuadroLlama,
     separarLlama,
-    LENA,
-    PALETA_LENA,
-    SPRITE_LENO,
-    PILA_LENA,
     SUELO,
     altoDelLienzo,
     luzDeBorde,
     tirasDeVidrio,
 } from '../escena-pintura.js';
-import { consumoDeLaNoche, fuerzaDelFuego, lenosAlLado, proximaHora } from '../fuego.js';
+import { consumoDeLaNoche, fuerzaDelFuego } from '../fuego.js';
 import { usualClock } from '../horas-sugeridas.js';
 import { ocultarEscena2D } from './escena.js';
 import {
     currentTimeZone,
-    getCycleLength,
     getOpenSleep,
     getSleepLogs,
     getUbicacion,
@@ -70,8 +65,7 @@ function fechaDePrueba() {
 }
 
 // Para las capturas del paso 15: ?noche=0.6 hace de cuenta que pasó el 60%
-// de la noche planeada, y ?lena=4 pone cuatro leños. Sin eso, salen de la
-// noche en curso y de la hora elegida en la lista.
+// de la noche planeada. Sin eso, sale de la noche en curso.
 function numeroDePrueba(nombre, min, max) {
     const v = new URLSearchParams(location.search).get(nombre);
     if (v === null || v === '' || Number.isNaN(Number(v))) return null;
@@ -296,58 +290,19 @@ export async function montarEscenaPintada() {
     }
 
     // ---------------- el fuego de esta noche (paso 15) ----------------
-    // La fuerza del fuego y los leños salen de la noche en curso, de la
-    // hora elegida en la lista (que home.js deja en data-lena) y de la
-    // hora del día. Se recalculan con el cielo, al cambiar los datos y al
-    // elegir una hora.
-    let fuego = { fuerza: 1, lenos: 0 };
+    // La fuerza del fuego sale de la noche en curso y de la hora del día.
+    // Se recalcula con el cielo y al cambiar los datos. La pila de leños
+    // que contaba los ciclos (15b) se sacó el 2026-11-12: la cantidad ya
+    // está en la lista.
+    let fuego = { fuerza: 1 };
 
     function refrescarFuego(momento) {
         const ahora = cuando();
         const abierta = getOpenSleep();
         const despertar = abierta?.intendedWaketime ?? usualClock(getSleepLogs(), 'waketimeActual');
-        let consumo = numeroDePrueba('noche', 0, 1) ?? consumoDeLaNoche(abierta, despertar, ahora);
-        let ciclosPlaneados = 0;
-        if (consumo !== null && abierta) {
-            const inicio = Date.parse(abierta.startedAt);
-            const fin = proximaHora(new Date(inicio), despertar).getTime();
-            ciclosPlaneados = Math.round((fin - inicio) / 60000 / getCycleLength());
-        }
-        const elegidos = Number(document.documentElement.dataset.lena) || 0;
-        const forzados = numeroDePrueba('lena', 0, 6);
-        fuego = {
-            fuerza: fuerzaDelFuego({ consumo, momento }),
-            lenos: forzados ?? lenosAlLado({ consumo, ciclosPlaneados, ciclosElegidos: elegidos }),
-        };
+        const consumo = numeroDePrueba('noche', 0, 1) ?? consumoDeLaNoche(abierta, despertar, ahora);
+        fuego = { fuerza: fuerzaDelFuego({ consumo, momento }) };
         prepararLlama(fuego.fuerza);
-    }
-
-    const lenoImg = document.createElement('canvas');
-    lenoImg.width = SPRITE_LENO[0].length;
-    lenoImg.height = SPRITE_LENO.length;
-    const lenoCtx = lenoImg.getContext('2d');
-    SPRITE_LENO.forEach((fila, y) => {
-        for (let x = 0; x < fila.length; x++) {
-            const color = PALETA_LENA[fila[x]];
-            if (!color) continue;
-            lenoCtx.fillStyle = color;
-            lenoCtx.fillRect(x, y, 1, 1);
-        }
-    });
-
-    function dibujarLena() {
-        if (fuego.lenos === 0) return;
-        // Sombra en el suelo, como la de las piedras y la pava: sin ella la
-        // pila parece pegada encima de la pintura.
-        const ancho = fuego.lenos === 1 ? 7 : fuego.lenos === 2 ? 12 : 17;
-        ctx.fillStyle = 'rgba(20,10,5,0.4)';
-        ctx.beginPath();
-        ctx.ellipse(LENA.x + ancho - 1, LENA.y - 1, ancho + 2, 3, 0, 0, Math.PI * 2);
-        ctx.fill();
-        for (let i = 0; i < fuego.lenos; i++) {
-            const [dx, dy] = PILA_LENA[i];
-            ctx.drawImage(lenoImg, LENA.x + dx, LENA.y + dy);
-        }
     }
 
     // Lo pintado trae la luz de un fuego grande. Cuando el fuego baja, esa
@@ -540,7 +495,6 @@ export async function montarEscenaPintada() {
             ctx.fillStyle = SUELO;
             ctx.fillRect(0, H, W, vista.height - H);
         }
-        dibujarLena();
         ctx.drawImage(capaCielo, 0, 0);
         if (cielo.lift > 0) {
             // Levanta la luz del conjunto (atardecer y día).
@@ -665,7 +619,7 @@ export async function montarEscenaPintada() {
     sinTransparencia.addEventListener('change', actualizar);
     new MutationObserver(actualizar).observe(document.documentElement, {
         attributes: true,
-        attributeFilter: ['data-tema', 'data-lena'],
+        attributeFilter: ['data-tema'],
     });
     // Empezar o terminar la noche cambia el fuego.
     onChange(actualizar);

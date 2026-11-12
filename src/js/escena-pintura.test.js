@@ -17,13 +17,10 @@ import {
     esFuego,
     separarLlama,
     enrojecer,
-    SPRITE_LENO,
     altoDelLienzo,
     luzDeBorde,
     desplazamientoBorde,
     tirasDeVidrio,
-    PALETA_LENA,
-    PILA_LENA,
 } from './escena-pintura.js';
 
 // Una "pintura" sintética: cada píxel guarda su propia posición, así se
@@ -225,25 +222,6 @@ describe('la llama que se consume (paso 15a)', () => {
         expect(r & 255).toBe(0xf0);
         expect((r >> 8) & 255).toBeLessThan(0x90);
         expect((r >> 16) & 255).toBeLessThan(0x20);
-    });
-});
-
-describe('la leña (paso 15b)', () => {
-    it('el sprite es parejo y usa solo colores de la paleta', () => {
-        for (const fila of SPRITE_LENO) {
-            expect(fila.length).toBe(SPRITE_LENO[0].length);
-            for (const c of fila) expect(c === '.' || c in PALETA_LENA).toBe(true);
-        }
-    });
-    it('hay lugar para seis leños y ninguno pisa a otro en la misma fila', () => {
-        expect(PILA_LENA.length).toBe(6);
-        const ancho = SPRITE_LENO[0].length;
-        for (const [x1, y1] of PILA_LENA) {
-            for (const [x2, y2] of PILA_LENA) {
-                if (y1 === y2 && x1 !== x2)
-                    expect(Math.abs(x1 - x2)).toBeGreaterThanOrEqual(ancho - 1);
-            }
-        }
     });
 });
 
