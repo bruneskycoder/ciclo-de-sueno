@@ -8,6 +8,7 @@
 import {
     borrarDatosV1,
     clearAllData,
+    clearUbicacion,
     contarRegistrosV1,
     exportData,
     getCycleLength,
@@ -15,12 +16,16 @@ import {
     getLatency,
     getSleepLogs,
     getTheme,
+    getUbicacion,
     importData,
     markExported,
     saveCycleLength,
     saveLatency,
     saveTheme,
+    saveUbicacion,
+    currentTimeZone,
 } from '../storage.js';
+import { ubicacionVigente } from '../ubicacion.js';
 import { chooseModal, confirmModal } from './modal.js';
 import { showToast } from './toast.js';
 import { renderEscena } from './escena.js';
@@ -48,6 +53,13 @@ export function initAjustes() {
         renderEscena();
     });
 
+    document.getElementById('btn-ubicacion').addEventListener('click', usarMiUbicacion);
+    document.getElementById('btn-ubicacion-zona').addEventListener('click', () => {
+        clearUbicacion();
+        renderCielo();
+        showToast('Guardado.');
+    });
+
     document.getElementById('btn-exportar').addEventListener('click', exportar);
     document.getElementById('btn-guia-alarma').addEventListener('click', () => abrirGuiaAlarma());
 
@@ -64,7 +76,40 @@ export function initAjustes() {
     document.getElementById('btn-borrar-viejos').addEventListener('click', borrarViejos);
 }
 
+// Qué cielo se está usando: lo dice en una línea y muestra el botón que
+// corresponde (pedir la ubicación, o volver a la ciudad de la zona).
+function renderCielo() {
+    const u = ubicacionVigente(getUbicacion(), currentTimeZone());
+    const estado = document.getElementById('cielo-estado');
+    if (u.origen === 'gps') estado.textContent = 'Ahora se usa tu ubicación, redondeada a unos 10 km.';
+    else if (u.origen === 'zona') estado.textContent = `Ahora se usa ${u.nombre}, la ciudad de tu zona horaria.`;
+    else estado.textContent = `No reconozco tu zona horaria: se usa ${u.nombre}.`;
+    document.getElementById('btn-ubicacion-zona').hidden = u.origen !== 'gps';
+}
+
+function usarMiUbicacion() {
+    if (!('geolocation' in navigator)) {
+        showToast('Este navegador no da la ubicación.');
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            saveUbicacion(pos.coords.latitude, pos.coords.longitude);
+            renderCielo();
+            showToast('Guardado.');
+        },
+        (err) =>
+            showToast(
+                err.code === err.PERMISSION_DENIED
+                    ? 'No diste permiso para la ubicación.'
+                    : 'No pude obtener la ubicación.',
+            ),
+        { timeout: 10000, maximumAge: 3600000 },
+    );
+}
+
 export function renderAjustes() {
+    renderCielo();
     document.getElementById('ajuste-latencia').value = getLatency();
     document.getElementById('ajuste-ciclo').value = getCycleLength();
     document.getElementById('ajuste-brasa').checked = getTheme() === 'brasa';

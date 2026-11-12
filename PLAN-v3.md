@@ -4,8 +4,8 @@
 entera con una pintura generada que pesa cientos de kB.
 **Estado:** Etapa A hecha (PR aparte); Etapa B reescrita tras la prueba de
 la escena pintada, pendiente
-**Última actualización:** 2026-11-11 (Etapa B reescrita: de HD-2D con
-three.js a una pintura animada por código)
+**Última actualización:** 2026-11-12 (paso 16b: vidrio en los controles
+y canto de vidrio en la lista)
 
 > El [plan de la v2](./PLAN.md) sigue valiendo como historia y como
 > criterio: los tres trabajos de la app y la regla "el recorte va sobre la
@@ -481,7 +481,22 @@ se rechazó y la pintura animada se aprobó.
         cambió la imagen fuera del cielo; gaucho, caballo, fuego, vacas y
         alambrado tienen que quedar en el mismo lugar. Tres intentos; si
         no, plan B: se queda el cielo pintado y se pierden la luna y las
-        estrellas reales. Lo demás del plan no cambia.
+        estrellas reales. Lo demás del plan no cambia. **Hecho
+        2026-11-12, primer intento.** Gemini devolvió 1116 × 2000 (JPEG,
+        pasado por el chat); se bajó a 572 × 1024 con filtro bilineal, el
+        que más se parece a `noche.png` (diferencia media 5,9 sobre 255,
+        contra 6,2 a 6,9 de los otros). Se midió: corrimiento global
+        (0, 0) píxeles, o sea que nada se movió; la diferencia que queda
+        (5 a 6 sobre 255 en todas las zonas, 1 a 2% de píxeles con más
+        de 40) cae en los bordes, y es re-escalado más compresión, no
+        elementos movidos. Gaucho, caballo, fuego, vacas y alambrado en el
+        mismo lugar, mirado a ojo y en el mapa de diferencias. Quedaba una
+        estrella suelta de 2 píxeles en (497, 116): se tapó con el cielo
+        de al lado. Se guarda en `docs/fuentes/noche-cielo-liso.png` y
+        `src/assets/escena/noche-cielo-liso.webp` (84 kB, calidad 90).
+        Salvedad: el JPEG del chat ya viene comprimido; si Bruno tiene el
+        PNG original de Gemini, conviene reemplazar la fuente y repetir
+        la reducción.
       - c. *Contorno del monte.* Para cada columna de la pintura, la
         altura donde termina el cielo, para que las estrellas no se
         dibujen delante de los árboles ni del cardón — verificación:
@@ -489,7 +504,11 @@ se rechazó y la pintura animada se aprobó.
         prueba. **Herramienta hecha** (`scripts/contorno-cielo.py`, usa
         Pillow) y probada sobre la pintura de hoy: sigue la copa de la
         izquierda y el cardón, y toma la bruma del horizonte como cielo.
-        Falta correrla sobre la de cielo liso y guardar el resultado.
+        **Hecho 2026-11-12:** corrida sobre la de cielo liso, 572
+        columnas, el contorno cae entre la fila 192 y la 273; guardado en
+        `src/assets/escena/contorno-cielo.json`. Sobre la pintura vieja
+        daba entre la 178 y la 268: la luna y las estrellas la
+        confundían. Captura del contorno revisada a ojo.
       - d. *Peso.* Probar PNG con paleta y WebP sin pérdida y quedarse con
         el más chico que no cambie ningún píxel a ojo. Fijar acá el
         presupuesto de las imágenes (punto de partida, estimado: la mitad
@@ -512,7 +531,7 @@ se rechazó y la pintura animada se aprobó.
         tu OK. Es tu decisión si el cielo real vale más que el cielo
         pintado que ya te gustó; el supuesto por defecto es que sí, por la
         decisión del 8-nov de que la escena cuente la noche.
-- [ ] 13. **Integrarla.** El código de `escena-pintada.html` pasa al build
+- [x] 13. **Integrarla.** El código de `escena-pintada.html` pasa al build
       como módulo propio, con la pintura de fondo de pantalla completa
       detrás de la interfaz de hoy (sin tocar las tarjetas todavía). Carga
       diferida: arranca cuando la lista ya se dibujó. Respaldo: `escena.js`
@@ -522,7 +541,31 @@ se rechazó y la pintura animada se aprobó.
       aparece antes que la escena (medido), con la imagen bloqueada se ve
       la escena 2D y la app sigue andando, el CLS no empeora respecto de
       hoy, y los 219 tests, lint y build en verde.
-- [ ] 14. **El cielo real.**
+      **Hecho 2026-11-12.** Código en `src/js/escena-pintura.js` (cuentas
+      puras, con tests) y `src/js/ui/escena-pintada.js` (el canvas); se
+      carga con `import()` desde `main.js` en un momento ocioso, y el
+      chunk sale aparte (5 kB) junto con la imagen con hash
+      (`dist/assets/noche-cielo-liso-CzVJVMKi.webp`, 84 kB). Medido con
+      Playwright sobre `vite preview`, 390 × 844, sin frenar red ni CPU,
+      5 corridas: la lista se dibuja a los 51–64 ms y la pintura a los
+      114–145 ms (después, en todas). Con los `.webp` bloqueados: la
+      escena 2D queda a la vista, 7 filas de horas, Ajustes abre, 0
+      errores de página. CLS 0,0284 con la pintura contra 0,0273–0,0308
+      de la versión anterior (igual, dentro del ruido). Movimiento: 6
+      cuadros distintos de 6 en uso normal; 1 de 6 con "reducir
+      movimiento", en modo brasa y con la pestaña en segundo plano; vuelve
+      a moverse al salir de brasa. 237 tests, lint y build en verde.
+      Un error apareció en el navegador y no en los tests: el primer
+      cuadro de animación traía un tiempo negativo y el cuadro de llama
+      quedaba fuera de la secuencia. Corregido y con test.
+      **Estado visual, a propósito:** la pintura va fija detrás de todo y
+      las tarjetas la tapan; el título y la bajada caen sobre los árboles y
+      el fuego queda bajo la primera lista. Eso lo resuelve el paso 16. Las
+      estrellas son provisorias (las posiciones de las de la pintura con
+      cielo) hasta el 14c. Modo brasa: la pintura se oscurece con
+      `brightness(0.6)`; el valor es una primera cuenta, no medida contra
+      contraste. Con ahorro de datos prendido no se baja la pintura.
+- [x] 14. **El cielo real.**
       - a. *Ubicación.* Por zona horaria: Resistencia para cualquier zona
         argentina, incluidos los alias que devuelve Chromium
         (`America/Cordoba`, `America/Buenos_Aires`, `America/Argentina/*`);
@@ -546,7 +589,70 @@ se rechazó y la pintura animada se aprobó.
         momentos y la prueba de lectura con alguien que no las vio
         (*¿qué momento del día es?*). Si ninguna vía pasa, de día y al
         atardecer queda la escena 2D, y se anota acá.
-- [ ] 15. **Contar la noche.**
+      **Estado 2026-11-12: 14a, 14b, 14c y 14d hechos.** (14d cerrado
+      con el OK de Bruno al tinte; ver la nota al final del 14d.)
+      - *14a.* `src/js/ubicacion.js`: cualquier zona argentina (incluidos
+        `America/Cordoba` y `America/Buenos_Aires`) da Resistencia; 33
+        ciudades de referencia (Auckland entre ellas); una zona que no
+        está en la tabla cae en Resistencia y Ajustes lo dice. **Usar mi
+        ubicación** en Ajustes guarda la posición redondeada a 0,1°
+        (unos 10 km) solo en el navegador; entra en "Borrar todo" y no
+        viaja en el respaldo. 24 tests. Probado en navegador con
+        geolocalización simulada (Christchurch → guarda -43,5 / 172,6),
+        volver a la zona, y permiso denegado.
+      - *14b.* `suncalc` 2.1.1 fijada. Contra la API del Observatorio
+        Naval de EE.UU. (aa.usno.navy.mil, consultada hoy; **no** contra
+        timeanddate.com, que devuelve 403 desde acá): amanecer y
+        atardecer dentro de 1 minuto en Resistencia (21-dic, 21-jun,
+        20-mar) y Auckland (21-jun); fracción iluminada de la luna dentro
+        de 1 punto (91, 47, 3 y 41%). 16 tests.
+      - *14c.* 288 estrellas de magnitud 3,5 o menos (Hipparcos vía
+        d3-celestial, BSD-3), generadas por `scripts/generar-estrellas.py`
+        (10,6 kB sin comprimir). La proyección es una ventana hacia el
+        sur, no una carta exacta. **Verificación contra astropy** (no
+        contra una carta celeste, que no tengo): 15 combinaciones de 5
+        estrellas (Acrux, Gacrux, Canopus, Sirio, Antares) y tres noches
+        dan alturas dentro de 0,6° y azimuts dentro de 0,8°; la cuenta
+        no corrige precesión (unos 0,36° en 26 años, 1 a 2 píxeles). Las
+        estrellas no caen delante del monte ni sobre la luna (tests sobre
+        el contorno real). La luna sale con su fase y su inclinación
+        (`angle - parallacticAngle`) y solo si está sobre el horizonte.
+        **No verificado:** el sentido de la inclinación (qué lado mira la
+        parte iluminada) está razonado y probado contra la convención, no
+        contra una foto de la luna de una noche conocida. Hace falta que
+        Bruno mire la luna una noche y diga si coincide.
+      - *14d.* El momento sale de la altura real del sol: día desde 6°,
+        noche por debajo de -8°, atardecer o amanecer entre medio según
+        suba o baje (umbrales elegidos por mí, no estándar). `tinte.js`
+        reemplaza el cielo por un degradé y levanta la luz. **Se probó la
+        vía del tinte y se ve mal:** el borde contra el monte es una
+        recta con escalones, el horizonte pintado no se acopla, y el día
+        se lee como "una noche con filtro" (el monte sigue azul de luna).
+        Es mi lectura, no la prueba del plan: **la prueba de lectura con
+        alguien que no las vio no se hizo.** Por eso
+        `MOMENTOS_PINTADOS` es solo `noche`: de día, al atardecer y al
+        amanecer queda la escena 2D y ni se baja la imagen (comprobado
+        con la fecha forzada). Las capturas se miran abriendo la app con
+        `?cielo=2026-12-21T19:30-03:00`. La vía de las variantes (que
+        Bruno pida a Gemini atardecer y día sobre la misma imagen) no se
+        intentó. Un caso a mirar: si la app queda abierta pasando del
+        atardecer a la noche, no cambia sola a la pintura hasta recargar.
+        **Cierre (2026-11-12):** Bruno miró las capturas y aprobó el
+        tinte. `MOMENTOS_PINTADOS` pasa a tener los cuatro momentos: la
+        pintura se ve a cualquier hora y la escena 2D queda solo como
+        respaldo (sin red, ahorro de datos, sin canvas). Con eso se cae el
+        caso de la app abierta del atardecer a la noche: el cielo se
+        recalcula cada 30 segundos sobre la misma pintura. **Lo que sigue
+        abierto:** Bruno ya la había visto, así que la prueba de lectura
+        del plan (alguien que no la vio) no está hecha; mi lectura de "el
+        día parece una noche con filtro" tampoco se refutó, se decidió
+        igual. Si en la prueba de lectura del 15b alguien no reconoce el
+        día, se saca `dia` del conjunto y vuelve la escena 2D de día.
+      - **Medido:** el chunk de la escena pasó a 25 kB (11 kB comprimido)
+        por el catálogo y suncalc; la imagen sigue aparte con hash. 310
+        tests, lint y build en verde.
+
+- [x] 15. **Contar la noche.**
       - a. *Fuego consumido:* llama, resplandor y brasas bajan con la noche
         en curso — verificación: capturas con la noche al 25%, 60% y 100%.
         Escalar la llama pintada a la mitad no está probado; si se
@@ -556,6 +662,42 @@ se rechazó y la pintura animada se aprobó.
         verificación: capturas con 3 y con 6 ciclos y prueba de lectura.
         Lo que alguien que no la vio no cuenta, o desentona, se saca.
       - c. *De día, fuego chico,* si el paso 14d dejó una vía para el día.
+      **Estado 2026-11-12: 15a, 15b y 15c hechos; falta la prueba de
+      lectura del 15b.** Capturas: `docs/fuego-noche.webp`; en la app,
+      `?noche=0.6` simula el 60% de la noche y `?lena=4` pone cuatro leños.
+      - *15a.* El plan B (pintura de brasas en Gemini) no hizo falta.
+        Achicar la llama tal cual arrastraba el fondo, así que primero se
+        separa: `separarLlama` marca qué píxeles son fuego (umbrales
+        medidos fila por fila sobre la pintura, más un píxel de margen) y
+        rellena lo que tapaba con el suelo de los costados, fila por fila.
+        La llama baja hacia los leños, se angosta menos de lo que baja, se
+        pone roja (pierde verde y azul) y nunca tapa un leño ni una
+        piedra. La luz pintada del suelo se apaga con seis anillos que
+        oscurecen y enfrían; el resplandor, las chispas y la altura del
+        humo bajan con el fuego. Fuerza: 1 al acostarse, 0,3 a la hora de
+        despertar (no llega a 0 a propósito). La hora planeada es la que
+        elegiste en la lista; si no elegiste, tu hora de levantarte de
+        siempre. **Mi lectura:** al 25, 60 y 100% se ve un fuego que se
+        consume y no una llama deformada. Al 100%, ampliado, el borde
+        izquierdo de la llama queda recto; a tamaño de pantalla no lo veo.
+      - *15b.* Leños vistos de punta, en pirámide (3, 2, 1) a la derecha
+        del círculo de piedras, con sombra en el suelo. De costado se
+        probó en la cabeza y no en pantalla: dos leños uno al lado del
+        otro se leerían como uno largo. Primer intento, de 9 × 8 píxeles:
+        se leía como cajitas; quedó del grueso de los leños del fogón. Al
+        tocar una hora aparecen tantos como ciclos (home.js lo pasa por
+        `data-lena`); con una noche en curso, **decisión mía, no del
+        plan:** quedan los ciclos que faltan hasta la hora planeada
+        (probado: 4 h adentro de una noche de 7,5 h, 3 leños de 5). A
+        390 × 844 la pila mide unos 21 × 25 puntos y hoy cae debajo de la
+        primera tarjeta; el paso 16 la deja a la vista. **No hecho:** la
+        prueba de lectura con alguien que no la vio (*¿qué hay al lado del
+        fuego? ¿cuántos?*). Si no se cuentan o desentonan, se saca la
+        pila y la cantidad queda en la tarjeta.
+      - *15c.* De día, fuego al 45%. Una siesta de día toma el más chico
+        de los dos.
+      - **Medido:** 332 tests (22 nuevos), lint y build en verde; el chunk
+        de la escena pasó de 25 a 29 kB (13 kB comprimido).
 - [ ] 16. **La interfaz recibe la luz.** Pintura anclada arriba con el
       ancho completo, suelo extendido hacia abajo, título y bajada sobre el
       cielo, tarjetas que arrancan debajo del fuego y suben al scrollear,
@@ -563,6 +705,152 @@ se rechazó y la pintura animada se aprobó.
       llama — verificación: contraste AA de los textos medido sobre los
       píxeles reales de la pintura que quedan detrás, en el peor caso, a
       375 × 667, 390 × 844 y 430 × 932; capturas en reposo y scrolleadas.
+      **Adelantado 2026-11-12, pedido de Bruno:** las tarjetas son un velo
+      (`--velo`, 0,78 de noche a 0,85 de día; +0,15 en modo brasa) con un
+      halo oscuro en las letras. Medido a 390 × 844 en el borde de las
+      letras, con el fuego detrás (el peor caso): texto tenue entre 4,6 y
+      5,8:1 (percentil 2), de día, al atardecer, de noche y en brasa. Con
+      0,6 de velo daba 2,5:1. **Sigue sin resolver acá:** el pie de la
+      lista ("Entre la siesta corta…") va suelto sobre el fuego y da 1:1.
+      Las otras dos medidas de pantalla, pendientes.
+      - a. **Hecho 2026-11-12 (sin el vidrio, que es el 16b).** Capturas en
+        `docs/paso16.webp`: de noche en reposo, scrolleada y de día, a los
+        tres tamaños.
+        - *Layout.* El título y la bajada van arriba, sobre el cielo; lo
+          que sigue arranca debajo de las piedras del fogón (y = 663 de la
+          pintura, medido), así que en reposo se ven el gaucho, el fuego y
+          la leña enteros. La pantalla se arma con la clase `con-pintura`,
+          que se pone al abrir y no cuando llega la imagen: medido, la
+          lista arranca en el mismo lugar (455 puntos a 390 × 844) antes y
+          después de que aparezca la pintura. Si la imagen no llega, la
+          clase se saca y vuelve la pantalla de siempre.
+        - *Suelo extendido.* De la fila 860 para abajo la pintura es un
+          solo color, `rgb(30,20,23)` (medido, sin variación). El canvas
+          crece con ese color hasta el alto de la pantalla y toma el mayor
+          alto visto para ese ancho, para no redibujarse cuando el iPhone
+          esconde las barras al scrollear. Ya no hay difuminado abajo.
+        - *Costo, a la vista:* a 375 × 667 en reposo se ven el título de la
+          lista y tres horas; las recomendadas (4 a 6 ciclos) quedan abajo
+          y hay que scrollear. A 390 × 844 se ve la primera recomendada.
+        - *La lista es una sola tarjeta:* el título ("Si te dormís
+          ahora…") y el pie van adentro, cada uno con el mismo velo que las
+          filas. Sueltos, al pasar sobre el fuego medían 1,1 y 1,3:1. Lo
+          mismo con el botón principal y la hora a mano: a 375 × 667 el
+          texto de abajo del botón y el rótulo pasaban sobre el fuego con
+          1,3:1.
+        - *Detrás del título y la bajada,* una sombra suave que se cierra
+          de día (`--luz-sol`, que pone la escena). Sin ella, la bajada
+          medía 3,4:1 de noche (una estrella cae entre las letras) y 1,8:1
+          de día.
+        - *Luz del fuego en los bordes:* el borde de cada tarjeta que mira
+          al fogón se calienta y la luz entra unos 14 píxeles, según la
+          distancia al fuego, la fuerza del fuego y el mismo `titileo(t)`
+          del resplandor (`luzDeBorde`, con tests). Va de a escalones de
+          0,05: medido, cambia unas 10 veces por segundo. En modo brasa,
+          apagada. **Mi lectura:** se nota sin llamar la atención; a
+          revisar en el teléfono.
+        - **Contraste medido** con `scripts/contraste.cjs` (queda en el
+          repo para el 16b): percentil 2 en el borde de las letras, la
+          peor posición de scroll, a 375 × 667, 390 × 844 y 430 × 932, de
+          noche, al atardecer, de día y en brasa. Todo el texto chico da
+          4,5:1 o más; lo más justo es "Poner alarma" en brasa (4,52) y
+          la bajada de día a 375 (4,54). El título, que es letra grande
+          (AA pide 3:1), da 4,36 de día. Con la escena quieta: el titileo
+          mueve la luz hasta un 25% y eso no está medido.
+        - **No hecho:** verlo en el iPhone de Bruno (que el canvas no
+          salte al esconderse las barras, y que la sombra de la cabecera
+          no se lea como una mancha de día).
+        - **Medido:** 340 tests (8 nuevos), lint y build en verde; el
+          chunk de la escena pasó de 29 a 31 kB (13,7 kB comprimido).
+      - b. *Vidrio (pedido de Bruno, 2026-11-12).* Dos partes, en este
+        orden y dentro del 16, porque el 16 mueve las tarjetas y hacerlo
+        antes sería rehacerlo. Referencias revisadas (todas MIT): la guía
+        de Bruno (`GUIA_LIQUID_GLASS`, no está en el repo),
+        naplesblue/apple-design-skill (criterio), gentpan/liquidglass
+        (mapa de desplazamiento y brillo de borde direccional),
+        shuding/liquid-glass y nikdelvin/liquid-glass (solo referencia
+        visual). No se instala ninguna librería.
+        - **A. Vidrio CSS en los controles:** los dos botones de icono, el
+          botón principal, los diálogos y el aviso. Borde fino luminoso,
+          reflejo más fuerte del lado de la luz (arriba a la izquierda),
+          sombra suave, poco desenfoque; estados normal, apretado, foco y
+          deshabilitado; `prefers-reduced-transparency` y
+          `prefers-contrast: more` dan superficie sólida. Variables en
+          `tokens.css`, no un efecto distinto por botón. **No es
+          refracción** y no se describe como tal. Verificación: capturas
+          de cada estado de día y de noche, contraste AA del texto y los
+          iconos, foco visible con teclado.
+        - **B. Refracción propia en la lista, como prototipo:** la escena
+          dobla los píxeles que quedan bajo el borde de cada tarjeta
+          (franja de unos 8 a 12 px; el centro, plano), con
+          desplazamiento en **píxeles enteros**, como el viento: vidrio
+          viejo, no lente de iPhone. Se dibuja en `escena-pintada.js`
+          leyendo la posición de las tarjetas en cada cuadro; sin WebGL.
+          Encima, el borde de A. Verificación: en el iPhone de Bruno, el
+          borde no tiembla al scrollear con inercia (riesgo no medido:
+          en iOS el scroll puede ir un cuadro adelantado al canvas);
+          cuadros por segundo con la CPU frenada 4 veces sin bajar del
+          piso del paso 17; el contraste medido arriba no baja de 4,5:1.
+          Si tiembla o desentona, la lista queda con el velo y el borde
+          de A, y se anota acá.
+        **Hechos que condicionan:** el filtro SVG en `backdrop-filter`
+        (la técnica de shuding y nikdelvin) solo lo dibuja Chromium; en
+        iPhone no se ve (según gentpan, que lo verificó; yo no lo
+        repetí). Detrás de las tarjetas hay un canvas, no HTML, y por eso
+        la refracción la tiene que hacer la escena. Medido hoy: el
+        desenfoque no compra contraste (velo 0,7 con 6 px de desenfoque
+        dio 3,2:1; velo 0,8 sin desenfoque, 4:1); el vidrio no deja bajar
+        el velo. **Se aparta de Apple a propósito:** su criterio pone el
+        vidrio en los controles y no en filas de contenido; la lista lo
+        lleva porque acá ver el fuego detrás de las horas es la idea.
+        **Estado 2026-11-12: A y B hechos; falta verlos en el iPhone de
+        Bruno.** Capturas: `docs/paso16b.webp` (arriba, los estados de
+        noche, de día y en brasa; abajo, la lista sobre el fuego con
+        `?canto=0`, `0.45` y `0.8`).
+        - *A.* Un solo vidrio en `tokens.css` (`--vidrio-*`): tinte,
+          borde fino, reflejo de arriba a la izquierda, cantos (claro
+          arriba a la izquierda, oscuro abajo a la derecha), sombra y
+          3 px de desenfoque. Lo llevan los dos iconos, el botón
+          principal y el aviso (en ámbar), y las hojas y el diálogo (casi
+          opacos, 0,9). La barra de arriba de las hojas desenfoca lo que
+          pasa por debajo. Apretado: el canto de arriba pasa a sombra y
+          el botón baja un punto. Deshabilitado: sin reflejo ni color.
+          El foco es el de siempre (`base.css`). Con menos transparencia
+          o más contraste pedidos, superficies lisas y sin reflejo; en
+          brasa, reflejo y cantos casi apagados. No dobla la luz y no se
+          describe así.
+        - *B.* La escena copia lo que ya dibujó y lo pega corrido en los
+          8 puntos del borde de la lista (`tirasDeVidrio`, con tests):
+          pegado al borde se ve lo que está unos píxeles más afuera, y
+          el corrimiento se apaga hacia adentro. Píxeles enteros de la
+          pintura, recortado a la forma redonda de la tarjeta. Para que
+          se vea, el velo es más fino en el canto (0,38 menos) y adentro
+          las dos capas suman el mismo `--velo` que antes, así que el
+          texto no cambia. Mientras se scrollea la escena dibuja cada
+          cuadro, no uno de cada dos, para que el canto no quede atrás
+          de la lista. En brasa y con menos transparencia, sin canto.
+          `?canto=0` lo apaga y `?canto=0.8` dobla casi el doble, para
+          comparar.
+        - **Mi lectura:** lo que se nota a tamaño de teléfono es el canto
+          más claro, como el grueso de un vidrio. La refracción a 0,45 es
+          sutil: se ve ampliando, en las vacas y el alambrado que cruzan
+          el borde; a 0,8 se ve sin ampliar. Lo dejé en 0,45 porque más
+          parece agua y no vidrio viejo; es de las cosas a decidir
+          mirándolo en el teléfono.
+        - **Medido:** contraste (`scripts/contraste.cjs`, los mismos 4
+          casos y 3 tamaños): los mínimos no se movieron, "Poner alarma"
+          en brasa 4,52 y la bajada de día a 375 4,54; los iconos sobre
+          el vidrio, 5,6 o más. Cuadros por segundo con la CPU frenada 4
+          veces (Chromium de escritorio, no un teléfono): quieta, 30 con
+          y sin canto; scrolleando, 39 con canto y 46 sin él. 349 tests
+          (9 nuevos), lint y build en verde; el chunk de la escena pasó
+          de 31 a 32 kB (14,3 kB comprimido) y el CSS a 22,7 kB.
+        - **No hecho:** el iPhone. Lo que hay que mirar: que el canto no
+          tiemble al scrollear con inercia (en iOS el scroll puede ir un
+          cuadro adelantado al canvas, y eso acá no se puede medir), y
+          si el vidrio de los controles se ve vidrio o se ve gris. Si el
+          canto tiembla o desentona, se saca B y la lista queda con el
+          velo parejo y el borde de A.
 - [ ] 17. **QA.** Lighthouse ≥ 90 de performance y 100 de accesibilidad;
       cuadros por segundo con la CPU frenada 4 veces (meta: sostener 30;
       piso aceptable, propuesto: 24); peso total de la escena contra el
@@ -750,6 +1038,22 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
   recortaría unos 50 px por lado en un iPhone 13 y se llevaría el poncho y
   el anca del caballo. Las tarjetas suben sobre la escena fija: la cámara
   no se mueve.
+- 2026-11-12 — **El tinte queda para día, atardecer y amanecer** (paso
+  14d), con el OK de Bruno y sin la prueba de lectura con alguien que no
+  la vio.
+- 2026-11-12 — **Las tarjetas dejan ver la escena** con un velo medido
+  contra el fuego, y **el vidrio entra en el 16b**: CSS en los controles
+  (A) y refracción propia en píxeles enteros sobre la lista, como
+  prototipo (B). Descartado: librerías de vidrio (no andan sobre un
+  canvas en iPhone o suman WebGL y 93 kB).
+- 2026-11-12 — **El fuego se achica separando la llama del fondo**
+  (paso 15a), no con una pintura de brasas aparte. **Con una noche en
+  curso, la leña cuenta los ciclos que faltan** (15b), decisión mía que
+  el plan no pedía.
+- 2026-11-12 — **El vidrio de la lista dobla en el canto y el velo se
+  afina ahí** (16b B): sin afinar el velo, la refracción quedaba debajo
+  de 0,78 de oscuro y no se veía. Corrimiento en 0,45 del canto,
+  decisión mía a revisar en el teléfono.
 
 ---
 

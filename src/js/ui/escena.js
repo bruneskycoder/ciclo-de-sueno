@@ -531,10 +531,19 @@ function dibujarPastos(ctx, paleta) {
 let animacion = null;
 let fondoCache = null;
 let claveCache = null;
+let reemplazada = false;
+
+// Cuando la pintura de fondo ya está a la vista, esta escena deja de
+// dibujar y de gastar cuadros. El canvas sigue en la página, escondido por
+// CSS, para que el título no se corra de lugar.
+export function ocultarEscena2D() {
+    reemplazada = true;
+    cancelAnimationFrame(animacion);
+}
 
 export function renderEscena() {
     const canvas = document.getElementById('escena');
-    if (!canvas) return;
+    if (!canvas || reemplazada) return;
 
     const brasa = document.documentElement.dataset.tema === 'brasa';
     const deDia = !brasa && esDeDia(new Date());

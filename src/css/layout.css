@@ -57,9 +57,14 @@
     margin: auto auto 0;
     padding: 0;
     border: none;
-    border-top: 3px solid var(--cuero-claro);
+    border-top: 1px solid var(--vidrio-borde);
     border-radius: var(--radio) var(--radio) 0 0;
-    background: var(--noche-alta);
+    /* Vidrio, como los controles (tokens.css), pero casi opaco: en una
+       hoja se lee largo. */
+    background: var(--vidrio-reflejo), var(--vidrio-hoja);
+    box-shadow: var(--vidrio-cantos), var(--vidrio-sombra);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     color: var(--hueso);
     overflow: hidden;
 }
@@ -104,8 +109,12 @@
     justify-content: space-between;
     gap: var(--esp-2);
     padding: var(--esp-3) 0 var(--esp-2);
-    background: var(--noche-alta);
-    border-bottom: 1px solid var(--noche-borde);
+    /* Lo que se scrollea pasa por debajo de la barra desenfocado: es el
+       único lugar donde el vidrio deja ver algo de la app y no la escena. */
+    background: rgb(21 29 35 / 0.82);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--vidrio-borde);
 }
 
 .hoja-barra h2 {
@@ -118,6 +127,12 @@
     .hoja {
         margin: auto;
         border-radius: var(--radio);
-        border: 1px solid var(--cuero-claro);
+        border: 1px solid var(--vidrio-borde);
+    }
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+    .hoja-barra {
+        background: var(--vidrio-hoja);
     }
 }
