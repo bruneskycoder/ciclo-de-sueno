@@ -37,6 +37,55 @@ export function luzDeBorde(distancia, alcance, fuerza, n) {
     return Math.max(0, Math.min(1, Math.round(v * 20) / 20));
 }
 
+// ---------------- vidrio en el borde de la lista (paso 16b) ----------
+// El canto de la tarjeta dobla lo que hay detrás, como un vidrio viejo de
+// ventana: pegado al borde se ve lo que está unos píxeles más afuera, y el
+// corrimiento se apaga hacia adentro. Siempre en píxeles enteros de la
+// pintura, como el viento: medio píxel se vería borroso o temblaría.
+export function desplazamientoBorde(d, ancho, maximo) {
+    if (!(ancho > 0) || d < 0 || d >= ancho) return 0;
+    const u = 1 - d / ancho;
+    return Math.round(maximo * u * u);
+}
+
+// Las copias que arman el canto de una tarjeta: rectángulos de la pintura
+// (origen) que se pegan corridos en el borde (destino), listos para
+// drawImage. `caja` va en píxeles de la pintura, con x1 e y1 afuera. Las
+// filas o columnas seguidas con el mismo corrimiento van en una sola copia.
+// Lo que caería afuera del lienzo se recorta al borde.
+export function tirasDeVidrio(caja, ancho, maximo, lienzo) {
+    const { x0, y0, x1, y1 } = caja;
+    const w = x1 - x0;
+    const h = y1 - y0;
+    if (w <= 0 || h <= 0) return [];
+    const banda = Math.min(ancho, Math.floor(w / 2), Math.floor(h / 2));
+    const tiras = [];
+    const limitar = (v, max) => Math.max(0, Math.min(max, v));
+    // Agrupa d = 0..banda-1 en tramos con el mismo corrimiento.
+    const tramos = [];
+    for (let d = 0; d < banda; d++) {
+        const off = desplazamientoBorde(d, banda, maximo);
+        if (off === 0) break;
+        const ult = tramos[tramos.length - 1];
+        if (ult && ult.off === off) ult.n++;
+        else tramos.push({ d, n: 1, off });
+    }
+    for (const { d, n, off } of tramos) {
+        // Arriba: lo de más arriba baja al borde.
+        const ya = y0 + d;
+        tiras.push({ sx: x0, sy: limitar(ya - off, lienzo.alto - n), sw: w, sh: n, dx: x0, dy: ya });
+        // Abajo: lo de más abajo sube.
+        const yb = y1 - d - n;
+        tiras.push({ sx: x0, sy: limitar(yb + off, lienzo.alto - n), sw: w, sh: n, dx: x0, dy: yb });
+        // Izquierda y derecha.
+        const xi = x0 + d;
+        tiras.push({ sx: limitar(xi - off, lienzo.ancho - n), sy: y0, sw: n, sh: h, dx: xi, dy: y0 });
+        const xd = x1 - d - n;
+        tiras.push({ sx: limitar(xd + off, lienzo.ancho - n), sy: y0, sw: n, sh: h, dx: xd, dy: y0 });
+    }
+    return tiras;
+}
+
 // Zonas que se mueven con el viento. `punta` es lo más alto de la copa o
 // del pasto y `base` donde se agarra al suelo: el desplazamiento vale cero
 // en la base y crece hacia la punta, para que troncos y suelo no resbalen.

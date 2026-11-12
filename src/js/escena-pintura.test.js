@@ -20,6 +20,8 @@ import {
     SPRITE_LENO,
     altoDelLienzo,
     luzDeBorde,
+    desplazamientoBorde,
+    tirasDeVidrio,
     PALETA_LENA,
     PILA_LENA,
 } from './escena-pintura.js';
@@ -288,5 +290,80 @@ describe('la luz del fuego en los bordes', () => {
     });
     it('sin alcance no alumbra', () => {
         expect(luzDeBorde(0, 0, 1, 0)).toBe(0);
+    });
+});
+
+describe('desplazamientoBorde', () => {
+    it('es el máximo pegado al borde y se apaga hacia adentro', () => {
+        expect(desplazamientoBorde(0, 12, 5)).toBe(5);
+        for (let d = 1; d < 12; d++) {
+            expect(desplazamientoBorde(d, 12, 5)).toBeLessThanOrEqual(
+                desplazamientoBorde(d - 1, 12, 5),
+            );
+        }
+        expect(desplazamientoBorde(11, 12, 5)).toBe(0);
+    });
+    it('afuera de la banda no corre nada', () => {
+        expect(desplazamientoBorde(12, 12, 5)).toBe(0);
+        expect(desplazamientoBorde(-1, 12, 5)).toBe(0);
+        expect(desplazamientoBorde(0, 0, 5)).toBe(0);
+    });
+    it('siempre da píxeles enteros', () => {
+        for (let d = 0; d < 15; d++) {
+            expect(Number.isInteger(desplazamientoBorde(d, 15, 6.5))).toBe(true);
+        }
+    });
+});
+
+describe('tirasDeVidrio', () => {
+    const lienzo = { ancho: 572, alto: 1024 };
+    const caja = { x0: 40, y0: 400, x1: 530, y1: 900 };
+    const tiras = tirasDeVidrio(caja, 12, 5, lienzo);
+
+    it('todo en píxeles enteros', () => {
+        for (const t of tiras) {
+            for (const v of Object.values(t)) expect(Number.isInteger(v)).toBe(true);
+        }
+    });
+    it('pega solo dentro de la banda del borde: el centro queda plano', () => {
+        for (const t of tiras) {
+            const enBanda =
+                t.dy + t.sh <= caja.y0 + 12 ||
+                t.dy >= caja.y1 - 12 ||
+                t.dx + t.sw <= caja.x0 + 12 ||
+                t.dx >= caja.x1 - 12;
+            expect(enBanda).toBe(true);
+            expect(t.dx).toBeGreaterThanOrEqual(caja.x0);
+            expect(t.dy).toBeGreaterThanOrEqual(caja.y0);
+            expect(t.dx + t.sw).toBeLessThanOrEqual(caja.x1);
+            expect(t.dy + t.sh).toBeLessThanOrEqual(caja.y1);
+        }
+    });
+    it('trae lo de afuera: arriba sube, abajo baja, a los costados se abre', () => {
+        const borde = tiras.filter((t) => t.dy === caja.y0 && t.sh < 12);
+        expect(borde[0].sy).toBeLessThan(caja.y0);
+        const abajo = tiras.find((t) => t.dy + t.sh === caja.y1 && t.sw === caja.x1 - caja.x0);
+        expect(abajo.sy).toBeGreaterThan(abajo.dy);
+        const izq = tiras.find((t) => t.dx === caja.x0 && t.sh === caja.y1 - caja.y0);
+        expect(izq.sx).toBeLessThan(caja.x0);
+        const der = tiras.find((t) => t.dx + t.sw === caja.x1 && t.sh === caja.y1 - caja.y0);
+        expect(der.sx).toBeGreaterThan(der.dx);
+    });
+    it('no lee afuera del lienzo', () => {
+        const pegada = tirasDeVidrio({ x0: 0, y0: 0, x1: 572, y1: 300 }, 12, 5, lienzo);
+        for (const t of pegada) {
+            expect(t.sx).toBeGreaterThanOrEqual(0);
+            expect(t.sy).toBeGreaterThanOrEqual(0);
+            expect(t.sx + t.sw).toBeLessThanOrEqual(lienzo.ancho);
+            expect(t.sy + t.sh).toBeLessThanOrEqual(lienzo.alto);
+        }
+    });
+    it('una tarjeta vacía o chata no arma nada raro', () => {
+        expect(tirasDeVidrio({ x0: 10, y0: 10, x1: 10, y1: 50 }, 12, 5, lienzo)).toEqual([]);
+        const chata = tirasDeVidrio({ x0: 10, y0: 10, x1: 300, y1: 16 }, 12, 5, lienzo);
+        for (const t of chata) expect(t.dy + t.sh).toBeLessThanOrEqual(16);
+    });
+    it('junta filas con el mismo corrimiento: pocas copias por cuadro', () => {
+        expect(tiras.length).toBeLessThanOrEqual(4 * 6);
     });
 });

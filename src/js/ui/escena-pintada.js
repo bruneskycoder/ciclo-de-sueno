@@ -30,6 +30,7 @@ import {
     SUELO,
     altoDelLienzo,
     luzDeBorde,
+    tirasDeVidrio,
 } from '../escena-pintura.js';
 import { consumoDeLaNoche, fuerzaDelFuego, lenosAlLado, proximaHora } from '../fuego.js';
 import { usualClock } from '../horas-sugeridas.js';
@@ -102,6 +103,12 @@ function altoDeLaPantalla() {
 
 // Lo que recibe la luz del fuego en el borde (paso 16).
 const TARJETAS = '.tarjeta-anoche, .resultado, .accion, .enlaces';
+
+// El canto de vidrio de la lista (paso 16b): ancho en puntos de pantalla,
+// el mismo --canto de components.css, y cuánto corre la imagen pegado al
+// borde, en proporción a ese ancho.
+const CANTO = 8;
+const CORRIMIENTO = 0.45;
 
 function cargar(url) {
     return new Promise((ok, mal) => {
@@ -463,6 +470,60 @@ export async function montarEscenaPintada() {
         ctx.globalAlpha = 1;
     }
 
+    // ---------------- el vidrio de la lista (paso 16b) -----------------
+    // Bajo el canto de la lista, la escena se dibuja corrida unos píxeles
+    // hacia afuera (tirasDeVidrio). Se copia lo que ya está dibujado en este
+    // cuadro y se pega encima, recortado a la forma redonda de la tarjeta.
+    // Sin él, en modo brasa y con menos transparencia pedida: ahí la lista
+    // es un velo liso (components.css).
+    // Para comparar capturas: ?canto=0 dibuja la lista sin doblar nada y
+    // ?canto=0.8 dobla casi el doble.
+    const corrimiento = numeroDePrueba('canto', 0, 1) ?? CORRIMIENTO;
+    const copia = document.createElement('canvas');
+    const copiaCtx = copia.getContext('2d');
+    const sinTransparencia = window.matchMedia(
+        '(prefers-reduced-transparency: reduce), (prefers-contrast: more)',
+    );
+    function vidrioEnLaLista() {
+        if (document.documentElement.dataset.tema === 'brasa' || sinTransparencia.matches) return;
+        const lista = document.querySelector('.resultado');
+        if (!lista || !copiaCtx) return;
+        const r = vista.getBoundingClientRect();
+        const escala = r.width / W;
+        const b = lista.getBoundingClientRect();
+        const caja = {
+            x0: Math.round((b.left - r.left) / escala),
+            y0: Math.round((b.top - r.top) / escala),
+            x1: Math.round((b.right - r.left) / escala),
+            y1: Math.round((b.bottom - r.top) / escala),
+        };
+        if (caja.y1 <= 0 || caja.y0 >= vista.height || caja.x1 <= caja.x0) return;
+        const banda = Math.round(CANTO / escala);
+        const tiras = tirasDeVidrio(caja, banda, Math.round(banda * corrimiento), {
+            ancho: W,
+            alto: vista.height,
+        });
+        if (copia.width !== W || copia.height !== vista.height) {
+            copia.width = W;
+            copia.height = vista.height;
+        }
+        copiaCtx.clearRect(0, 0, W, vista.height);
+        copiaCtx.drawImage(vista, 0, 0);
+        ctx.save();
+        ctx.beginPath();
+        const radio = Math.round(10 / escala);
+        if (ctx.roundRect) {
+            ctx.roundRect(caja.x0, caja.y0, caja.x1 - caja.x0, caja.y1 - caja.y0, radio);
+        } else {
+            ctx.rect(caja.x0, caja.y0, caja.x1 - caja.x0, caja.y1 - caja.y0);
+        }
+        ctx.clip();
+        for (const t of tiras) {
+            ctx.drawImage(copia, t.sx, t.sy, t.sw, t.sh, t.dx, t.dy, t.sw, t.sh);
+        }
+        ctx.restore();
+    }
+
     let cuadroLlama = -1;
     function dibujar(t) {
         const k = cuadroDeLlama(t);
@@ -492,6 +553,7 @@ export async function montarEscenaPintada() {
         dibujarBrasas(t);
         dibujarEstrellas(t);
         dibujarLuna();
+        vidrioEnLaLista();
         alumbrarTarjetas(t);
     }
 
@@ -535,6 +597,7 @@ export async function montarEscenaPintada() {
     // ojo es lo que se mueve); sin cuadros con la pestaña oculta.
     const reducido = window.matchMedia('(prefers-reduced-motion: reduce)');
     let pedido = 0;
+    let scrollHasta = 0;
 
     function detener() {
         cancelAnimationFrame(pedido);
@@ -554,7 +617,10 @@ export async function montarEscenaPintada() {
         let ultimo = -Infinity;
         const paso = (ahora) => {
             pedido = requestAnimationFrame(paso);
-            if (ahora - ultimo < INTERVALO - 2) return;
+            // Mientras se scrollea, cada cuadro: el canto de vidrio se
+            // dibuja donde está la lista, y a 30 cuadros quedaría atrás.
+            const scrolleando = ahora < scrollHasta;
+            if (!scrolleando && ahora - ultimo < INTERVALO - 2) return;
             ultimo = ahora;
             if (!prueba && ahora > proximoCielo) {
                 proximoCielo = ahora + 30000;
@@ -565,16 +631,18 @@ export async function montarEscenaPintada() {
         pedido = requestAnimationFrame(paso);
     }
 
-    // Con la escena quieta (movimiento reducido) no hay cuadros, pero al
-    // scrollear las tarjetas se acercan o se alejan del fuego.
+    // Con la escena quieta (movimiento reducido o modo brasa) no hay
+    // cuadros, pero al scrollear las tarjetas se acercan o se alejan del
+    // fuego y el canto de vidrio sigue a la lista: se redibuja una vez.
     let pedidoScroll = 0;
     window.addEventListener(
         'scroll',
         () => {
+            scrollHasta = performance.now() + 200;
             if (pedido || pedidoScroll) return;
             pedidoScroll = requestAnimationFrame(() => {
                 pedidoScroll = 0;
-                alumbrarTarjetas(0);
+                dibujar(0);
             });
         },
         { passive: true },
@@ -592,6 +660,7 @@ export async function montarEscenaPintada() {
 
     document.addEventListener('visibilitychange', actualizar);
     reducido.addEventListener('change', actualizar);
+    sinTransparencia.addEventListener('change', actualizar);
     new MutationObserver(actualizar).observe(document.documentElement, {
         attributes: true,
         attributeFilter: ['data-tema', 'data-lena'],

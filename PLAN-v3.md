@@ -4,8 +4,8 @@
 entera con una pintura generada que pesa cientos de kB.
 **Estado:** Etapa A hecha (PR aparte); Etapa B reescrita tras la prueba de
 la escena pintada, pendiente
-**Última actualización:** 2026-11-11 (Etapa B reescrita: de HD-2D con
-three.js a una pintura animada por código)
+**Última actualización:** 2026-11-12 (paso 16b: vidrio en los controles
+y canto de vidrio en la lista)
 
 > El [plan de la v2](./PLAN.md) sigue valiendo como historia y como
 > criterio: los tres trabajos de la app y la regla "el recorte va sobre la
@@ -803,6 +803,54 @@ se rechazó y la pintura animada se aprobó.
         el velo. **Se aparta de Apple a propósito:** su criterio pone el
         vidrio en los controles y no en filas de contenido; la lista lo
         lleva porque acá ver el fuego detrás de las horas es la idea.
+        **Estado 2026-11-12: A y B hechos; falta verlos en el iPhone de
+        Bruno.** Capturas: `docs/paso16b.webp` (arriba, los estados de
+        noche, de día y en brasa; abajo, la lista sobre el fuego con
+        `?canto=0`, `0.45` y `0.8`).
+        - *A.* Un solo vidrio en `tokens.css` (`--vidrio-*`): tinte,
+          borde fino, reflejo de arriba a la izquierda, cantos (claro
+          arriba a la izquierda, oscuro abajo a la derecha), sombra y
+          3 px de desenfoque. Lo llevan los dos iconos, el botón
+          principal y el aviso (en ámbar), y las hojas y el diálogo (casi
+          opacos, 0,9). La barra de arriba de las hojas desenfoca lo que
+          pasa por debajo. Apretado: el canto de arriba pasa a sombra y
+          el botón baja un punto. Deshabilitado: sin reflejo ni color.
+          El foco es el de siempre (`base.css`). Con menos transparencia
+          o más contraste pedidos, superficies lisas y sin reflejo; en
+          brasa, reflejo y cantos casi apagados. No dobla la luz y no se
+          describe así.
+        - *B.* La escena copia lo que ya dibujó y lo pega corrido en los
+          8 puntos del borde de la lista (`tirasDeVidrio`, con tests):
+          pegado al borde se ve lo que está unos píxeles más afuera, y
+          el corrimiento se apaga hacia adentro. Píxeles enteros de la
+          pintura, recortado a la forma redonda de la tarjeta. Para que
+          se vea, el velo es más fino en el canto (0,38 menos) y adentro
+          las dos capas suman el mismo `--velo` que antes, así que el
+          texto no cambia. Mientras se scrollea la escena dibuja cada
+          cuadro, no uno de cada dos, para que el canto no quede atrás
+          de la lista. En brasa y con menos transparencia, sin canto.
+          `?canto=0` lo apaga y `?canto=0.8` dobla casi el doble, para
+          comparar.
+        - **Mi lectura:** lo que se nota a tamaño de teléfono es el canto
+          más claro, como el grueso de un vidrio. La refracción a 0,45 es
+          sutil: se ve ampliando, en las vacas y el alambrado que cruzan
+          el borde; a 0,8 se ve sin ampliar. Lo dejé en 0,45 porque más
+          parece agua y no vidrio viejo; es de las cosas a decidir
+          mirándolo en el teléfono.
+        - **Medido:** contraste (`scripts/contraste.cjs`, los mismos 4
+          casos y 3 tamaños): los mínimos no se movieron, "Poner alarma"
+          en brasa 4,52 y la bajada de día a 375 4,54; los iconos sobre
+          el vidrio, 5,6 o más. Cuadros por segundo con la CPU frenada 4
+          veces (Chromium de escritorio, no un teléfono): quieta, 30 con
+          y sin canto; scrolleando, 39 con canto y 46 sin él. 349 tests
+          (9 nuevos), lint y build en verde; el chunk de la escena pasó
+          de 31 a 32 kB (14,3 kB comprimido) y el CSS a 22,7 kB.
+        - **No hecho:** el iPhone. Lo que hay que mirar: que el canto no
+          tiemble al scrollear con inercia (en iOS el scroll puede ir un
+          cuadro adelantado al canvas, y eso acá no se puede medir), y
+          si el vidrio de los controles se ve vidrio o se ve gris. Si el
+          canto tiembla o desentona, se saca B y la lista queda con el
+          velo parejo y el borde de A.
 - [ ] 17. **QA.** Lighthouse ≥ 90 de performance y 100 de accesibilidad;
       cuadros por segundo con la CPU frenada 4 veces (meta: sostener 30;
       piso aceptable, propuesto: 24); peso total de la escena contra el
@@ -1002,6 +1050,10 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
   (paso 15a), no con una pintura de brasas aparte. **Con una noche en
   curso, la leña cuenta los ciclos que faltan** (15b), decisión mía que
   el plan no pedía.
+- 2026-11-12 — **El vidrio de la lista dobla en el canto y el velo se
+  afina ahí** (16b B): sin afinar el velo, la refracción quedaba debajo
+  de 0,78 de oscuro y no se veía. Corrimiento en 0,45 del canto,
+  decisión mía a revisar en el teléfono.
 
 ---
 

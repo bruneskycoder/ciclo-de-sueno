@@ -187,8 +187,49 @@
 .escena-pintada .resultado {
     border-radius: var(--radio);
     box-shadow:
+        var(--vidrio-cantos),
         0 -4px 14px -6px rgb(221 159 69 / calc(var(--luz-arriba, 0) * 0.55)),
         0 4px 14px -6px rgb(221 159 69 / calc(var(--luz-abajo, 0) * 0.55));
+}
+
+/* EL CANTO DE VIDRIO DE LA LISTA (paso 16b). La escena dobla lo que queda
+   bajo los 8 puntos del borde (escena-pintada.js, CANTO); para que se vea,
+   ahí el velo es más fino. Adentro, donde está el texto, la suma de las
+   dos capas da el mismo --velo de siempre, así que el contraste medido no
+   cambia. Por eso la lista entera lleva el velo y las filas, el título y
+   el pie quedan transparentes (--noche-alta), y no al revés. */
+.escena-pintada .resultado {
+    --canto: 8px;
+    --velo-canto: calc(var(--velo, 0.8) - 0.38);
+    --noche-alta: transparent;
+    position: relative;
+    isolation: isolate;
+    background: rgb(21 29 35 / var(--velo-canto));
+}
+.escena-pintada .resultado::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: var(--canto);
+    border-radius: 3px;
+    /* 1 − (1 − velo) / (1 − velo del canto): lo que falta para llegar al velo. */
+    background: rgb(21 29 35 / calc(1 - (1 - var(--velo, 0.8)) / (1 - var(--velo-canto))));
+    pointer-events: none;
+}
+/* Modo brasa y menos transparencia: un velo parejo, sin canto. */
+:root.escena-pintada[data-tema='brasa'] .resultado {
+    background: rgb(14 19 22 / calc(var(--velo, 0.8) + 0.15));
+}
+:root.escena-pintada[data-tema='brasa'] .resultado::before {
+    display: none;
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+    .escena-pintada .resultado {
+        background: rgb(21 29 35 / var(--velo, 0.8));
+    }
+    .escena-pintada .resultado::before {
+        display: none;
+    }
 }
 .escena-pintada .resultado-titulo {
     border-top-color: color-mix(
@@ -248,8 +289,9 @@
 /* ============ BOTONES ============ */
 /* Los dos iconos se apoyan sobre la escena, que de día es clara y de
    noche oscura. Sin un fondo propio quedaban invisibles contra el cielo
-   diurno: un control que no se ve no existe. La chapita oscura los hace
-   legibles sobre cualquiera de las dos. */
+   diurno: un control que no se ve no existe. Son de vidrio (tokens.css):
+   el tinte oscuro los hace legibles sobre cualquiera de las dos, y el
+   canto que brilla los despega de la pintura. */
 .btn-icono {
     width: 40px;
     height: 40px;
@@ -257,36 +299,74 @@
     place-items: center;
     font-size: 18px;
     color: var(--hueso);
-    background: rgba(8, 12, 15, 0.62);
-    border: 1px solid rgba(232, 220, 196, 0.16);
+    background: var(--vidrio-reflejo), var(--vidrio-tinte);
+    border: 1px solid var(--vidrio-borde);
     border-radius: var(--radio);
-    backdrop-filter: blur(2px);
+    box-shadow: var(--vidrio-cantos), var(--vidrio-sombra);
+    -webkit-backdrop-filter: blur(var(--vidrio-desenfoque));
+    backdrop-filter: blur(var(--vidrio-desenfoque));
+    transition:
+        box-shadow 0.12s,
+        transform 0.12s;
 }
 .btn-icono:hover {
     color: var(--brasa);
-    border-color: var(--noche-borde);
+}
+.btn-icono:active {
+    box-shadow: var(--vidrio-cantos-apretado);
+    transform: translateY(1px);
 }
 .btn-icono[aria-pressed='true'] {
     color: var(--brasa);
     border-color: var(--cuero-claro);
+    box-shadow: var(--vidrio-cantos-apretado);
 }
 
+/* El botón principal es vidrio de color: el ámbar del fuego con el
+   mismo reflejo y los mismos cantos que los otros controles. El reflejo
+   aclara la esquina de arriba, así que el texto oscuro gana contraste en
+   vez de perderlo. */
 .btn-principal {
     width: 100%;
     padding: 18px var(--esp-3);
     font-family: var(--tipo-titulo);
     font-size: 19px;
     color: var(--noche);
-    background: linear-gradient(180deg, var(--brasa-viva) 0%, var(--brasa) 100%);
-    border: none;
+    background:
+        linear-gradient(150deg, rgb(255 250 238 / 0.42) 0%, rgb(255 250 238 / 0) 45%),
+        linear-gradient(180deg, var(--brasa-viva) 0%, var(--brasa) 100%);
+    border: 1px solid rgb(255 236 200 / 0.55);
     border-radius: var(--radio);
-    transition: filter 0.15s;
+    box-shadow:
+        inset 1px 1px 0 rgb(255 252 244 / 0.6),
+        inset -1px -1px 0 rgb(120 60 20 / 0.35),
+        var(--vidrio-sombra);
+    transition:
+        filter 0.15s,
+        box-shadow 0.12s,
+        transform 0.12s;
 }
 .btn-principal:hover {
     filter: brightness(1.08);
 }
 .btn-principal:active {
     filter: brightness(0.94);
+    box-shadow:
+        inset 1px 2px 4px rgb(90 45 10 / 0.45),
+        inset -1px -1px 0 rgb(255 252 244 / 0.3);
+    transform: translateY(1px);
+}
+
+/* Deshabilitado: el vidrio pierde el reflejo y el color, y no responde. */
+:is(.btn-principal, .btn-icono, .btn-secundario, .btn-chip):disabled {
+    color: var(--hueso-tenue);
+    background: var(--vidrio-tinte);
+    border-color: var(--vidrio-borde);
+    box-shadow: none;
+    filter: none;
+    transform: none;
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
 .btn-secundario {
@@ -837,8 +917,15 @@ input::placeholder {
     padding: 12px var(--esp-3);
     font-size: 14px;
     color: var(--noche);
-    background: var(--brasa-viva);
+    background:
+        linear-gradient(150deg, rgb(255 250 238 / 0.4) 0%, rgb(255 250 238 / 0) 45%),
+        var(--brasa-viva);
+    border: 1px solid rgb(255 236 200 / 0.55);
     border-radius: var(--radio);
+    box-shadow:
+        inset 1px 1px 0 rgb(255 252 244 / 0.6),
+        inset -1px -1px 0 rgb(120 60 20 / 0.3),
+        var(--vidrio-sombra);
     opacity: 0;
     pointer-events: none;
     transition:
@@ -854,9 +941,12 @@ input::placeholder {
 .modal {
     max-width: 380px;
     padding: 0;
-    border: 1px solid var(--cuero-claro);
+    border: 1px solid var(--vidrio-borde);
     border-radius: var(--radio);
-    background: var(--noche-alta);
+    background: var(--vidrio-reflejo), var(--vidrio-hoja);
+    box-shadow: var(--vidrio-cantos), var(--vidrio-sombra);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     color: var(--hueso);
 }
 .modal::backdrop {
@@ -909,6 +999,13 @@ input::placeholder {
     color: var(--brasa-viva);
     background: linear-gradient(180deg, #2b1d10 0%, #1b1209 100%);
     border: 1px solid var(--brasa-honda);
+    box-shadow: var(--vidrio-cantos);
+}
+:root[data-tema='brasa'] .btn-principal:disabled {
+    color: var(--hueso-tenue);
+    background: var(--vidrio-tinte);
+    border-color: var(--vidrio-borde);
+    box-shadow: none;
 }
 
 /* El aviso flotante, por lo mismo. */
@@ -916,6 +1013,20 @@ input::placeholder {
     color: var(--brasa-viva);
     background: #2b1d10;
     border: 1px solid var(--brasa-honda);
+    box-shadow: var(--vidrio-cantos), var(--vidrio-sombra);
+}
+
+/* Menos transparencia o más contraste: el ámbar queda liso, sin reflejo
+   ni cantos (tokens.css hace lo mismo con el vidrio oscuro). */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+    .btn-principal,
+    .toast {
+        background: var(--brasa-viva);
+        box-shadow: none;
+    }
+    :root[data-tema='brasa'] :is(.btn-principal, .toast) {
+        background: #2b1d10;
+    }
 }
 
 /* ============ V3: LA TARJETA EN PASOS, LA ALARMA Y LOS PATRONES ============ */

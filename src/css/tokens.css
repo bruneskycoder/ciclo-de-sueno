@@ -53,6 +53,28 @@
     /* Cuánto alumbra el fuego sobre la página. El modo brasa lo baja. */
     --luz-fuego: 0.22;
     --fuego-anim: 3s;
+
+    /* VIDRIO (paso 16b). Un solo vidrio para todos los controles, no un
+       efecto por botón. No dobla la luz: es un tinte, un borde fino que
+       brilla, un reflejo y una sombra. La luz de la pantalla viene de
+       arriba a la izquierda, así que ese canto brilla más y el de abajo a
+       la derecha queda en sombra. */
+    --vidrio-tinte: rgb(10 15 19 / 0.58);
+    --vidrio-hoja: rgb(21 29 35 / 0.9);
+    --vidrio-borde: rgb(236 226 204 / 0.2);
+    --vidrio-reflejo: linear-gradient(
+        150deg,
+        rgb(255 246 228 / 0.16) 0%,
+        rgb(255 246 228 / 0.04) 38%,
+        transparent 60%
+    );
+    --vidrio-cantos: inset 1px 1px 0 rgb(255 244 222 / 0.26), inset -1px -1px 0 rgb(0 0 0 / 0.3);
+    --vidrio-sombra: 0 8px 22px -10px rgb(0 0 0 / 0.75);
+    --vidrio-desenfoque: 3px;
+    /* Apretado: el reflejo se apaga y el canto de arriba pasa a sombra,
+       como un vidrio que se hunde. */
+    --vidrio-cantos-apretado:
+        inset 1px 2px 3px rgb(0 0 0 / 0.45), inset -1px -1px 0 rgb(255 244 222 / 0.1);
 }
 
 /* MODO BRASA. Para mirar la app a oscuras sin comerse la pantalla en la
@@ -75,4 +97,35 @@
 
     --luz-fuego: 0.08;
     --fuego-anim: 0s;
+
+    /* A oscuras el reflejo es un brillo de más en la cara. */
+    --vidrio-tinte: rgb(6 9 11 / 0.8);
+    --vidrio-borde: rgb(185 173 151 / 0.16);
+    --vidrio-reflejo: linear-gradient(150deg, rgb(255 246 228 / 0.05) 0%, transparent 45%);
+    --vidrio-cantos: inset 1px 1px 0 rgb(255 244 222 / 0.1), inset -1px -1px 0 rgb(0 0 0 / 0.3);
+}
+
+/* Quien pide menos transparencia o más contraste recibe superficies
+   lisas: el mismo color, sin ver a través ni reflejo. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+    :root {
+        --vidrio-tinte: #0a0f13;
+        --vidrio-hoja: #151d23;
+        --vidrio-reflejo: none;
+        --vidrio-cantos: 0 0 transparent;
+        --vidrio-desenfoque: 0px;
+    }
+    :root[data-tema='brasa'] {
+        --vidrio-tinte: #06090b;
+        --vidrio-reflejo: none;
+        --vidrio-cantos: 0 0 transparent;
+    }
+}
+@media (prefers-contrast: more) {
+    :root {
+        --vidrio-borde: #b9a98a;
+    }
+    :root[data-tema='brasa'] {
+        --vidrio-borde: #8a7f6c;
+    }
 }
