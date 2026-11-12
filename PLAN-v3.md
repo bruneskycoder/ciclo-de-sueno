@@ -677,6 +677,47 @@ se rechazó y la pintura animada se aprobó.
       0,6 de velo daba 2,5:1. **Sigue sin resolver acá:** el pie de la
       lista ("Entre la siesta corta…") va suelto sobre el fuego y da 1:1.
       Las otras dos medidas de pantalla, pendientes.
+      - b. *Vidrio (pedido de Bruno, 2026-11-12).* Dos partes, en este
+        orden y dentro del 16, porque el 16 mueve las tarjetas y hacerlo
+        antes sería rehacerlo. Referencias revisadas (todas MIT): la guía
+        de Bruno (`GUIA_LIQUID_GLASS`, no está en el repo),
+        naplesblue/apple-design-skill (criterio), gentpan/liquidglass
+        (mapa de desplazamiento y brillo de borde direccional),
+        shuding/liquid-glass y nikdelvin/liquid-glass (solo referencia
+        visual). No se instala ninguna librería.
+        - **A. Vidrio CSS en los controles:** los dos botones de icono, el
+          botón principal, los diálogos y el aviso. Borde fino luminoso,
+          reflejo más fuerte del lado de la luz (arriba a la izquierda),
+          sombra suave, poco desenfoque; estados normal, apretado, foco y
+          deshabilitado; `prefers-reduced-transparency` y
+          `prefers-contrast: more` dan superficie sólida. Variables en
+          `tokens.css`, no un efecto distinto por botón. **No es
+          refracción** y no se describe como tal. Verificación: capturas
+          de cada estado de día y de noche, contraste AA del texto y los
+          iconos, foco visible con teclado.
+        - **B. Refracción propia en la lista, como prototipo:** la escena
+          dobla los píxeles que quedan bajo el borde de cada tarjeta
+          (franja de unos 8 a 12 px; el centro, plano), con
+          desplazamiento en **píxeles enteros**, como el viento: vidrio
+          viejo, no lente de iPhone. Se dibuja en `escena-pintada.js`
+          leyendo la posición de las tarjetas en cada cuadro; sin WebGL.
+          Encima, el borde de A. Verificación: en el iPhone de Bruno, el
+          borde no tiembla al scrollear con inercia (riesgo no medido:
+          en iOS el scroll puede ir un cuadro adelantado al canvas);
+          cuadros por segundo con la CPU frenada 4 veces sin bajar del
+          piso del paso 17; el contraste medido arriba no baja de 4,5:1.
+          Si tiembla o desentona, la lista queda con el velo y el borde
+          de A, y se anota acá.
+        **Hechos que condicionan:** el filtro SVG en `backdrop-filter`
+        (la técnica de shuding y nikdelvin) solo lo dibuja Chromium; en
+        iPhone no se ve (según gentpan, que lo verificó; yo no lo
+        repetí). Detrás de las tarjetas hay un canvas, no HTML, y por eso
+        la refracción la tiene que hacer la escena. Medido hoy: el
+        desenfoque no compra contraste (velo 0,7 con 6 px de desenfoque
+        dio 3,2:1; velo 0,8 sin desenfoque, 4:1); el vidrio no deja bajar
+        el velo. **Se aparta de Apple a propósito:** su criterio pone el
+        vidrio en los controles y no en filas de contenido; la lista lo
+        lleva porque acá ver el fuego detrás de las horas es la idea.
 - [ ] 17. **QA.** Lighthouse ≥ 90 de performance y 100 de accesibilidad;
       cuadros por segundo con la CPU frenada 4 veces (meta: sostener 30;
       piso aceptable, propuesto: 24); peso total de la escena contra el
@@ -864,6 +905,14 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
   recortaría unos 50 px por lado en un iPhone 13 y se llevaría el poncho y
   el anca del caballo. Las tarjetas suben sobre la escena fija: la cámara
   no se mueve.
+- 2026-11-12 — **El tinte queda para día, atardecer y amanecer** (paso
+  14d), con el OK de Bruno y sin la prueba de lectura con alguien que no
+  la vio.
+- 2026-11-12 — **Las tarjetas dejan ver la escena** con un velo medido
+  contra el fuego, y **el vidrio entra en el 16b**: CSS en los controles
+  (A) y refracción propia en píxeles enteros sobre la lista, como
+  prototipo (B). Descartado: librerías de vidrio (no andan sobre un
+  canvas en iPhone o suman WebGL y 93 kB).
 
 ---
 
