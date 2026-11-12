@@ -669,6 +669,14 @@ se rechazó y la pintura animada se aprobó.
       llama — verificación: contraste AA de los textos medido sobre los
       píxeles reales de la pintura que quedan detrás, en el peor caso, a
       375 × 667, 390 × 844 y 430 × 932; capturas en reposo y scrolleadas.
+      **Adelantado 2026-11-12, pedido de Bruno:** las tarjetas son un velo
+      (`--velo`, 0,78 de noche a 0,85 de día; +0,15 en modo brasa) con un
+      halo oscuro en las letras. Medido a 390 × 844 en el borde de las
+      letras, con el fuego detrás (el peor caso): texto tenue entre 4,6 y
+      5,8:1 (percentil 2), de día, al atardecer, de noche y en brasa. Con
+      0,6 de velo daba 2,5:1. **Sigue sin resolver acá:** el pie de la
+      lista ("Entre la siesta corta…") va suelto sobre el fuego y da 1:1.
+      Las otras dos medidas de pantalla, pendientes.
 - [ ] 17. **QA.** Lighthouse ≥ 90 de performance y 100 de accesibilidad;
       cuadros por segundo con la CPU frenada 4 veces (meta: sostener 30;
       piso aceptable, propuesto: 24); peso total de la escena contra el

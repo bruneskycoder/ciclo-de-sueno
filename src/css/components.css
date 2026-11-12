@@ -41,6 +41,40 @@
     visibility: hidden;
 }
 
+/* Con la pintura detrás, las tarjetas son un velo y no una pared: se ve
+   la escena moverse a través de ellas. Cuánto tapan lo pone
+   escena-pintada.js en --velo según la luz del sol: de noche la pintura es
+   oscura y alcanza con poco; de día el cielo es claro y hace falta más
+   para que el texto siga leyéndose. Solo dentro de la pantalla: los
+   diálogos quedan opacos. */
+.escena-pintada .pantalla {
+    --noche-alta: rgb(21 29 35 / var(--velo, 0.8));
+    --noche: rgb(13 18 22 / var(--velo, 0.8));
+}
+/* En modo brasa el texto es más tenue: el velo tapa casi del todo. */
+:root.escena-pintada[data-tema='brasa'] .pantalla {
+    --noche-alta: rgb(14 19 22 / calc(var(--velo, 0.8) + 0.15));
+    --noche: rgb(8 11 13 / calc(var(--velo, 0.8) + 0.15));
+}
+/* La lista dibuja sus separadores con el fondo que asoma entre filas;
+   con filas transparentes ese fondo se sumaría detrás de todas. */
+.escena-pintada .resultado-filas {
+    gap: 0;
+    background: none;
+}
+.escena-pintada .resultado-filas > li + li {
+    border-top: 1px solid rgb(232 220 196 / 0.08);
+}
+/* El fuego queda fijo detrás de la lista y siempre hay alguna fila encima
+   de él: es lo más claro de la pintura. Un halo oscuro pegado a cada letra
+   la despega de la llama sin tener que tapar la escena entera. */
+.escena-pintada :is(.fila, .fila-siesta, .fila-vacia, .tarjeta-anoche) {
+    text-shadow:
+        0 0 1px rgb(5 8 10),
+        0 0 2px rgb(5 8 10),
+        0 0 4px rgb(5 8 10 / 0.8);
+}
+
 /* ============ BOTONES ============ */
 /* Los dos iconos se apoyan sobre la escena, que de día es clara y de
    noche oscura. Sin un fondo propio quedaban invisibles contra el cielo
@@ -221,7 +255,8 @@
 /* Las recomendadas: el fuego las marca, no un color de semáforo. */
 .fila.recomendada {
     border-left-color: var(--brasa);
-    background: linear-gradient(90deg, rgba(221, 159, 69, 0.09) 0%, var(--noche-alta) 55%);
+    background:
+        linear-gradient(90deg, rgba(221, 159, 69, 0.09) 0%, transparent 55%), var(--noche-alta);
 }
 .fila.recomendada .hora {
     color: var(--brasa-viva);

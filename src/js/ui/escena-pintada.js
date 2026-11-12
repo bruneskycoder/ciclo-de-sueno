@@ -38,6 +38,13 @@ import { tinteDelCielo } from '../tinte.js';
 // fecha, a cualquier hora.
 export const MOMENTOS_PINTADOS = new Set(['noche', 'atardecer', 'dia', 'amanecer']);
 
+// Opacidad de las tarjetas sobre la pintura, de noche cerrada y de día
+// pleno. Medidas (2026-11-12) para que el texto tenue pase AA (4,5:1) en
+// el borde de las letras, con el fuego detrás, que es el peor caso: con
+// 0,6 de noche daba 2,5:1.
+const VELO_NOCHE = 0.78;
+const VELO_DIA = 0.85;
+
 function fechaDePrueba() {
     const v = new URLSearchParams(location.search).get('cielo');
     const d = v ? new Date(v) : null;
@@ -136,7 +143,15 @@ export async function montarEscenaPintada() {
                 }
             }
             if (cambio) {
-                baseCtx.putImageData(salida, 0, 0, z.x0, z.punta, z.x1 - z.x0, z.base - z.punta + 1);
+                baseCtx.putImageData(
+                    salida,
+                    0,
+                    0,
+                    z.x0,
+                    z.punta,
+                    z.x1 - z.x0,
+                    z.base - z.punta + 1,
+                );
             }
         });
     }
@@ -224,6 +239,12 @@ export async function montarEscenaPintada() {
         // Cielo nuevo (atardecer, día, amanecer): un degradé por encima del
         // contorno del monte.
         const tinte = tinteDelCielo(altura);
+        // Cuánto tapan las tarjetas (ver --velo en components.css): más de
+        // día, cuando el cielo detrás es claro.
+        document.documentElement.style.setProperty(
+            '--velo',
+            String(VELO_NOCHE + (VELO_DIA - VELO_NOCHE) * luz),
+        );
         capaCtx.clearRect(0, 0, W, H);
         if (tinte.opacidad > 0) {
             const g = capaCtx.createLinearGradient(0, 0, 0, 268);
@@ -258,7 +279,9 @@ export async function montarEscenaPintada() {
         }
 
         cielo = {
-            estrellas: estrellasVisibles(ahora, sitio.lat, sitio.lon, contorno, { luna: l.visible }),
+            estrellas: estrellasVisibles(ahora, sitio.lat, sitio.lon, contorno, {
+                luna: l.visible,
+            }),
             visibilidad,
             lunaVisible: l.visible,
             lunaAlpha: 1 - 0.6 * luz,
