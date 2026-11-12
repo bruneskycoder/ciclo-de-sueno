@@ -31,12 +31,12 @@ import { LUNA, estrellasVisibles, mascaraLuna, visibilidadEstrellas } from '../e
 import { tinteDelCielo } from '../tinte.js';
 
 // Momentos del día en que se muestra la pintura. De noche es la pintura
-// tal cual. Para el atardecer, el amanecer y el día hay un tinte
-// (tinte.js), pero el plan lo deja afuera hasta que alguien que no la vio
-// diga qué momento del día es (paso 14d). Hasta entonces, en esos momentos
-// queda la escena 2D. Con ?cielo=2026-12-21T19:30-03:00 en la dirección se
-// ve el cielo de esa fecha, en cualquier momento, para mirar el tinte.
-export const MOMENTOS_PINTADOS = new Set(['noche']);
+// tal cual; al atardecer, de día y al amanecer, con el tinte de tinte.js
+// (Bruno lo aprobó el 2026-11-12, paso 14d). Si algún momento se saca de
+// acá, en ese momento vuelve la escena 2D y la imagen ni se baja. Con
+// ?cielo=2026-12-21T19:30-03:00 en la dirección se ve el cielo de esa
+// fecha, a cualquier hora.
+export const MOMENTOS_PINTADOS = new Set(['noche', 'atardecer', 'dia', 'amanecer']);
 
 function fechaDePrueba() {
     const v = new URLSearchParams(location.search).get('cielo');

@@ -3,11 +3,10 @@
 //
 // La pintura es de noche. Para el atardecer, el día y el amanecer no se
 // pinta otra: se cambia el cielo (lo que queda por encima del monte) por un
-// degradé y se levanta un poco la luz del conjunto. Es una hipótesis, no un
-// hecho: puede leerse como "noche con filtro". Se decide con la prueba de
-// lectura del plan (alguien que no la vio dice qué momento del día es) y, si
-// no pasa, ese momento se muestra con la escena 2D (ver MOMENTOS_PINTADOS en
-// escena-pintada.js).
+// degradé y se levanta un poco la luz del conjunto. Bruno lo aprobó el
+// 2026-11-12; la prueba de lectura con alguien que no la vio sigue sin
+// hacerse. Si un momento no se lee, se saca de MOMENTOS_PINTADOS en
+// escena-pintada.js y en ese momento vuelve la escena 2D.
 //
 // Todo es interpolación entre cuatro claves, por altura del sol: continuo,
 // sin saltos.

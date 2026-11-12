@@ -565,7 +565,7 @@ se rechazó y la pintura animada se aprobó.
       cielo) hasta el 14c. Modo brasa: la pintura se oscurece con
       `brightness(0.6)`; el valor es una primera cuenta, no medida contra
       contraste. Con ahorro de datos prendido no se baja la pintura.
-- [~] 14. **El cielo real.**
+- [x] 14. **El cielo real.**
       - a. *Ubicación.* Por zona horaria: Resistencia para cualquier zona
         argentina, incluidos los alias que devuelve Chromium
         (`America/Cordoba`, `America/Buenos_Aires`, `America/Argentina/*`);
@@ -589,7 +589,8 @@ se rechazó y la pintura animada se aprobó.
         momentos y la prueba de lectura con alguien que no las vio
         (*¿qué momento del día es?*). Si ninguna vía pasa, de día y al
         atardecer queda la escena 2D, y se anota acá.
-      **Estado 2026-11-12: 14a, 14b y 14c hechos; 14d hecho a medias.**
+      **Estado 2026-11-12: 14a, 14b, 14c y 14d hechos.** (14d cerrado
+      con el OK de Bruno al tinte; ver la nota al final del 14d.)
       - *14a.* `src/js/ubicacion.js`: cualquier zona argentina (incluidos
         `America/Cordoba` y `America/Buenos_Aires`) da Resistencia; 33
         ciudades de referencia (Auckland entre ellas); una zona que no
@@ -636,6 +637,17 @@ se rechazó y la pintura animada se aprobó.
         Bruno pida a Gemini atardecer y día sobre la misma imagen) no se
         intentó. Un caso a mirar: si la app queda abierta pasando del
         atardecer a la noche, no cambia sola a la pintura hasta recargar.
+        **Cierre (2026-11-12):** Bruno miró las capturas y aprobó el
+        tinte. `MOMENTOS_PINTADOS` pasa a tener los cuatro momentos: la
+        pintura se ve a cualquier hora y la escena 2D queda solo como
+        respaldo (sin red, ahorro de datos, sin canvas). Con eso se cae el
+        caso de la app abierta del atardecer a la noche: el cielo se
+        recalcula cada 30 segundos sobre la misma pintura. **Lo que sigue
+        abierto:** Bruno ya la había visto, así que la prueba de lectura
+        del plan (alguien que no la vio) no está hecha; mi lectura de "el
+        día parece una noche con filtro" tampoco se refutó, se decidió
+        igual. Si en la prueba de lectura del 15b alguien no reconoce el
+        día, se saca `dia` del conjunto y vuelve la escena 2D de día.
       - **Medido:** el chunk de la escena pasó a 25 kB (11 kB comprimido)
         por el catálogo y suncalc; la imagen sigue aparte con hash. 310
         tests, lint y build en verde.
