@@ -1,10 +1,8 @@
-// fuego.js — cuánto fuego queda y cuánta leña hay al lado, sin tocar el DOM.
+// fuego.js — cuánto fuego queda, sin tocar el DOM.
 //
 // Paso 15 del plan v3: la escena cuenta la noche. Con una noche en curso,
 // el fuego baja en proporción a lo que llevás en la cama respecto de lo
-// planeado; al elegir una hora de la lista, al lado del fogón aparecen
-// tantos leños como ciclos. Funciones puras: reciben la noche y la hora,
-// devuelven números.
+// planeado. Funciones puras: reciben la noche y la hora, devuelven números.
 import { isStaleOpenSleep } from './sleep-session.js';
 
 // La fuerza del fuego va de 1 (recién prendido) a FUERZA_MINIMA (brasas al
@@ -14,9 +12,6 @@ export const FUERZA_MINIMA = 0.3;
 
 // De día el fogón queda chico (paso 15c): nadie atiza a pleno sol.
 export const FUERZA_DE_DIA = 0.45;
-
-// Leños que entran en la pila. La lista ofrece hasta 6 ciclos.
-export const LENOS_MAX = 6;
 
 const aMinutos = (hhmm) => {
     const [h, m] = hhmm.split(':').map(Number);
@@ -64,15 +59,4 @@ export function fuerzaDelFuego({ consumo = null, momento = 'noche' } = {}) {
     if (momento === 'dia') f = FUERZA_DE_DIA;
     if (consumo !== null) f = Math.min(f, 1 - (1 - FUERZA_MINIMA) * consumo);
     return f;
-}
-
-/**
- * Cuántos leños quedan al lado del fogón. Con una noche en curso, los
- * ciclos que faltan hasta la hora planeada (redondeando para arriba: un
- * ciclo empezado todavía tiene su leño). Sin noche, los ciclos de la hora
- * elegida en la lista. Entre 0 y LENOS_MAX.
- */
-export function lenosAlLado({ consumo = null, ciclosPlaneados = 0, ciclosElegidos = 0 } = {}) {
-    const n = consumo === null ? ciclosElegidos : Math.ceil(ciclosPlaneados * (1 - consumo) - 1e-9);
-    return Math.min(LENOS_MAX, Math.max(0, Math.round(n) || 0));
 }

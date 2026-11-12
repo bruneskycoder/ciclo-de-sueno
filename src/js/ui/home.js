@@ -92,7 +92,7 @@ export function initHome() {
             return;
         }
         const fila = evento.target.closest('.fila');
-        if (fila && fila.dataset.hora) elegirHora(fila.dataset.hora, fila.dataset.ciclos);
+        if (fila && fila.dataset.hora) elegirHora(fila.dataset.hora);
     });
 
     conectarHojaAlarma();
@@ -211,7 +211,6 @@ function filaResultado(opcion, ahora) {
     if (opcion.seleccionable) {
         fila.type = 'button';
         fila.dataset.hora = opcion.hora;
-        fila.dataset.ciclos = String(opcion.ciclos);
         if (opcion.hora === horaElegida) fila.classList.add('elegida');
     }
 
@@ -243,9 +242,8 @@ function filaResultado(opcion, ahora) {
     return li;
 }
 
-function elegirHora(hora, ciclos) {
+function elegirHora(hora) {
     horaElegida = horaElegida === hora ? null : hora;
-    mostrarLena(horaElegida ? ciclos : null);
     renderResultado();
     renderAccion();
 }
@@ -260,17 +258,8 @@ function alPedirHora(evento) {
     // Pedir una hora es consultar, no anotar: la elección de la noche se
     // limpia para no arrastrar una intención que ya no corresponde.
     horaElegida = null;
-    mostrarLena(null);
     renderResultado({ modo: 'hora', hora });
     renderAccion();
-}
-
-// La escena pintada pone al lado del fogón tantos leños como ciclos tiene
-// la hora elegida (paso 15b). Se lo dice por un atributo y no por una
-// llamada porque la escena se carga después, y a veces no se carga.
-function mostrarLena(ciclos) {
-    if (ciclos) document.documentElement.dataset.lena = String(ciclos);
-    else delete document.documentElement.dataset.lena;
 }
 
 // --- ALARMA ---
@@ -384,7 +373,6 @@ function alTocarPrincipal() {
     pregunta = null;
     startOpenSleep(new Date(), { intendedWaketime: horaElegida });
     horaElegida = null;
-    mostrarLena(null);
     showToast('Anotado. Que descanses.');
     renderHome();
 }

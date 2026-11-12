@@ -664,7 +664,7 @@ se rechazó y la pintura animada se aprobó.
       - c. *De día, fuego chico,* si el paso 14d dejó una vía para el día.
       **Estado 2026-11-12: 15a, 15b y 15c hechos; falta la prueba de
       lectura del 15b.** Capturas: `docs/fuego-noche.webp`; en la app,
-      `?noche=0.6` simula el 60% de la noche y `?lena=4` pone cuatro leños.
+      `?noche=0.6` simula el 60% de la noche (`?lena` se fue con la pila).
       - *15a.* El plan B (pintura de brasas en Gemini) no hizo falta.
         Achicar la llama tal cual arrastraba el fondo, así que primero se
         separa: `separarLlama` marca qué píxeles son fuego (umbrales
@@ -694,6 +694,10 @@ se rechazó y la pintura animada se aprobó.
         prueba de lectura con alguien que no la vio (*¿qué hay al lado del
         fuego? ¿cuántos?*). Si no se cuentan o desentonan, se saca la
         pila y la cantidad queda en la tarjeta.
+        **Sacado (2026-11-12), pedido de Bruno** tras verla en el
+        iPhone: la pila, `lenosAlLado` y `?lena` ya no existen, y la
+        cantidad de ciclos queda solo en la lista. Se va también la
+        prueba de lectura pendiente.
       - *15c.* De día, fuego al 45%. Una siesta de día toma el más chico
         de los dos.
       - **Medido:** 332 tests (22 nuevos), lint y build en verde; el chunk
@@ -1051,6 +1055,8 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
   (paso 15a), no con una pintura de brasas aparte. **Con una noche en
   curso, la leña cuenta los ciclos que faltan** (15b), decisión mía que
   el plan no pedía.
+- 2026-11-12 — **Se saca la pila de leños** (15b), pedido de Bruno. La
+  escena cuenta la noche solo con el fuego que baja.
 - 2026-11-12 — **El vidrio de la lista dobla en el canto y el velo se
   afina ahí** (16b B): sin afinar el velo, la refracción quedaba debajo
   de 0,78 de oscuro y no se veía. Corrimiento en 0,45 del canto,
