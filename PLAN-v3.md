@@ -472,7 +472,8 @@ se rechazó y la pintura animada se aprobó.
       - a. *Sacar el 3D.* Borrar `escena-prototipo.html`,
         `src/js/escena3d/` y `docs/escena3d-prototipo.png`, y correr
         `npm uninstall three` — verificación: `npm ls three` vacío, los
-        219 tests, lint y build en verde.
+        219 tests, lint y build en verde. **Hecho 2026-11-12:** los tres
+        verificados.
       - b. *Cielo liso.* Bruno le pide a Gemini, adjuntando `noche.png`:
         "la misma imagen exacta, mismo encuadre y mismos elementos, pero
         con el cielo liso: sin estrellas ni luna". Se guarda como
@@ -485,14 +486,28 @@ se rechazó y la pintura animada se aprobó.
         altura donde termina el cielo, para que las estrellas no se
         dibujen delante de los árboles ni del cardón — verificación:
         captura con el contorno marcado, como el `?mascara=1` de la
-        prueba.
+        prueba. **Herramienta hecha** (`scripts/contorno-cielo.py`, usa
+        Pillow) y probada sobre la pintura de hoy: sigue la copa de la
+        izquierda y el cardón, y toma la bruma del horizonte como cielo.
+        Falta correrla sobre la de cielo liso y guardar el resultado.
       - d. *Peso.* Probar PNG con paleta y WebP sin pérdida y quedarse con
         el más chico que no cambie ningún píxel a ojo. Fijar acá el
         presupuesto de las imágenes (punto de partida, estimado: la mitad
         de los 567 kB de hoy por pintura). Las pinturas pasan a
         `src/assets/` y se importan, para que el nombre lleve hash —
         verificación: kB antes y después, captura lado a lado, y el nombre
-        con hash en `dist/`.
+        con hash en `dist/`. **Medido 2026-11-12** sobre los 567 kB del PNG:
+        PNG optimizado 567 kB (no baja nada); WebP sin pérdida 398 kB;
+        PNG de 128 colores 165 kB, **descartado**: la llama sale gris y el
+        poncho marrón; WebP con pérdida calidad 90, **95 kB** (−83%) y
+        calidad 85, 77 kB, los dos indistinguibles del original a ojo con
+        zoom 3× sobre el fuego y el gaucho. **Elegido: WebP calidad 90**
+        (`src/assets/escena/noche.webp`); el PNG original quedó en
+        `docs/fuentes/noche.png` para adjuntarlo a Gemini. Pendiente: el
+        import con hash en `dist/` se comprueba en el paso 13, cuando
+        el build use la imagen; `escena-pintada.html` ya la carga desde
+        `src/assets/` y anda sin errores. El presupuesto queda en 100 kB
+        por pintura.
       - **Checkpoint.** Te mando la pintura de cielo liso y no sigo hasta
         tu OK. Es tu decisión si el cielo real vale más que el cielo
         pintado que ya te gustó; el supuesto por defecto es que sí, por la
