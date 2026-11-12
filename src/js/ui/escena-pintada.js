@@ -108,7 +108,9 @@ const TARJETAS = '.tarjeta-anoche, .resultado, .accion, .enlaces';
 // el mismo --canto de components.css, y cuánto corre la imagen pegado al
 // borde, en proporción a ese ancho.
 const CANTO = 8;
-const CORRIMIENTO = 0.45;
+// 0,8 desde que Bruno lo vio en el iPhone (2026-11-12): con 0,45 no se
+// notaba a tamaño de teléfono.
+const CORRIMIENTO = 0.8;
 
 function cargar(url) {
     return new Promise((ok, mal) => {
@@ -476,8 +478,8 @@ export async function montarEscenaPintada() {
     // cuadro y se pega encima, recortado a la forma redonda de la tarjeta.
     // Sin él, en modo brasa y con menos transparencia pedida: ahí la lista
     // es un velo liso (components.css).
-    // Para comparar capturas: ?canto=0 dibuja la lista sin doblar nada y
-    // ?canto=0.8 dobla casi el doble.
+    // Para comparar capturas: ?canto=0 dibuja la lista sin doblar nada,
+    // ?canto=0.45 dobla como el primer intento y ?canto=1, al máximo.
     const corrimiento = numeroDePrueba('canto', 0, 1) ?? CORRIMIENTO;
     const copia = document.createElement('canvas');
     const copiaCtx = copia.getContext('2d');

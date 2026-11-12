@@ -847,11 +847,11 @@ se rechazó y la pintura animada se aprobó.
           de 31 a 32 kB (14,3 kB comprimido) y el CSS a 22,7 kB.
         - **Cierre (2026-11-12):** publicado (PR #12) y Bruno lo miró en
           su iPhone: "todo funciona bien". Con eso se dan por vistos el
-          16a y el 16b en el teléfono. **Lo que sigue abierto:** el OK no
-          dice nada específico del temblor del canto, del canvas al
-          esconderse las barras ni del valor de `?canto`, así que el
-          corrimiento queda en 0,45 y el temblor se mide con grabación
-          en el paso 17.
+          16a y el 16b en el teléfono. Después, en concreto: **el canto
+          no tiembla** al scrollear y la escena está bien. Pidió que
+          doble más: el corrimiento pasa de 0,45 a 0,8 (el `?canto=0.8`
+          de las capturas). El temblor de los píxeles de la pintura en
+          sí se sigue grabando en el paso 17.
 - [ ] 17. **QA.** Lighthouse ≥ 90 de performance y 100 de accesibilidad;
       cuadros por segundo con la CPU frenada 4 veces (meta: sostener 30;
       piso aceptable, propuesto: 24); peso total de la escena contra el
@@ -1054,7 +1054,7 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
 - 2026-11-12 — **El vidrio de la lista dobla en el canto y el velo se
   afina ahí** (16b B): sin afinar el velo, la refracción quedaba debajo
   de 0,78 de oscuro y no se veía. Corrimiento en 0,45 del canto,
-  decisión mía a revisar en el teléfono.
+  decisión mía; Bruno lo vio en el iPhone y lo subió a 0,8.
 
 ---
 
