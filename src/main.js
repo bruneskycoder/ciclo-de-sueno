@@ -26,7 +26,6 @@ function init() {
     registerSheet('hoja-cuaderno', renderCuaderno);
     registerSheet('hoja-ajustes', renderAjustes);
     registerSheet('hoja-info');
-    registerSheet('hoja-alarma');
 
     document
         .getElementById('abrir-cuaderno')

@@ -435,19 +435,6 @@ export function markExported(now = new Date()) {
     localStorage.setItem(LAST_EXPORT_KEY, now.toISOString());
 }
 
-// Si ya se mostró la explicación del atajo de la alarma. La primera vez que
-// se toca "Poner alarma" aparece la hoja con los pasos; después, el toque
-// abre el atajo directo.
-const ALARM_GUIDE_KEY = 'alarmGuideSeen';
-
-export function hasSeenAlarmGuide() {
-    return localStorage.getItem(ALARM_GUIDE_KEY) === '1';
-}
-
-export function markAlarmGuideSeen() {
-    localStorage.setItem(ALARM_GUIDE_KEY, '1');
-}
-
 export function exportData() {
     return {
         version: EXPORT_VERSION,

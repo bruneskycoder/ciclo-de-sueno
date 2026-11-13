@@ -29,7 +29,6 @@ import { ubicacionVigente } from '../ubicacion.js';
 import { chooseModal, confirmModal } from './modal.js';
 import { showToast } from './toast.js';
 import { renderEscena } from './escena.js';
-import { abrirGuiaAlarma } from './home.js';
 import { backupReminder } from '../respaldo.js';
 
 export function initAjustes() {
@@ -61,7 +60,6 @@ export function initAjustes() {
     });
 
     document.getElementById('btn-exportar').addEventListener('click', exportar);
-    document.getElementById('btn-guia-alarma').addEventListener('click', () => abrirGuiaAlarma());
 
     const archivo = document.getElementById('import-file-input');
     document.getElementById('btn-importar').addEventListener('click', () => archivo.click());
