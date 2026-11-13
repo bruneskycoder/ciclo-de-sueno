@@ -125,6 +125,127 @@ Por honestidad, porque también es parte del ejemplo:
   escribir el archivo. Cuando uno fallaba a mitad, los mensajes de éxito
   eran de cambios que se descartaban: una corrección se "hizo" dos veces
   sin existir. Se pasó a verificar leyendo el archivo de vuelta del disco.
+- En la v3, para chequear el formato de unos archivos guardó los cambios
+  a un costado (`git stash`) mientras otra medición leía esos mismos
+  archivos de un servidor en marcha. La medición se cayó a mitad de
+  camino. No hizo daño porque se cayó; si hubiera terminado, habría
+  medido una versión que no era. Se repitió sin tocar nada mientras
+  corría.
+
+## La versión 3
+
+La v2 salió, se usó dos meses y dejó un backup. La v3 arrancó leyendo ese
+archivo antes que el código, y el plan está en
+[`PLAN-v3.md`](../PLAN-v3.md).
+
+### Los datos reales vieron lo que los tests no veían
+
+La v2 tenía 132 tests en verde. El backup del 8 de noviembre tenía 44
+noches, y dos eran imposibles: una de **23 horas y media** (16 ciclos) y
+una siesta de 22 minutos que había sido una noche entera.
+
+La causa se encontró leyendo los ids, que son la hora de creación: esas
+noches se habían cerrado 13 días y 2 días después de abiertas. La cuenta
+de la duración restaba horas de reloj y no podía saber que habían pasado
+días. Había una función que detectaba justo eso, una noche olvidada,
+con sus tests y todo, pero ninguna pantalla la llamaba. Cada pieza
+pasaba sus pruebas; el camino entero, no.
+
+Y había un daño de arrastre. Mientras esa noche estuvo abierta, el botón
+decía "Ya me levanté" y no había forma de marcar "Me voy a dormir": las
+ocho noches siguientes se anotaron de memoria, sin horario.
+
+El backup también desarmó dos cosas que se daban por ciertas:
+
+- **"Fue así" no medía nada.** De 13 noches con horario, 12 eran
+  exactamente el plan: noventa minutos por ciclo más los veinte de
+  dormirse. Confirmar copiaba la intención. Ahora la confirmación ofrece
+  horas alrededor de la planeada, para elegir la que fue.
+- **La frase libre se había apagado.** Siete notas, todas en las primeras
+  dos semanas, y cuatro de ellas corregían datos que el formulario no
+  dejaba cargar: "me costó dormirme", "me desperté antes". Esas cosas
+  pasaron a ser motivos de un toque.
+
+Y una que la v2 apostó y acertó: **0 de 44 noches se anotaron entre las 5
+y las 12 del mediodía.** Preguntar por anoche al entrar de noche, en vez
+de pedirlo a la mañana, subió la cobertura de cero usos reales al 77%.
+
+La lección es la misma de la v2, más grande: los tests prueban lo que uno
+pensó. Los datos de alguien usando la app prueban lo que pasa.
+
+### Un 3D que se probó, se rechazó y se reemplazó
+
+El plan de la escena pedía un mundo en 3D con three.js, personajes de
+unos 30 píxeles escritos como texto y una cámara quieta, con todo el
+fundamento técnico en regla: cámara ortográfica alineada a la grilla, luz
+en escalones, sombras de color. El criterio que lo eligió fue "que se
+pueda mantener orquestando IA sin leer código".
+
+Se armó un prototipo y el autor lo rechazó. Los personajes de texto no
+daban para un brazo, un poncho o la anatomía de un caballo: era el mismo
+problema de la v2 con más maquinaria encima, y 133 kB comprimidos más de
+librería. El criterio estaba mal puesto: miraba el motor, y lo que
+limitaba era **de dónde salía el dibujo.**
+
+Lo que lo reemplazó salió de unas referencias que mostró el autor: pixel art
+pintado con IA. Una sola pintura generada en Gemini, de 572 × 1024, y el
+código animando encima sin librerías:
+
+- La llama se deforma a partir de la pintada; no se dibuja otra que
+  desentone.
+- El viento corre copas y pasto de a píxeles enteros.
+- Gemini rehízo la pintura con el cielo vacío, y el código pone las
+  estrellas reales de esa noche y la luna con su fase.
+- El fuego se consume con la noche en curso.
+
+Se desinstaló three.js. La pintura pasó de un PNG de 567 kB a un WebP
+de 84 kB que a ojo no se distingue.
+
+Lo que no funcionó también quedó anotado. Una pila de leños que contaba
+los ciclos al lado del fogón se hizo, se vio en el teléfono y se sacó: la
+cantidad ya estaba en la lista. Y un primer intento de los leños, más
+chicos, se leía como cajitas.
+
+### Qué se tomó de otros proyectos
+
+Antes de diseñar se leyeron código y documentación de proyectos que
+resuelven bien partes de esto. Lo que quedó:
+
+- **suncalc** (Agafonkin): la altura del sol y la fase de la luna, 3 kB
+  comprimidos, en vez de escribir una función propia.
+- **d3-celestial**: los datos de las estrellas más brillantes, para que
+  el cielo sea el de esa noche. La librería no: con unas cien estrellas
+  alcanza.
+- **El ejemplo de pixel art de three.js** y el paper **Texel Splatting**:
+  la luz que sube y baja en escalones y el movimiento redondeado a
+  píxeles enteros. Del 3D no sobrevivió nada más; estas dos ideas sí.
+- **folio-2025** de Bruno Simon: el día como un juego de números por
+  momento (día, atardecer, noche, amanecer), que se afina tocando
+  números y no código. Lo heredó el tinte de la pintura.
+- **Jet lag social** (Wittmann, Roenneberg y otros, 2006): para comparar
+  la semana con el fin de semana ya existe una medida establecida, y se
+  usa esa en vez de inventar una.
+- **Consensus Sleep Diary** (Carney y otros, 2012): los motivos de un
+  toque siguen los conceptos del diario de sueño estándar. El
+  instrumento no se copia: su uso está restringido.
+- **Loop Habit Tracker**: una métrica que perdona los huecos. No hay
+  rachas, porque los huecos de esta app son los viernes y sábados.
+- **Liquid glass** (gentpan, shuding, nikdelvin, todos MIT) para el
+  vidrio de los controles: se leyó cómo lo hacen y no se instaló
+  ninguno. El filtro que usan dos de ellos lo dibuja solo Chrome, según
+  verificó el tercero, y detrás de las tarjetas hay un canvas, no una
+  página. El canto que dobla la escena detrás de la lista lo hace la
+  propia escena. Del tercero quedó la idea del brillo más fuerte en el
+  borde que mira a la luz.
+
+### Medir antes de dar algo por hecho
+
+En el último tramo, la prueba de calidad encontró un error que la
+medición anterior había dejado pasar. Lighthouse daba entre 72 y 77 de
+rendimiento, y no por el peso: la lista aparecía arriba y enseguida bajaba para dejar
+ver el fuego. El paso anterior había medido ese lugar **después** de
+cargar, y ahí la lista estaba bien. Lo que se movía era el primer
+instante. Arreglado, dio entre 94 y 99.
 
 ## Las reglas del repo
 
