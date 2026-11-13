@@ -2,10 +2,10 @@
 
 **Nivel:** profundo — cambia el esquema de los datos y redibuja la escena
 entera con una pintura generada que pesa cientos de kB.
-**Estado:** Etapa A hecha (PR aparte); Etapa B reescrita tras la prueba de
-la escena pintada, pendiente
-**Última actualización:** 2026-11-12 (paso 17 hecho: Lighthouse pasa
-tras arreglar el salto de la lista; sigue el 18)
+**Estado:** Etapa A hecha; Etapa B hecha (pasos 12 a 18, cerrada el
+2026-11-13)
+**Última actualización:** 2026-11-13 (paso 18 hecho: la Etapa B está
+completa)
 
 > El [plan de la v2](./PLAN.md) sigue valiendo como historia y como
 > criterio: los tres trabajos de la app y la regla "el recorte va sobre la
@@ -908,13 +908,27 @@ se rechazó y la pintura animada se aprobó.
         en una pantalla de 375. **Sin verificar a ojo:** un teléfono de 2
         px por punto (iPhone SE, 8).
       - 343 tests, lint y build en verde.
-- [ ] 18. **README y `docs/proceso.md`:** el capítulo de cómo los datos
+- [x] 18. **README y `docs/proceso.md`:** el capítulo de cómo los datos
       reales destaparon lo que los tests no veían; el de cómo un prototipo
       3D de peso alto se probó, se rechazó y se reemplazó por una pintura
       que cuesta menos código; y qué se tomó de otros proyectos. El README
       dice que la pintura la generó una IA y apunta al prompt. Actualizar
       la descripción de la escena en el README, que todavía habla de
       sprites escritos como texto.
+      **Hecho 2026-11-13.** README: la escena descrita como pintura
+      generada con IA, con link al prompt (`docs/escena-pintada.md`) y lo
+      que anima el código; la alarma de un toque y los patrones del
+      cuaderno; suncalc como única dependencia; números al día (343
+      tests, pesos y Lighthouse del paso 17); el plan vivo apunta a
+      este archivo. Capturas nuevas de noche, de día y en brasa
+      (`docs/pantalla.webp`, `escena-dia.webp`, `brasa.webp`; se borran
+      los PNG de la v2). **No se rehicieron** `docs/cuaderno.png` ni
+      `docs/info.png`: son de la v2, sin el vidrio ni los patrones, y
+      el cuaderno necesita noches cargadas para mostrarse lleno.
+      `docs/proceso.md`: un capítulo de la v3 con los datos reales
+      contra los tests, el 3D rechazado y la pintura, lo tomado de otros
+      proyectos y el salto que encontró el paso 17; y un error más del
+      agente (el `git stash` en medio de una medición).
 
 ## Riesgos
 
