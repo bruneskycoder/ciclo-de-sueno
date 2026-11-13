@@ -28,8 +28,6 @@ import {
     getSkippedNights,
     getSleepLogs,
     getTheme,
-    hasSeenAlarmGuide,
-    markAlarmGuideSeen,
     saveRecalledClockNight,
     saveTheme,
     skipNight,
@@ -44,11 +42,9 @@ import {
     nightToAskAbout,
     shouldAskAboutNight,
 } from '../sleep-session.js';
-import { alarmShortcutUrl, isIOS } from '../alarma.js';
 import { aroundPlanned, clockOptions, usualClock, wakeOptionsFor } from '../horas-sugeridas.js';
 import { showToast } from './toast.js';
 import { renderEscena } from './escena.js';
-import { openSheet } from './sheets.js';
 
 // La lista es UNA escalera ordenada por cuánto se duerme, de menos a
 // más: la siesta corta primero, después uno, dos, tres… ciclos. En la
@@ -78,7 +74,6 @@ let horaElegida = null;
 let pregunta = null;
 let preguntaForzada = null;
 let registroReciente = null;
-let horaDeAlarma = null;
 
 export function initHome() {
     document.getElementById('btn-principal').addEventListener('click', alTocarPrincipal);
@@ -86,16 +81,10 @@ export function initHome() {
     document.getElementById('btn-tema').addEventListener('click', alternarTema);
 
     document.getElementById('resultado-filas').addEventListener('click', (evento) => {
-        const alarma = evento.target.closest('[data-alarma]');
-        if (alarma) {
-            ponerAlarma(alarma.dataset.alarma);
-            return;
-        }
         const fila = evento.target.closest('.fila');
         if (fila && fila.dataset.hora) elegirHora(fila.dataset.hora);
     });
 
-    conectarHojaAlarma();
     conectarTarjetaAnoche();
     aplicarTema(getTheme());
 
@@ -164,7 +153,6 @@ function renderResultado({ modo = 'ahora', hora = null } = {}) {
         detalle: r.cycles === 1 ? '1 ciclo' : `${r.cycles} ciclos`,
         recomendada: r.isOptimal,
         seleccionable: esAhora,
-        alarma: esAhora,
     }));
 
     // La siesta corta no es una fracción de ciclo: es cortar antes de
@@ -181,7 +169,6 @@ function renderResultado({ modo = 'ahora', hora = null } = {}) {
                 detalle: 'siesta corta',
                 recomendada: false,
                 seleccionable: false,
-                alarma: true,
             });
         }
     }
@@ -226,19 +213,6 @@ function filaResultado(opcion, ahora) {
     );
 
     li.appendChild(fila);
-
-    // Una hora de despertar se puede poner de alarma con un toque. Las
-    // horas de acostarse (cuando se pide levantarse a una hora fija) no:
-    // no hay alarma que poner para irse a dormir.
-    if (opcion.alarma) {
-        const alarma = document.createElement('button');
-        alarma.type = 'button';
-        alarma.className = 'btn-alarma';
-        alarma.dataset.alarma = opcion.hora;
-        alarma.textContent = 'Poner alarma';
-        alarma.setAttribute('aria-label', `Poner alarma a las ${opcion.hora}`);
-        li.appendChild(alarma);
-    }
     return li;
 }
 
@@ -262,59 +236,10 @@ function alPedirHora(evento) {
     renderAccion();
 }
 
-// --- ALARMA ---
-//
-// Un toque abre el atajo del iPhone con la fecha y hora completas (ver
-// alarma.js). La primera vez se muestra antes la hoja que explica cómo
-// armar el atajo. Si no es un iPhone, la acción copia la hora.
-
-function ponerAlarma(hora) {
-    if (!hasSeenAlarmGuide()) {
-        abrirGuiaAlarma(hora);
-        return;
-    }
-    lanzarAlarma(hora);
-}
-
-function lanzarAlarma(hora) {
-    if (isIOS(navigator)) {
-        const url = alarmShortcutUrl(hora);
-        if (url) window.location.href = url;
-        return;
-    }
-    copiarHora(hora);
-}
-
-async function copiarHora(hora) {
-    try {
-        await navigator.clipboard.writeText(hora);
-        showToast(`Copiada: ${hora}.`);
-    } catch {
-        showToast('No pude copiar la hora.');
-    }
-}
-
-/** Abre la hoja con los pasos del atajo. Sin hora, es solo para leer. */
-export function abrirGuiaAlarma(hora = null) {
-    horaDeAlarma = hora;
-    const texto = document.getElementById('alarma-hora');
-    texto.hidden = !hora;
-    texto.textContent = hora ? `Alarma para las ${hora}.` : '';
-    document.getElementById('alarma-poner').hidden = !hora;
-    document.getElementById('alarma-copiar').hidden = !hora;
-    openSheet('hoja-alarma');
-}
-
-function conectarHojaAlarma() {
-    document.getElementById('alarma-poner').addEventListener('click', () => {
-        markAlarmGuideSeen();
-        document.getElementById('hoja-alarma').close();
-        if (horaDeAlarma) lanzarAlarma(horaDeAlarma);
-    });
-    document.getElementById('alarma-copiar').addEventListener('click', () => {
-        if (horaDeAlarma) copiarHora(horaDeAlarma);
-    });
-}
+// La alarma de un toque (v3, paso 8) se sacó el 2026-11-13: iOS no deja
+// que una página ponga una alarma, y el atajo que hacía de puente costaba
+// demasiado de armar. Está en el historial de git, por si vuelve con una
+// app nativa.
 
 // --- ACCIÓN ---
 

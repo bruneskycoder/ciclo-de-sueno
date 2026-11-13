@@ -24,7 +24,6 @@ const SEL = {
     hora: '.fila .hora',
     falta: '.fila .falta',
     ciclos: '.fila .ciclos',
-    'poner alarma': '.btn-alarma',
     'pie lista': '.resultado-pie',
     'detalle acción': '.accion-detalle',
     'label despertar': '.form-despertar > label',

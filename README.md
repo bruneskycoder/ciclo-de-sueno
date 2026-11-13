@@ -20,11 +20,6 @@ menos a más: la siesta corta primero, después uno, dos, tres ciclos. Al
 lado de cada hora dice cuánto falta, que a la una de la madrugada es el
 dato que importa.
 
-**Pone la alarma.** Al lado de cada hora hay un botón que abre un atajo
-del iPhone, y el atajo pone la alarma. iOS no deja que una página la
-ponga sola; el atajo se arma una vez, siguiendo cuatro pasos que la app
-explica. Si no estás en un iPhone, copia la hora.
-
 **Anota, sin pedírtelo a la mañana.** El registro de sueño de la versión
 anterior nunca se usó, y el motivo no era la cantidad de campos: era el
 momento. Pedía completar un formulario a la mañana siguiente, y a la

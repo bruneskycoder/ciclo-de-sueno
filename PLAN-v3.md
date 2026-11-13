@@ -448,7 +448,7 @@ no depende de la escena.
       la noche en el cuaderno.
 - [x] 7. Huecos de la última semana en el cuaderno — verificación: tests
       de qué noches cuentan como hueco y captura.
-- [x] 8. Poner alarma: link al atajo con fecha ISO, hoja de instrucciones y
+- [x] 8. **Sacado el 2026-11-13** (ver el registro). Poner alarma: link al atajo con fecha ISO, hoja de instrucciones y
       plan B — verificación automática del link armado (incluido el cruce
       de medianoche: 07:20 pedido a las 23:00 es mañana); la real es tuya,
       en el iPhone.
@@ -1114,6 +1114,13 @@ con Playwright en tamaño iPhone 13 y SE; contraste medido sobre la escena.
   (paso 15a), no con una pintura de brasas aparte. **Con una noche en
   curso, la leña cuenta los ciclos que faltan** (15b), decisión mía que
   el plan no pedía.
+- 2026-11-13 — **Se saca la alarma de un toque** (paso 8), pedido de
+  Bruno: no entendió cómo armar el atajo, y la verificación manual 4
+  nunca se pudo hacer. Se van el botón de cada hora, la hoja con los
+  pasos, la sección de Ajustes, `alarma.js` y sus tests. Vuelve si la app
+  pasa a ser nativa: desde iOS 26, AlarmKit deja que una app de la
+  tienda ponga alarmas (documentación de Apple); una página web sigue
+  sin poder.
 - 2026-11-12 — **Se saca la pila de leños** (15b), pedido de Bruno. La
   escena cuenta la noche solo con el fuego que baja.
 - 2026-11-12 — **El vidrio de la lista dobla en el canto y el velo se
