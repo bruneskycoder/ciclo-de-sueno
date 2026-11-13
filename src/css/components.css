@@ -56,6 +56,13 @@
 .con-pintura .cabecera .escena {
     order: 1;
 }
+/* Hasta que la lista tiene sus horas (main.js pone lista-dibujada), lo que
+   va debajo no se muestra: la lista nace con una sola línea ("Un
+   momento…") y al llenarse empujaba el botón hacia abajo a la vista de
+   todos (Lighthouse medía 0,12 de salto). Invisible, pero en su lugar. */
+.con-pintura:not(.lista-dibujada) :is(.accion, .enlaces) {
+    visibility: hidden;
+}
 
 /* Con la pintura detrás, las tarjetas son un velo y no una pared: se ve
    la escena moverse a través de ellas. Cuánto tapan lo pone
